@@ -10,7 +10,7 @@ set(
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/ScalarTypes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
-)
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
