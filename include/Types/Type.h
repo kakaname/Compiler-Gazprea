@@ -5,6 +5,8 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
+using TypeId = unsigned;
+
 class Type {
 public:
     enum TypeKind {

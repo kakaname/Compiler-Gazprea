@@ -8,6 +8,7 @@
 #include "string"
 
 #include "Common/TreeNode.h"
+#include "Types/Type.h"
 
 using std::string;
 
@@ -403,7 +404,7 @@ struct TupleTypeDecl: public TreeNode {
     TupleTypeDecl(): TreeNode(TreeNodeKind::N_AST_TupleTypeDecl) {}
 };
 
-
+// Remains to be done!!!!!
 struct Conditional: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Conditional;
@@ -412,7 +413,7 @@ struct Conditional: public TreeNode {
     Conditional(): TreeNode(TreeNodeKind::N_AST_Conditional) {}
 };
 
-
+// Remains to be done!!!!!
 struct ConditionalElse: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalElse;
@@ -422,18 +423,72 @@ struct ConditionalElse: public TreeNode {
 };
 
 
+// !!!!!!!!!
+// I wonder if this works the same as CastTo in VCalc
 struct TypeCast: public TreeNode {
+    static constexpr int ChildExprIdx = 0;
+    TypeId TargetType;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TypeCast;
     }
 
-    TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast) {}
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ChildExprIdx, Expr);
+    }
+
+    void setTargetType(TypeId Target) {
+        TargetType = Target;
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ChildExprIdx);
+    }
+
+    TypeId getTargetType() const {
+        return TargetType;
+    }
+
+    TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast), TargetType()  {}
 };
 
 
 struct BitwiseOp: public TreeNode {
+    static constexpr int LeftExprIdx = 0;
+    static constexpr int RightExprIdx = 1;
+
+    enum OpKind {
+        AND = 0, OR, XOR
+    };
+
+    OpKind Op;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_BitwiseOp;
+    }
+
+    void setOp(OpKind OpKind) {
+        Op = OpKind;
+    }
+
+    OpKind getOpKind() {
+        return Op;
+    }
+
+    void setLeftExpr(ASTNodeT *Expr) {
+        setChildAt(LeftExprIdx, Expr);
+    }
+
+    void setRightExpr(ASTNodeT *Expr) {
+        setChildAt(RightExprIdx, Expr);
+    }
+
+    ASTNodeT *getLeftExpr() {
+        return getChildAt(LeftExprIdx);
+    }
+
+    ASTNodeT *getRightExpr() {
+        return getChildAt(RightExprIdx);
     }
 
     BitwiseOp(): TreeNode(TreeNodeKind::N_AST_BitwiseOp) {}
@@ -441,8 +496,32 @@ struct BitwiseOp: public TreeNode {
 
 
 struct UnaryOp: public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    enum OpKind {
+        ADD = 0, SUB, NOT
+    };
+
+    OpKind Op;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_UnaryOp;
+    }
+
+    void setOp(OpKind OpKind) {
+        Op = OpKind;
+    }
+
+    OpKind getOpKind() {
+        return Op;
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
     }
 
     UnaryOp(): TreeNode(TreeNodeKind::N_AST_UnaryOp) {}
