@@ -22,8 +22,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
         return std::any_cast<ASTNodeT *>(visit(Tree));
     }
 
-
-
     std::any visitFile(GazpreaParser::FileContext *ctx) override;
 
     std::any visitGlobal(GazpreaParser::GlobalContext *ctx) override;

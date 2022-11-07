@@ -73,32 +73,98 @@ std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) 
 }
 
 std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext *ctx) {
+    auto IfStat = PM->Builder.build<Conditional>();
 
+    // Set the conditional expression
+    auto CondExpr = castToNodeVisit(ctx->expr());
+    IfStat->setConditional(CondExpr);
+    CondExpr->setParent(IfStat);
+
+    // Set the statement body
+    auto StatementBody = castToNodeVisit(ctx->stmt());
+    IfStat->setStatement(StatementBody);
+    StatementBody->setParent(IfStat);
+
+    return IfStat;
 }
 
 std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditionalContext *ctx) {
+    auto IfElseStat = PM->Builder.build<ConditionalElse>();
 
+    // Set the conditional expression
+    auto CondExpr = castToNodeVisit(ctx->expr());
+    IfElseStat->setConditional(CondExpr);
+    CondExpr->setParent(IfElseStat);
+
+    // Set the statement body
+    auto StatementBody = castToNodeVisit(ctx->stmt(0));
+    IfElseStat->setStatement(StatementBody);
+    StatementBody->setParent(IfElseStat);
+
+    // Set the else statement body
+    auto ElseStatementBody = castToNodeVisit(ctx->stmt(1));
+    IfElseStat->setElseStatement(ElseStatementBody);
+    ElseStatementBody->setParent(IfElseStat);
+
+    return IfElseStat;
 }
 
 std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *ctx) {
+    auto Loop = PM->Builder.build<InfiniteLoop>();
 
+    // Set the statement body
+    auto StatementBody = castToNodeVisit(ctx->stmt());
+    Loop->setStatement(StatementBody);
+    StatementBody->setParent(Loop);
+
+    return Loop;
 }
 
 std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
+    auto Loop = PM->Builder.build<ConditionalLoop>();
 
+    // Set the conditional expression
+    auto CondExpr = castToNodeVisit(ctx->expr());
+    Loop->setConditional(CondExpr);
+    CondExpr->setParent(Loop);
+
+    // Set the statement body
+    auto StatementBody = castToNodeVisit(ctx->stmt());
+    Loop->setStatement(StatementBody);
+    StatementBody->setParent(Loop);
+
+    return Loop;
 }
 
 std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) {
+    auto Loop = PM->Builder.build<ConditionalLoop>();
 
+    // Set the conditional expression
+    auto CondExpr = castToNodeVisit(ctx->expr());
+    Loop->setConditional(CondExpr);
+    CondExpr->setParent(Loop);
+
+    // Set the statement body
+    auto StatementBody = castToNodeVisit(ctx->stmt());
+    Loop->setStatement(StatementBody);
+    StatementBody->setParent(Loop);
+
+    // Set conditional after because this is a do-while loop
+    Loop->setConditionalAfter();
+
+    return Loop;
 }
 
+// Ignore for part1
 std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) {
 
 }
 
+// Ignore for part1
 std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) {
 
 }
+
 
 std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
 

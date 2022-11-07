@@ -65,7 +65,7 @@ struct Assignment: public TreeNode {
     }
 
     ASTNodeT *getExpr() {
-        getChildAt(ExprChildIdx);
+        return getChildAt(ExprChildIdx);
     }
 
     Assignment() : TreeNode(TreeNodeKind::N_AST_Assignment) {};
@@ -258,6 +258,8 @@ struct InfiniteLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_InfiniteLoop;
     }
+
+    InfiniteLoop() : TreeNode(TreeNodeKind::N_AST_InfiniteLoop) {};
 };
 
 // Remains to be checked
@@ -557,33 +559,31 @@ struct ConditionalElse: public TreeNode {
 };
 
 
-// !!!!!!!!!
-// I wonder if this works the same as CastTo in VCalc
 struct TypeCast: public TreeNode {
-    static constexpr int ChildExprIdx = 0;
-    TypeId TargetType;
+    static constexpr int OldTypeIdx = 0;
+    static constexpr int NewTypeIdx = 1;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TypeCast;
     }
 
-    void setExpr(ASTNodeT *Expr) {
-        setChildAt(ChildExprIdx, Expr);
+    void setOldTypeNode(ASTNodeT *N) {
+        setChildAt(OldTypeIdx, N);
     }
 
-    void setTargetType(TypeId Target) {
-        TargetType = Target;
+    void setNewTypeNode(ASTNodeT *N) {
+        setChildAt(NewTypeIdx, N);
     }
 
-    ASTNodeT *getExpr() {
-        return getChildAt(ChildExprIdx);
+    ASTNodeT *getOldTypeNode() {
+        return getChildAt(OldTypeIdx);
     }
 
-    TypeId getTargetType() const {
-        return TargetType;
+    ASTNodeT *getNewTypeNode() {
+        return getChildAt(NewTypeIdx);
     }
 
-    TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast), TargetType()  {}
+    TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast) {}
 };
 
 
