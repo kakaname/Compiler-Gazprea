@@ -39,9 +39,10 @@ assignment : ID EQ expr SC;
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
 
-loop : LOOP stmt                 # infiniteLoop
-     | LOOP WHILE expr stmt      # whileLoop
-     | LOOP iterDomain stmt      # domainLoop; // I don't quite understand this one
+loop : LOOP stmt                 #infiniteLoop
+     | LOOP WHILE expr stmt      #whileLoop
+     | LOOP stmt WHILE expr      #doWhileLoop
+     | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
 
 // I don't quite understand this one
 iterDomain : ID GET expr;

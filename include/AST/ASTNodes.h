@@ -243,8 +243,51 @@ struct Index: public TreeNode {
     Index() : TreeNode(TreeNodeKind::N_AST_Index) {};
 };
 
-// Remains to be done!!!!!
+
+struct InfiniteLoop: public TreeNode {
+    static constexpr int StatementIdx = 0;
+
+    void setStatement(ASTNodeT *Stat) {
+        setChildAt(StatementIdx, Stat);
+    }
+
+    ASTNodeT *getStatement() {
+        return getChildAt(StatementIdx);
+    }
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_InfiniteLoop;
+    }
+};
+
+// Remains to be checked
 struct ConditionalLoop: public TreeNode {
+    static constexpr int ConditionalIdx = 0;
+    static constexpr int StatementIdx = 1;
+
+    // Check if while loop or do-while loop
+    bool ConditionalBefore{true};
+
+    void setConditionalAfter() {
+        ConditionalBefore = false;
+    }
+
+    void setConditional(ASTNodeT *Expr) {
+        setChildAt(ConditionalIdx, Expr);
+    }
+
+    void setStatement(ASTNodeT *Stat) {
+        setChildAt(StatementIdx, Stat);
+    }
+
+    ASTNodeT *getConditional() {
+        return getChildAt(ConditionalIdx);
+    }
+
+    ASTNodeT *getStatement() {
+        return getChildAt(StatementIdx);
+    }
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalLoop;
     }
@@ -318,6 +361,10 @@ struct BoolLiteral: public TreeNode {
 
     void setTrue() {
         IsTrue = true;
+    }
+
+    void setFalse() {
+        IsTrue = false;
     }
 
     BoolLiteral(): TreeNode(TreeNodeKind::N_AST_BoolLiteral) {}
@@ -395,8 +442,24 @@ struct MemberAccess: public TreeNode {
     MemberAccess(): TreeNode(TreeNodeKind::N_AST_MemberAccess) {}
 };
 
-// Remains to be done!!!!!
+// Remains to be checked!!!!!
 struct TupleTypeDecl: public TreeNode {
+    void setDeclAtPos(Declaration *Decl, long Pos) {
+        setChildAt(Pos, Decl);
+    }
+
+    Declaration *getDeclAtPos(long Pos) {
+        return getChildAtAs<Declaration>(Pos);
+    }
+
+    ChildrenContainerT::iterator begin() {
+        return Children.begin();
+    }
+
+    ChildrenContainerT::iterator end() {
+        return Children.end();
+    }
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleTypeDecl;
     }
@@ -404,17 +467,74 @@ struct TupleTypeDecl: public TreeNode {
     TupleTypeDecl(): TreeNode(TreeNodeKind::N_AST_TupleTypeDecl) {}
 };
 
-// Remains to be done!!!!!
+// Remains to be checked!!!!!
 struct Conditional: public TreeNode {
+    static constexpr int ConditionalIdx = 0;
+    static constexpr int StatementIdx = 1;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Conditional;
+    }
+
+    void setConditional(ASTNodeT *Expr) {
+        setChildAt(ConditionalIdx, Expr);
+    }
+
+    void setStatement(ASTNodeT *Stat) {
+        setChildAt(StatementIdx, Stat);
+    }
+
+    ASTNodeT *getConditional() {
+        return getChildAt(ConditionalIdx);
+    }
+
+    ASTNodeT *getStatement() {
+        return getChildAt(StatementIdx);
     }
 
     Conditional(): TreeNode(TreeNodeKind::N_AST_Conditional) {}
 };
 
-// Remains to be done!!!!!
+// Remains to be checked!!!!!
 struct ConditionalElse: public TreeNode {
+    static constexpr int ConditionalIdx = 0;
+    static constexpr int StatementIdx = 1;
+    static constexpr int ElseConditionalIdx = 2;
+    static constexpr int ElseStatementIdx = 3;
+
+
+    void setConditional(ASTNodeT *Expr) {
+        setChildAt(ConditionalIdx, Expr);
+    }
+
+    void setStatement(ASTNodeT *Stat) {
+        setChildAt(StatementIdx, Stat);
+    }
+
+    void setElseConditional(ASTNodeT *Expr) {
+        setChildAt(ElseConditionalIdx, Expr);
+    }
+
+    void setElseStatement(ASTNodeT *Stat) {
+        setChildAt(ElseStatementIdx, Stat);
+    }
+
+    ASTNodeT *getConditional() {
+        return getChildAt(ConditionalIdx);
+    }
+
+    ASTNodeT *getStatement() {
+        return getChildAt(StatementIdx);
+    }
+
+    ASTNodeT *getElseConditional() {
+        return getChildAt(ElseConditionalIdx);
+    }
+
+    ASTNodeT *getElseStatement() {
+        return getChildAt(ElseStatementIdx);
+    }
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalElse;
     }

@@ -39,6 +39,7 @@ public:
         N_AST_TupleLiteral,
         N_AST_MemberAccess,
         N_AST_TupleTypeDecl,
+        N_AST_InfiniteLoop,
         N_AST_Conditional,
         N_AST_ConditionalElse,
         N_AST_TypeCast,
