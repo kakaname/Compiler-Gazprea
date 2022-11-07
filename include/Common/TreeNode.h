@@ -15,7 +15,7 @@
 using std::vector;
 using llvm::cast;
 
-class TreeNode {
+struct TreeNode {
 public:
     using ChildrenContainerT = vector<TreeNode*>;
 

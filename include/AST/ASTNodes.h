@@ -114,6 +114,7 @@ struct Declaration: public TreeNode {
 };
 
 
+// Remains to be done!!!!!!!
 struct Block: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Block;
@@ -127,8 +128,38 @@ struct LogicalOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
     static constexpr int RightExprIdx = 1;
 
+    enum OpKind {
+        LT = 0, GT, LTEQ, GTEQ, EQEQ, NEQ
+    };
+
+    OpKind Op;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
+    }
+
+    void setOp(OpKind OpKind) {
+        Op = OpKind;
+    }
+
+    OpKind getOpKind() {
+        return Op;
+    }
+
+    void setLeftExpr(ASTNodeT *Expr) {
+        setChildAt(LeftExprIdx, Expr);
+    }
+
+    void setRightExpr(ASTNodeT *Expr) {
+        setChildAt(RightExprIdx, Expr);
+    }
+
+    ASTNodeT *getLeftExpr() {
+        return getChildAt(LeftExprIdx);
+    }
+
+    ASTNodeT *getRightExpr() {
+        return getChildAt(RightExprIdx);
     }
 
     LogicalOp() : TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
@@ -136,8 +167,41 @@ struct LogicalOp: public TreeNode {
 
 
 struct ArithmeticOp: public TreeNode {
+    static constexpr int LeftExprIdx = 0;
+    static constexpr int RightExprIdx = 1;
+
+    enum OpKind {
+        EXP = 0, MUL, DIV, MOD, SS, ADD, SUB
+    };
+
+    OpKind Op;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ArithmeticOp;
+    }
+
+    void setOp(OpKind OpKind) {
+        Op = OpKind;
+    }
+
+    OpKind getOpKind() {
+        return Op;
+    }
+
+    void setLeftExpr(ASTNodeT *Expr) {
+        setChildAt(LeftExprIdx, Expr);
+    }
+
+    void setRightExpr(ASTNodeT *Expr) {
+        setChildAt(RightExprIdx, Expr);
+    }
+
+    ASTNodeT *getLeftExpr() {
+        return getChildAt(LeftExprIdx);
+    }
+
+    ASTNodeT *getRightExpr() {
+        return getChildAt(RightExprIdx);
     }
 
     ArithmeticOp() : TreeNode(TreeNodeKind::N_AST_ArithmeticOp) {}
@@ -145,6 +209,25 @@ struct ArithmeticOp: public TreeNode {
 
 
 struct Index: public TreeNode {
+    static constexpr int BaseExprIdx = 0;
+    static constexpr int IndexExprIdx = 1;
+
+    void setBaseExpr(ASTNodeT *Expr) {
+        setChildAt(BaseExprIdx, Expr);
+    }
+
+    void setIndexExpr(ASTNodeT *Expr) {
+        setChildAt(IndexExprIdx, Expr);
+    }
+
+    ASTNodeT *getBaseExpr() {
+        return getChildAt(BaseExprIdx);
+    }
+
+    ASTNodeT *getIndexExpr() {
+        return getChildAt(IndexExprIdx);
+    }
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Index;
     }
@@ -152,7 +235,7 @@ struct Index: public TreeNode {
     Index() : TreeNode(TreeNodeKind::N_AST_Index) {};
 };
 
-
+// Remains to be done!!!!!
 struct ConditionalLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalLoop;
@@ -161,7 +244,7 @@ struct ConditionalLoop: public TreeNode {
     ConditionalLoop() : TreeNode(TreeNodeKind::N_AST_ConditionalLoop) {}
 };
 
-
+// Remains to be done!!!!!
 struct DomainLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_DomainLoop;
@@ -170,9 +253,21 @@ struct DomainLoop: public TreeNode {
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}
 };
 
+// Remains to be checked
 struct IntLiteral: public TreeNode {
+    int32_t Val;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_IntLiteral;
+    }
+
+    // Remains to be checked
+    void setVal(const std::basic_string<char> &Literal) {
+        Val = std::stoi(Literal);
+    }
+
+    int32_t getVal() {
+        return Val;
     }
 
     IntLiteral(): TreeNode(TreeNodeKind::N_AST_IntLiteral) {}
@@ -197,6 +292,7 @@ struct IdentityLiteral: public TreeNode {
 };
 
 
+// Remains to be done!!!!!
 struct RealLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_RealLiteral;
@@ -205,43 +301,96 @@ struct RealLiteral: public TreeNode {
     RealLiteral(): TreeNode(TreeNodeKind::N_AST_RealLiteral) {}
 };
 
-
+// Remains to be checked
 struct BoolLiteral: public TreeNode {
+    bool IsTrue{false};
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_BoolLiteral;
+    }
+
+    void setTrue() {
+        IsTrue = true;
     }
 
     BoolLiteral(): TreeNode(TreeNodeKind::N_AST_BoolLiteral) {}
 };
 
-
+// Remains to be checked
 struct CharLiteral: public TreeNode {
+    char Character;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_CharLiteral;
+    }
+
+    void setCharacter(char Literal) {
+        Character = Literal;
+    }
+
+    char getCharacter() {
+        return Character;
     }
 
     CharLiteral(): TreeNode(TreeNodeKind::N_AST_CharLiteral) {}
 };
 
 
+// Remains to be checked
 struct TupleLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleLiteral;
+    }
+
+    void setExprAtPos(ASTNodeT *Expr, int Pos) {
+        setChildAt(Pos, Expr);
+    }
+
+    ASTNodeT *getExprAtPos(int Pos) {
+        return getChildAt(Pos);
+    }
+
+    ChildrenContainerT::iterator begin() {
+        return Children.begin();
+    }
+
+    ChildrenContainerT::iterator end() {
+        return Children.end();
     }
 
     TupleLiteral(): TreeNode(TreeNodeKind::N_AST_TupleLiteral) {};
 };
 
 
+// Remains to be checked
 struct MemberAccess: public TreeNode {
+    static constexpr size_t IdentIdx = 0;
+    static constexpr size_t MemberExprIdx = 1;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_MemberAccess;
+    }
+
+    void setIdent(Identifier *Ident) {
+        setChildAt(IdentIdx, Ident);
+    }
+
+    void setMemberExpr(ASTNodeT *Expr) {
+        setChildAt(MemberExprIdx, Expr);
+    }
+
+    Identifier *getIdentifier() {
+        return getChildAtAs<Identifier>(IdentIdx);
+    }
+
+    ASTNodeT *getMemberExpr() {
+        return getChildAt(MemberExprIdx);
     }
 
     MemberAccess(): TreeNode(TreeNodeKind::N_AST_MemberAccess) {}
 };
 
-
+// Remains to be done!!!!!
 struct TupleTypeDecl: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleTypeDecl;
