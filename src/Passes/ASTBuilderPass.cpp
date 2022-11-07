@@ -4,6 +4,10 @@
 
 #include "Passes/ASTBuilderPass.h"
 #include "llvm/Support/Casting.h"
+#include "Types/ScalarTypes.h"
+#include "Types/CompositeTypes.h"
+#include "Types/Type.h"
+#include <memory>
 
 using llvm::cast;
 using llvm::isa;
@@ -49,6 +53,7 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
         Decl->setIdentTypeNode(nullptr);
     else
         Decl->setIdentTypeNode(castToNodeVisit(ctx->type()));
+
     // Build the identifier that is being assigned to.
     auto Ident = PM->Builder.build<Identifier>(Decl);
     Ident->setName(ctx->ID()->getText());
@@ -167,7 +172,20 @@ std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) 
 
 
 std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
+    auto TypeCasting = PM->Builder.build<TypeCast>();
 
+    // Set the old type
+    auto OldType = castToNodeVisit(ctx->type());
+    TypeCasting->setOldTypeNode(OldType);
+    OldType->setParent(TypeCasting);
+
+    // Set the new type
+    auto NewType = PM->Builder.build<Identifier>();
+    NewType->setName(ctx->ID()->getText());
+    TypeCasting->setNewTypeNode(NewType);
+    NewType->setParent(TypeCasting);
+
+    return TypeCasting;
 }
 
 std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
@@ -179,45 +197,54 @@ std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
+    auto ReturnStatement = PM->Builder.build<Return>();
 
-}
+    // Set the returned expression
+    auto ReturnExpr = castToNodeVisit(ctx->expr());
+    ReturnStatement->setReturnExpr(ReturnExpr);
+    ReturnExpr->setParent(ReturnStatement);
 
-std::any ASTBuilderPass::visitTypeQualifier(GazpreaParser::TypeQualifierContext *ctx) {
-
+    return ReturnStatement;
 }
 
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {
+    auto ResolvedType = PM->Builder.build<Identifier>();
+    ResolvedType->setName(ctx->ID()->getText());
 
+    return ResolvedType;
 }
 
-std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
-
-}
-
+// Ignore for part1
 std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) {
 
 }
 
+// Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
 
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {
 
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitCharType(GazpreaParser::CharTypeContext *ctx) {
 
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitBooleanType(GazpreaParser::BooleanTypeContext *ctx) {
 
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitRealType(GazpreaParser::RealTypeContext *ctx) {
 
 }
 
+// Ignore for part1
 std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) {
 
 }

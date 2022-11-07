@@ -60,6 +60,7 @@ public:
 
     template<typename NodeT,
             typename = std::enable_if_t<std::is_base_of_v<TreeNode, NodeT>>>
+
     NodeT *build() {
         std::pair Key{++CurrentId, TreeNodeObject(NodeT())};
         auto I = Nodes.insert(std::move(Key));
