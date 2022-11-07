@@ -7,95 +7,79 @@ tokens {
 // --- PARSER RULES ---
 file: (global)* EOF;
 
-global
-    : identDecl
-    | functionDeclr
-    | functionDefinition
-    | procedureDeclr
-    | procedureDefinition;
+global : identDecl
+       | functionDeclr
+       | functionDefinition
+       | procedureDeclr
+       | procedureDefinition
+       | typeDef
+       ;
 
 stmt: simpleStmt | block; // Block should really be called compound statement.
 
-simpleStmt
-    : identDecl
-    | assignment
-    | conditional
-    | loop
-    | typeDef
-    | output
-    | input
-    | BREAK
-    | CONTINUE
-    | return
-    | functionDeclr
-    | functionDefinition
-    | procedureDeclr
-    | procedureDefinition
-    | procedureCall;
+// typeDef can only appear at global scope, so I removed typeDef to global
+// Also, function/procedure declaration/definition are also removed for similar reason
+simpleStmt : identDecl
+           | assignment
+           | conditional
+           | loop
+           | output
+           | input
+           | BREAK
+           | CONTINUE
+           | return
+           | procedureCall
+           ;
 
-identDecl
-    : (typeQualifier)? (type)? ID (EQ expr)? SC;
+identDecl : (typeQualifier)? (type)? ID (EQ expr)? SC;
 
 // we cannot assign procedureCall to an ID? I removed it.
-assignment
-    : ID EQ expr SC;
+assignment : ID EQ expr SC;
 
-conditional
-    : IF expr stmt              # ifConditional
-    | IF expr stmt ELSE stmt    # ifElseConditional;
+conditional : IF expr stmt              # ifConditional
+            | IF expr stmt ELSE stmt    # ifElseConditional;
 
-loop
-    : LOOP stmt                 # infiniteLoop
-    | LOOP WHILE expr stmt      # whileLoop
-    | LOOP iterDomain stmt      # domainLoop;
+loop : LOOP stmt                 # infiniteLoop
+     | LOOP WHILE expr stmt      # whileLoop
+     | LOOP iterDomain stmt      # domainLoop; // I don't quite understand this one
 
-iterDomain
-    : ID GET expr;
+// I don't quite understand this one
+iterDomain : ID GET expr;
 
 //change the first ID token to type
-typeDef
-    : TYPEDEF type ID SC;
+typeDef : TYPEDEF type ID SC;
 
-output
-    : expr PUT STDOUT SC;
+output : expr PUT STDOUT SC;
 
-input
-    : ID IN STDIN SC;
+input : ID IN STDIN SC;
 
-return
-    : RETURN expr SC;
+return : RETURN expr SC;
 
-typeQualifier
-    : VAR
-    | CONST;
+typeQualifier : VAR
+              | CONST;
 
-// Do we need resolved type?
-type
-    : ID                #resolvedType
-    | tupleTypeDecl     #tupleType
-    | ID LSQRPAREN expressionOrWildcard RSQRPAREN   #vectorType
-    | ID LSQRPAREN expressionOrWildcard COMMA
-    expressionOrWildcard RSQRPAREN                  #matrixType
-    | INTEGER           #intType
-    | CHARACTER         #charType
-    | BOOLEANA          #booleanType
-    | REAL              #realType
-    ;
+type : ID                #resolvedType
+     | tupleTypeDecl     #tupleType
+     | ID LSQRPAREN expressionOrWildcard RSQRPAREN   #vectorType
+     | ID LSQRPAREN expressionOrWildcard COMMA
+     expressionOrWildcard RSQRPAREN                  #matrixType
+     | INTEGER           #intType
+     | CHARACTER         #charType
+     | BOOLEANA          #booleanType
+     | REAL              #realType
+     ;
 
-expressionOrWildcard:
-    (MUL | expr);
+expressionOrWildcard: (MUL | expr);
 
 tupleTypeDecl
     : TUPLE LPAREN typeOptionalIdentPair COMMA typeOptionalIdentPair
-     (COMMA typeOptionalIdentPair)*;
+    (COMMA typeOptionalIdentPair)*;
 
 
 // added (typeQualifier)? because procedure parameters can have type qualifiers
-typeOptionalIdentPair
-    : (typeQualifier)? type (ID)?;
+typeOptionalIdentPair : (typeQualifier)? type (ID)?;
 
-typeIdentPair
-    : (typeQualifier)? type ID;
+typeIdentPair : (typeQualifier)? type ID;
 
 functionDeclr
     : FUNCTION funcName=ID LPAREN
@@ -116,11 +100,12 @@ procedureDefinition
     : PROCEDURE procName=ID LPAREN
     (typeIdentPair (COMMA typeIdentPair)*)? RPAREN (RETURNS type)? block;
 
-functionCall // Should be an expression.
-    : ID LPAREN (expr (COMMA expr)*)? RPAREN;
 
-procedureCall
-    : CALL ID LPAREN (expr (COMMA expr)*)? RPAREN SC;
+// Should be an expression.
+functionCall : ID LPAREN (expr (COMMA expr)*)? RPAREN;
+
+// added a SC token at the end
+procedureCall : CALL ID LPAREN (expr (COMMA expr)*)? RPAREN SC;
 
 block : LBRACE (stmt)* RBRACE ;
 
@@ -163,14 +148,12 @@ expr: LPAREN expr RPAREN                    # bracketExpr
 
 realLit : fullRealLiteral | sciRealLiteral ;
 
-sciRealLiteral
-    : fullRealLiteral 'e' (ADD | SUB)? INTLITERAL;
+sciRealLiteral : fullRealLiteral 'e' (ADD | SUB)? INTLITERAL;
 
-fullRealLiteral
-    : INTLITERAL PERIOD INTLITERAL    # mainReal
-    | INTLITERAL PERIOD               # intReal
-    | PERIOD INTLITERAL               # dotReal
-    ;
+fullRealLiteral : INTLITERAL PERIOD INTLITERAL    # mainReal
+                | INTLITERAL PERIOD               # intReal
+                | PERIOD INTLITERAL               # dotReal
+                ;
 
 // --- LEXER RULES ---
 
