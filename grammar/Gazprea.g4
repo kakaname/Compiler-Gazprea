@@ -36,8 +36,9 @@ simpleStmt
 identDecl
     : (typeQualifier)? (type)? ID (EQ expr)? SC;
 
+// we cannot assign procedureCall to an ID? I removed it.
 assignment
-    : ID EQ (expr | procedureCall) SC;
+    : ID EQ expr SC;
 
 conditional
     : IF expr stmt              # ifConditional
@@ -51,8 +52,9 @@ loop
 iterDomain
     : ID GET expr;
 
+//change the first ID token to type
 typeDef
-    : TYPEDEF ID ID SC;
+    : TYPEDEF type ID SC;
 
 output
     : expr PUT STDOUT SC;
@@ -67,12 +69,17 @@ typeQualifier
     : VAR
     | CONST;
 
+// Do we need resolved type?
 type
-    : ID                                            #resolvedType
-    | tupleTypeDecl                                 #tupleType
+    : ID                #resolvedType
+    | tupleTypeDecl     #tupleType
     | ID LSQRPAREN expressionOrWildcard RSQRPAREN   #vectorType
     | ID LSQRPAREN expressionOrWildcard COMMA
     expressionOrWildcard RSQRPAREN                  #matrixType
+    | INTEGER           #intType
+    | CHARACTER         #charType
+    | BOOLEANA          #booleanType
+    | REAL              #realType
     ;
 
 expressionOrWildcard:
@@ -82,11 +89,13 @@ tupleTypeDecl
     : TUPLE LPAREN typeOptionalIdentPair COMMA typeOptionalIdentPair
      (COMMA typeOptionalIdentPair)*;
 
+
+// added (typeQualifier)? because procedure parameters can have type qualifiers
 typeOptionalIdentPair
-    : type (ID)?;
+    : (typeQualifier)? type (ID)?;
 
 typeIdentPair
-    : type ID;
+    : (typeQualifier)? type ID;
 
 functionDeclr
     : FUNCTION funcName=ID LPAREN
@@ -94,13 +103,14 @@ functionDeclr
       RPAREN RETURNS type SC;
 
 functionDefinition
-    : FUNCTION ID funcName=LPAREN
+    : FUNCTION funcName=ID LPAREN
       (typeIdentPair (COMMA typeIdentPair)*)?
       RPAREN RETURNS type (block | EQ expr SC);
 
 procedureDeclr
     : PROCEDURE procName=ID LPAREN
-      (typeOptionalIdentPair (COMMA typeOptionalIdentPair)*)? RPAREN (RETURNS type)?;
+      (typeOptionalIdentPair (COMMA typeOptionalIdentPair)*)?
+      RPAREN (RETURNS type)? SC;
 
 procedureDefinition
     : PROCEDURE procName=ID LPAREN
@@ -110,43 +120,45 @@ functionCall // Should be an expression.
     : ID LPAREN (expr (COMMA expr)*)? RPAREN;
 
 procedureCall
-    : CALL ID LPAREN (expr (COMMA expr)*)? RPAREN;
+    : CALL ID LPAREN (expr (COMMA expr)*)? RPAREN SC;
 
 block : LBRACE (stmt)* RBRACE ;
 
-// TODO: Check precedence and add matrix literals, vector literals,
-//  real literals, string literals, tuple literals.
+// TODO: Check precedence(done) and add matrix literals, vector literals,
+//  real literals(done), string literals, tuple literals(done).
 
 // 1. promote bracketExpr to the highest priority
 // 2. change notExpr to unaryExpr
 // 3. expExpr should be right-associative
 // 4. appendOp should be right-associative
+// 5. And expression operator should be 'and' instead of '&'
 
 expr: LPAREN expr RPAREN                    # bracketExpr
     | ID PERIOD (ID | INTLITERAL)           # memberAccess
     | expr LSQRPAREN expr RSQRPAREN         # indexExpr
     | expr DD expr (BY expr)?               # rangeExpr
-    | <assoc=right> op=(ADD | SUB | NOT) expr      # unaryExpr
+    | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr EXP expr           # expExpr
-    | expr op=(MUL | DIV | MOD | SS) expr     # mulDivExpr // A better name perhaps
+    | expr op=(MUL | DIV | MOD | SS) expr   # mulDivModSSExpr // A better name perhaps
     | expr op=(ADD | SUB) expr              # addSubExpr
     | expr BY expr                          # byExpr
     | expr op=(LT | GT | LTEQ | GTEQ) expr  # compExpr
     | expr op=(EQEQ | NEQ) expr             # equalExpr
-    | expr AND expr                         # andExpr
+    | expr ANDATOM expr                     # andExpr
     | expr op=(OR | XOR) expr               # orExpr
     | <assoc=right> expr APPENDOP expr      # appendOp
     | AS LT type GT LPAREN expr RPAREN      # explicitCast
     | LSQRPAREN ID IN expr BAR expr RSQRPAREN       # generatorExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
     | functionCall                          # funcCall
-    | (TRUE | FALSE)                        # boolLiteral
+    | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
+    | ID                                    # identifier
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
-    | ID                                    # identifier
+    | (TRUE | FALSE)                        # boolLiteral
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
-    | LPAREN expr COMMA expr (COMMA expr)* RPAREN #tupleLiteral
+    | CHARLITERAL                           # charLiteral
     ;
 
 realLit : fullRealLiteral | sciRealLiteral ;
@@ -155,12 +167,10 @@ sciRealLiteral
     : fullRealLiteral 'e' (ADD | SUB)? INTLITERAL;
 
 fullRealLiteral
-    : INTLITERAL PERIOD INTLITERAL           # MainReal
-    | INTLITERAL PERIOD               # IntReal
-    | PERIOD INTLITERAL               # DotReal
+    : INTLITERAL PERIOD INTLITERAL    # mainReal
+    | INTLITERAL PERIOD               # intReal
+    | PERIOD INTLITERAL               # dotReal
     ;
-
-char : QUOTE SChar QUOTE;
 
 // --- LEXER RULES ---
 
@@ -182,6 +192,7 @@ PUT : '->' ;
 GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
+E : 'e' ;
 
 // Ops
 ADD : '+' ;
@@ -199,36 +210,40 @@ EXP : '^' ;
 MOD : '%' ;
 
 // Reserved
-IF : 'if' ;
-LOOP : 'loop' ;
-IN : 'in' ;
 ANDATOM : 'and' ;
 AS : 'as' ;
-ELSE : 'else' ;
+BOOLEANA : 'boolean' ;
 BREAK : 'break' ;
-CONTINUE : 'continue' ;
 BY : 'by' ;
 CALL : 'call' ;
-CHARACTERATOM : 'character' ;
+CHARACTER : 'character' ;
 COLUMNS : 'columns' ;
 CONST : 'const' ;
+CONTINUE : 'continue' ;
+ELSE : 'else' ;
 FALSE : 'false' ;
-TRUE : 'true' ;
 FUNCTION : 'function' ;
 IDENTITY : 'identity' ;
+IF : 'if' ;
+IN : 'in' ;
+INTEGER: 'interger';
 INTERVAL : 'interval' ;
 LENGTH : 'length' ;
+LOOP : 'loop' ;
 NOT : 'not' ;
 NULL_ : 'null' ;
 OR : 'or' ;
 PROCEDURE : 'procedure' ;
+REAL: 'real';
 RETURN : 'return' ;
 RETURNS : 'returns' ;
 REVERSE : 'reverse' ;
+ROWS : 'rows' ;
 STDIN : 'std_input' ;
 STDOUT : 'std_output' ;
 STRSTA : 'stream_state' ;
 STRINGATOM : 'string' ;
+TRUE : 'true' ;
 TUPLE : 'tuple' ;
 TYPEDEF : 'typedef' ;
 VAR : 'var' ;
@@ -236,31 +251,17 @@ WHILE : 'while' ;
 XOR : 'xor' ;
 
 
-// Customs
 INTLITERAL : [0-9]+ ;
-ID : [_a-zA-Z] [_a-zA-Z0-9]* ;
+ID : [_a-zA-Z][_a-zA-Z0-9]* ;
+CHARLITERAL : '\'' . '\''
+            | '\'' '\\' [0abtnr"'\\] '\''
+            ;
 
-SChar:
-//    :   EscapeSequence
-//     TODO check if works
-//    |   ~["\\\r\n]
-    'scar'
-    ;
 
- fragment
- EscapeSequence
-     :   '\\' ['"abtnrv\\]
-     ;
+// Skip comments and whitespace
+BlockComment : '/*' .*? '*/' -> skip ;
 
-// Skip whitespace
-BlockComment
-    :   '/*' .*? '*/'
-        -> skip
-    ;
+LineComment : '//' ~[\r\n]* -> skip ;
 
-LineComment
-    :   '//' ~[\r\n]*
-        -> skip
-    ;
 WS : [ \t\r\n]+ -> skip ;
 
