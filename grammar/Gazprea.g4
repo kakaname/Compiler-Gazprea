@@ -34,6 +34,7 @@ simpleStmt : identDecl
 identDecl : (typeQualifier)? (type)? ID (EQ expr)? SC;
 
 // we cannot assign procedureCall to an ID? I removed it.
+// Here procedureCall specifically means `call precodurename()`
 assignment : ID EQ expr SC;
 
 conditional : IF expr stmt              # ifConditional

@@ -342,8 +342,18 @@ struct IdentityLiteral: public TreeNode {
 };
 
 
-// Remains to be done!!!!!
+// Remains to be checked!!!!!
 struct RealLiteral: public TreeNode {
+    float Val;
+
+    void setVal(float Val) {
+        this->Val = Val;
+    }
+
+    float getVal() {
+        return Val;
+    }
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_RealLiteral;
     }
@@ -353,18 +363,22 @@ struct RealLiteral: public TreeNode {
 
 
 struct BoolLiteral: public TreeNode {
-    bool IsTrue{false};
+    bool Val{false};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_BoolLiteral;
     }
 
     void setTrue() {
-        IsTrue = true;
+        Val = true;
     }
 
     void setFalse() {
-        IsTrue = false;
+        Val = false;
+    }
+
+    bool getVal() {
+        return Val;
     }
 
     BoolLiteral(): TreeNode(TreeNodeKind::N_AST_BoolLiteral) {}
