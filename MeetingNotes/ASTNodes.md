@@ -6,8 +6,7 @@
 - Assignment
 - Declaration (will always include a value, if none, then null)
 - Block
-- BinaryLogicalOp
-- UnaryLogicalOp
+- LogicalOp
 - ArithmaticOp
 - Index
 - Loop
