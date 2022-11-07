@@ -13,9 +13,8 @@ using std::string;
 
 using ASTNodeT = TreeNode;
 
-class Program: public TreeNode {
+struct Program: public TreeNode {
 
-public:
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Program;
     }
@@ -24,10 +23,9 @@ public:
 };
 
 
-class Identifier: public TreeNode {
+struct Identifier: public TreeNode {
     string IdentName;
 
-public:
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Identifier;
     }
@@ -44,12 +42,11 @@ public:
 };
 
 
-class Assignment: public TreeNode {
+struct Assignment: public TreeNode {
 
     static constexpr size_t IdentChildIdx = 0;
     static constexpr size_t ExprChildIdx = 1;
 
-public:
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Assignment;
     }
@@ -74,14 +71,13 @@ public:
 };
 
 
-class Declaration: public TreeNode {
+struct Declaration: public TreeNode {
     static constexpr size_t IdentTypeIdx = 0;
     static constexpr size_t IdentIdx = 1;
     static constexpr size_t InitExprIdx = 2;
 
     bool IsConst{false};
 
-public:
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Declaration;
     }
@@ -118,7 +114,7 @@ public:
 };
 
 
-class Block: public TreeNode {
+struct Block: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Block;
     }
@@ -127,7 +123,10 @@ class Block: public TreeNode {
 };
 
 
-class LogicalOp: public TreeNode {
+struct LogicalOp: public TreeNode {
+    static constexpr int LeftExprIdx = 0;
+    static constexpr int RightExprIdx = 1;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
     }
@@ -136,7 +135,7 @@ class LogicalOp: public TreeNode {
 };
 
 
-class ArithmeticOp: public TreeNode {
+struct ArithmeticOp: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ArithmeticOp;
     }
@@ -145,7 +144,7 @@ class ArithmeticOp: public TreeNode {
 };
 
 
-class Index: public TreeNode {
+struct Index: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Index;
     }
@@ -154,7 +153,7 @@ class Index: public TreeNode {
 };
 
 
-class ConditionalLoop: public TreeNode {
+struct ConditionalLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalLoop;
     }
@@ -163,7 +162,7 @@ class ConditionalLoop: public TreeNode {
 };
 
 
-class DomainLoop: public TreeNode {
+struct DomainLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_DomainLoop;
     }
@@ -171,7 +170,7 @@ class DomainLoop: public TreeNode {
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}
 };
 
-class IntLiteral: public TreeNode {
+struct IntLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_IntLiteral;
     }
@@ -180,7 +179,7 @@ class IntLiteral: public TreeNode {
 };
 
 
-class NullLiteral: public TreeNode {
+struct NullLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_NullLiteral;
     }
@@ -189,7 +188,7 @@ class NullLiteral: public TreeNode {
 };
 
 
-class IdentityLiteral: public TreeNode {
+struct IdentityLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_IdentityLiteral;
     }
@@ -198,7 +197,7 @@ class IdentityLiteral: public TreeNode {
 };
 
 
-class RealLiteral: public TreeNode {
+struct RealLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_RealLiteral;
     }
@@ -207,7 +206,7 @@ class RealLiteral: public TreeNode {
 };
 
 
-class BoolLiteral: public TreeNode {
+struct BoolLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_BoolLiteral;
     }
@@ -216,7 +215,7 @@ class BoolLiteral: public TreeNode {
 };
 
 
-class CharLiteral: public TreeNode {
+struct CharLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_CharLiteral;
     }
@@ -225,7 +224,7 @@ class CharLiteral: public TreeNode {
 };
 
 
-class TupleLiteral: public TreeNode {
+struct TupleLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleLiteral;
     }
@@ -234,7 +233,7 @@ class TupleLiteral: public TreeNode {
 };
 
 
-class MemberAccess: public TreeNode {
+struct MemberAccess: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_MemberAccess;
     }
@@ -243,7 +242,7 @@ class MemberAccess: public TreeNode {
 };
 
 
-class TupleTypeDecl: public TreeNode {
+struct TupleTypeDecl: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleTypeDecl;
     }
@@ -252,7 +251,7 @@ class TupleTypeDecl: public TreeNode {
 };
 
 
-class Conditional: public TreeNode {
+struct Conditional: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Conditional;
     }
@@ -260,7 +259,7 @@ class Conditional: public TreeNode {
     Conditional(): TreeNode(TreeNodeKind::N_AST_Conditional) {}
 };
 
-class ConditionalElse: public TreeNode {
+struct ConditionalElse: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ConditionalElse;
     }
@@ -269,7 +268,7 @@ class ConditionalElse: public TreeNode {
 };
 
 
-class TypeCast: public TreeNode {
+struct TypeCast: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TypeCast;
     }
@@ -278,7 +277,7 @@ class TypeCast: public TreeNode {
 };
 
 
-class BitwiseOp: public TreeNode {
+struct BitwiseOp: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_BitwiseOp;
     }
@@ -287,7 +286,7 @@ class BitwiseOp: public TreeNode {
 };
 
 
-class UnaryOp: public TreeNode {
+struct UnaryOp: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_UnaryOp;
     }
@@ -296,7 +295,7 @@ class UnaryOp: public TreeNode {
 };
 
 
-class FunctionDecl: public TreeNode {
+struct FunctionDecl: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDecl;
     }
@@ -305,7 +304,7 @@ class FunctionDecl: public TreeNode {
 };
 
 
-class FunctionCall: public TreeNode {
+struct FunctionCall: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionCall;
     }
@@ -314,7 +313,7 @@ class FunctionCall: public TreeNode {
 };
 
 
-class ProcedureDecl: public TreeNode {
+struct ProcedureDecl: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ProcedureDecl;
     }
@@ -323,7 +322,7 @@ class ProcedureDecl: public TreeNode {
 };
 
 
-class ProcedureCall: public TreeNode {
+struct ProcedureCall: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ProcedureCall;
     }
@@ -332,7 +331,7 @@ class ProcedureCall: public TreeNode {
 };
 
 
-class Return: public TreeNode {
+struct Return: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Return;
     }
@@ -341,7 +340,7 @@ class Return: public TreeNode {
 };
 
 
-class Break: public TreeNode {
+struct Break: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Break;
     }
@@ -350,7 +349,7 @@ class Break: public TreeNode {
 };
 
 
-class Continue: public TreeNode {
+struct Continue: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Continue;
     }
