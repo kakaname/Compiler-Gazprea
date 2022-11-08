@@ -394,8 +394,8 @@ struct CharLiteral: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_CharLiteral;
     }
 
-    void setCharacter(char Literal) {
-        Character = Literal;
+    void setCharacter(string Literal) {
+        Character = Literal[0];
     }
 
     char getCharacter() {

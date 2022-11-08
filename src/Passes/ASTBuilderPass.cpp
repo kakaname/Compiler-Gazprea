@@ -523,19 +523,73 @@ std::any ASTBuilderPass::visitBoolLiteral(GazpreaParser::BoolLiteralContext *ctx
 }
 
 std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
+    auto *UnaryExpr = PM->Builder.build<UnaryOp>();
 
+    // Set the operator
+    if (ctx->op->getText() == "+")
+        UnaryExpr->setOp(UnaryOp::ADD);
+    else if (ctx->op->getText() == "-")
+        UnaryExpr->setOp(UnaryOp::SUB);
+    else if (ctx->op->getText() == "not")
+        UnaryExpr->setOp(UnaryOp::NOT);
+
+    // Set the expression
+    auto Expr = castToNodeVisit(ctx->expr());
+    UnaryExpr->setExpr(Expr);
+    Expr->setParent(UnaryExpr);
+
+    return UnaryExpr;
 }
 
+// Ignore for part1
 std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
 
 }
 
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
+    auto ExpExpression = PM->Builder.build<ArithmeticOp>();
 
+    // Set the operator
+    if (ctx->op->getText() == "^")
+        ExpExpression->setOp(ArithmeticOp::EXP);
+
+    // Set the LeftExpression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    ExpExpression->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(ExpExpression);
+
+    // Set the RightExpression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    ExpExpression->setRightExpr(RightExpression);
+    RightExpression->setParent(ExpExpression);
+
+    return ExpExpression;
 }
 
 std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
+    auto CompExpression = PM->Builder.build<LogicalOp>();
 
+    // Set the operator
+    if (ctx->op->getText() == "<")
+        CompExpression->setOp(LogicalOp::LT);
+    else if (ctx->op->getText() == ">")
+        CompExpression->setOp(LogicalOp::GT);
+    else if (ctx->op->getText() == "<=")
+        CompExpression->setOp(LogicalOp::LTEQ);
+    else if (ctx->op->getText() == ">=")
+        CompExpression->setOp(LogicalOp::GTEQ);
+
+    // Set the LeftExpression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    CompExpression->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(CompExpression);
+
+    // Set the RightExpression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    CompExpression->setRightExpr(RightExpression);
+    RightExpression->setParent(CompExpression);
+
+    return CompExpression;
 }
 
 std::any ASTBuilderPass::visitIdentityLiteral(GazpreaParser::IdentityLiteralContext *ctx) {
@@ -543,7 +597,29 @@ std::any ASTBuilderPass::visitIdentityLiteral(GazpreaParser::IdentityLiteralCont
 }
 
 std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *ctx) {
+    auto MemberAcc = PM->Builder.build<MemberAccess>();
 
+    // Set the identifier
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID(0)->getText());
+    MemberAcc->setIdent(Ident);
+    MemberAcc->setParent(Ident);
+
+    // Set the member access
+    if (ctx->ID(1)) {
+        auto IdentExpr = PM->Builder.build<Identifier>();
+        Ident->setName(ctx->ID(1)->getText());
+        MemberAcc->setMemberExpr(IdentExpr);
+        IdentExpr->setParent(MemberAcc);
+    }
+    else if (ctx->INTLITERAL()) {
+        auto IntegerLit = PM->Builder.build<IntLiteral>();
+        IntegerLit->setVal(ctx->INTLITERAL()->getText());
+        MemberAcc->setMemberExpr(IntegerLit);
+        IntegerLit->setParent(MemberAcc);
+    }
+
+    return MemberAcc;
 }
 
 std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) {
@@ -557,11 +633,29 @@ std::any ASTBuilderPass::visitNullLiteral(GazpreaParser::NullLiteralContext *ctx
 }
 
 std::any ASTBuilderPass::visitAddSubExpr(GazpreaParser::AddSubExprContext *ctx) {
+    auto AddSubExpression = PM->Builder.build<ArithmeticOp>();
 
+    // Set operator
+    if (ctx->op->getText() == "+")
+        AddSubExpression->setOp(ArithmeticOp::ADD);
+    else if (ctx->op->getText() == "-")
+        AddSubExpression->setOp(ArithmeticOp::SUB);
+
+    // Set LeftExpression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    AddSubExpression->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(AddSubExpression);
+
+    // Set RightExpression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    AddSubExpression->setRightExpr(RightExpression);
+    RightExpression->setParent(AddSubExpression);
+
+    return AddSubExpression;
 }
 
 std::any ASTBuilderPass::visitBracketExpr(GazpreaParser::BracketExprContext *ctx) {
-
+    return visit(ctx->expr());
 }
 
 std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) {
@@ -569,27 +663,77 @@ std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx
 }
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {
+    auto IntegerLit = PM->Builder.build<IntLiteral>();
+    IntegerLit->setVal(ctx->INTLITERAL()->getText());
 
+    return IntegerLit;
 }
 
 std::any ASTBuilderPass::visitMulDivModSSExpr(GazpreaParser::MulDivModSSExprContext *ctx) {
+    auto MulDivModSSExpression = PM->Builder.build<ArithmeticOp>();
 
+    // Set operator
+    if (ctx->op->getText() == "*")
+        MulDivModSSExpression->setOp(ArithmeticOp::MUL);
+    else if (ctx->op->getText() == "/")
+        MulDivModSSExpression->setOp(ArithmeticOp::DIV);
+    else if (ctx->op->getText() == "%")
+        MulDivModSSExpression->setOp(ArithmeticOp::MOD);
+    else if (ctx->op->getText() == "**")
+        MulDivModSSExpression->setOp(ArithmeticOp::SS);
+
+    // Set left expression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    MulDivModSSExpression->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(MulDivModSSExpression);
+
+    // Set right expression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    MulDivModSSExpression->setRightExpr(RightExpression);
+    RightExpression->setParent(MulDivModSSExpression);
+
+    return MulDivModSSExpression;
 }
 
+// ignored for part1
 std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
 
 }
 
 std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
+    auto OrExpr = PM->Builder.build<BitwiseOp>();
 
+    // Set operator
+    if (ctx->op->getText() == "or")
+        OrExpr->setOp(BitwiseOp::OR);
+    else if (ctx->op->getText() == "xor")
+        OrExpr->setOp(BitwiseOp::XOR);
+
+    // Set LeftExpression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    OrExpr->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(OrExpr);
+
+    // Set RightExpression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    OrExpr->setRightExpr(RightExpression);
+    RightExpression->setParent(OrExpr);
+
+    return OrExpr;
 }
 
+
+// ignored for part1
 std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
 
 }
 
-std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
 
+std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
+    auto CharLit = PM->Builder.build<CharLiteral>();
+    CharLit->setCharacter(ctx->CHARLITERAL()->getText());
+
+    return CharLit;
 }
 
 std::any ASTBuilderPass::visitIndexExpr(GazpreaParser::IndexExprContext *ctx) {
@@ -608,16 +752,52 @@ std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {
     return visit(ctx->functionCall());
 }
 
+// ignored for part1
 std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 
 }
 
-std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
 
+std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
+    auto EqualExpr = PM->Builder.build<LogicalOp>();
+
+    // Set operator
+    if (ctx->op->getText() == "==")
+        EqualExpr->setOp(LogicalOp::EQEQ);
+    else if (ctx->op->getText() == "!=")
+        EqualExpr->setOp(LogicalOp::NEQ);
+
+    // Set left expression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    EqualExpr->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(EqualExpr);
+
+    // Set right expression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    EqualExpr->setRightExpr(RightExpression);
+    RightExpression->setParent(EqualExpr);
+
+    return EqualExpr;
 }
 
 std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
+    auto AndExpr = PM->Builder.build<BitwiseOp>();
 
+    // Set operator
+    if (ctx->op->getText() == "and")
+        AndExpr->setOp(BitwiseOp::AND);
+
+    // Set LeftExpression
+    auto LeftExpression = castToNodeVisit(ctx->expr(0));
+    AndExpr->setLeftExpr(LeftExpression);
+    LeftExpression->setParent(AndExpr);
+
+    // Set RightExpression
+    auto RightExpression = castToNodeVisit(ctx->expr(1));
+    AndExpr->setRightExpr(RightExpression);
+    RightExpression->setParent(AndExpr);
+
+    return AndExpr;
 }
 
 std::any ASTBuilderPass::visitRealLit(GazpreaParser::RealLitContext *ctx) {

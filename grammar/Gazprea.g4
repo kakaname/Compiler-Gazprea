@@ -125,13 +125,13 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | expr LSQRPAREN expr RSQRPAREN         # indexExpr
     | expr DD expr (BY expr)?               # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
-    | <assoc=right> expr EXP expr           # expExpr
+    | <assoc=right> expr op=EXP expr        # expExpr
     | expr op=(MUL | DIV | MOD | SS) expr   # mulDivModSSExpr // A better name perhaps
     | expr op=(ADD | SUB) expr              # addSubExpr
     | expr BY expr                          # byExpr
     | expr op=(LT | GT | LTEQ | GTEQ) expr  # compExpr
     | expr op=(EQEQ | NEQ) expr             # equalExpr
-    | expr ANDATOM expr                     # andExpr
+    | expr op=ANDATOM expr                  # andExpr
     | expr op=(OR | XOR) expr               # orExpr
     | <assoc=right> expr APPENDOP expr      # appendOp
     | AS LT type GT LPAREN expr RPAREN      # explicitCast
