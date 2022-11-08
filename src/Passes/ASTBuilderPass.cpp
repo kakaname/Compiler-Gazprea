@@ -57,7 +57,6 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
         TypeNode->setParent(Decl);
     }
 
-
     // Build the identifier that is being assigned to.
     auto Ident = PM->Builder.build<Identifier>(Decl);
     Ident->setName(ctx->ID()->getText());
@@ -351,12 +350,49 @@ std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext 
     auto ReturnsTypeNode = castToNodeVisit(ctx->type());
     FuncDecl->setReturnsType(ReturnsTypeNode);
     ReturnsTypeNode->setParent(FuncDecl);
-    
+
     return FuncDecl;
 }
 
 std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefinitionContext *ctx) {
+    auto FuncDef = PM->Builder.build<FunctionDef>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    FuncDef->setIdent(Ident);
+    Ident->setParent(FuncDef);
+
+    // Set parameters list
+    auto ParametersList = PM->Builder.build<ParasList>();
+    for (auto *Decl : ctx->typeIdentPair()) {
+        auto Declaration = castToNodeVisit(Decl);
+        ParametersList->addChild(Declaration);
+        Declaration->setParent(ParametersList);
+    }
+    FuncDef->setParasList(ParametersList);
+    ParametersList->setParent(FuncDef);
+
+    // Set returns type node
+    auto ReturnsTypeNode = castToNodeVisit(ctx->type());
+    FuncDef->setReturnsType(ReturnsTypeNode);
+    ReturnsTypeNode->setParent(FuncDef);
+
+    // Set expression if it is not null
+    if (ctx->expr()) {
+        auto Expr = castToNodeVisit(ctx->expr());
+        FuncDef->setExpr(Expr);
+        Expr->setParent(FuncDef);
+    }
+
+    // Set block if it is not null
+    if (ctx->block()) {
+        auto Block = castToNodeVisit(ctx->block());
+        FuncDef->setBlock(Block);
+        Block->setParent(FuncDef);
+    }
+
+    return FuncDef;
 }
 
 std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContext *ctx) {
@@ -391,7 +427,35 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
 }
 
 std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefinitionContext *ctx) {
+    auto ProcedDef = PM->Builder.build<ProcedureDef>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    ProcedDef->setIdent(Ident);
+    Ident->setParent(ProcedDef);
+
+    // Set parameters list
+    auto ParametersList = PM->Builder.build<ParasList>();
+    for (auto *Decl : ctx->typeIdentPair()) {
+        auto Declaration = castToNodeVisit(Decl);
+        ParametersList->addChild(Declaration);
+        Declaration->setParent(ParametersList);
+    }
+    ProcedDef->setParasList(ParametersList);
+    ParametersList->setParent(ProcedDef);
+
+    // Set returns type node
+    auto ReturnsTypeNode = castToNodeVisit(ctx->type());
+    ProcedDef->setReturnsType(ReturnsTypeNode);
+    ReturnsTypeNode->setParent(ProcedDef);
+
+    // Set block if it is not null
+    auto Block = castToNodeVisit(ctx->block());
+    ProcedDef->setBlock(Block);
+    Block->setParent(ProcedDef);
+
+    return ProcedDef;
 }
 
 std::any ASTBuilderPass::visitFunctionCall(GazpreaParser::FunctionCallContext *ctx) {
@@ -431,7 +495,7 @@ std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitIdentityLiteral(GazpreaParser::IdentityLiteralContext *ctx) {
-
+    return PM->Builder.build<IdentityLiteral>();
 }
 
 std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *ctx) {
@@ -445,7 +509,7 @@ std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) 
 }
 
 std::any ASTBuilderPass::visitNullLiteral(GazpreaParser::NullLiteralContext *ctx) {
-
+    return PM->Builder.build<NullLiteral>();
 }
 
 std::any ASTBuilderPass::visitAddSubExpr(GazpreaParser::AddSubExprContext *ctx) {

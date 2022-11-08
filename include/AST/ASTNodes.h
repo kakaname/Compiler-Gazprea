@@ -744,7 +744,7 @@ struct FunctionDecl: public TreeNode {
         return getChildAtAs<ParasList>(ParasListIdx);
     }
 
-    ASTNodeT *getReturnType() {
+    ASTNodeT *getReturnsType() {
         return getChildAt(ReturnsTypeIdx);
     }
 
@@ -771,11 +771,11 @@ struct FunctionDef: public TreeNode {
         setChildAt(ParasListIdx, ParasList);
     }
 
-    void setReturnType(ASTNodeT *N) {
+    void setReturnsType(ASTNodeT *N) {
         setChildAt(ReturnsTypeIdx, N);
     }
 
-    void setBlock(Block *Block) {
+    void setBlock(ASTNodeT *Block) {
         setChildAt(BlockIdx, Block);
     }
 
@@ -791,7 +791,7 @@ struct FunctionDef: public TreeNode {
         return getChildAtAs<ParasList>(ParasListIdx);
     }
 
-    ASTNodeT *getReturnType() {
+    ASTNodeT *getReturnsType() {
         return getChildAt(ReturnsTypeIdx);
     }
 
@@ -894,7 +894,7 @@ struct ProcedureDef: public TreeNode {
         setChildAt(ReturnsTypeIdx, N);
     }
 
-    void setBlock(Block *Block) {
+    void setBlock(ASTNodeT *Block) {
         setChildAt(BlockIdx, Block);
     }
 
