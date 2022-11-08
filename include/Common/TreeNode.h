@@ -80,6 +80,8 @@ public:
         Children.emplace_back(Child);
     }
 
+    virtual ~TreeNode() {};
+
 protected:
     ChildrenContainerT Children;
 

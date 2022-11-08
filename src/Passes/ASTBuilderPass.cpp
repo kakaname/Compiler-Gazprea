@@ -202,10 +202,12 @@ std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     return TypeCasting;
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
 
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
 
 }
@@ -266,10 +268,10 @@ std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWi
 std::any ASTBuilderPass::visitTupleTypeDecl(GazpreaParser::TupleTypeDeclContext *ctx) {
     auto TupleTypeDeclaration = PM->Builder.build<TupleTypeDecl>();
 
-    for (auto *Decl : ctx->typeOptionalIdentPair()) {
-        auto Child = castToNodeVisit(Decl);
-        TupleTypeDeclaration->addChild(Child);
-        Child->setParent(TupleTypeDeclaration);
+    for (auto *Child : ctx->typeOptionalIdentPair()) {
+        auto Decl = castToNodeVisit(Child);
+        TupleTypeDeclaration->addChild(Decl);
+        Decl->setParent(TupleTypeDeclaration);
     }
 
     return TupleTypeDeclaration;
@@ -469,10 +471,10 @@ std::any ASTBuilderPass::visitFunctionCall(GazpreaParser::FunctionCallContext *c
 
     // Set arguments list
     auto ArgumentsList = PM->Builder.build<ArgsList>();
-    for (auto *Expr : ctx->expr()) {
-        auto Declaration = castToNodeVisit(Expr);
-        ArgumentsList->addChild(Declaration);
-        Declaration->setParent(ArgumentsList);
+    for (auto *Child : ctx->expr()) {
+        auto Expr = castToNodeVisit(Child);
+        ArgumentsList->addChild(Expr);
+        Expr->setParent(ArgumentsList);
     }
     FuncCall->setArgsList(ArgumentsList);
     ArgumentsList->setParent(FuncCall);
@@ -491,10 +493,10 @@ std::any ASTBuilderPass::visitProcedureCall(GazpreaParser::ProcedureCallContext 
 
     // Set arguments list
     auto ArgumentsList = PM->Builder.build<ArgsList>();
-    for (auto *Expr : ctx->expr()) {
-        auto Declaration = castToNodeVisit(Expr);
-        ArgumentsList->addChild(Declaration);
-        Declaration->setParent(ArgumentsList);
+    for (auto *Child : ctx->expr()) {
+        auto Expr = castToNodeVisit(Child);
+        ArgumentsList->addChild(Expr);
+        Expr->setParent(ArgumentsList);
     }
     ProcedCall->setArgsList(ArgumentsList);
     ArgumentsList->setParent(ProcedCall);
@@ -514,12 +516,20 @@ std::any ASTBuilderPass::visitBlock(GazpreaParser::BlockContext *ctx) {
     return Blk;
 }
 
+// Remains to be done
 std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *ctx) {
 
 }
 
 std::any ASTBuilderPass::visitBoolLiteral(GazpreaParser::BoolLiteralContext *ctx) {
+    auto *BoolLit = PM->Builder.build<BoolLiteral>();
 
+    if (ctx->TRUE())
+        BoolLit->setTrue();
+    else if (ctx->FALSE())
+        BoolLit->setFalse();
+
+    return BoolLit;
 }
 
 std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
@@ -659,7 +669,7 @@ std::any ASTBuilderPass::visitBracketExpr(GazpreaParser::BracketExprContext *ctx
 }
 
 std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) {
-
+    return visit(ctx->realLit());
 }
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {
@@ -736,14 +746,25 @@ std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx
     return CharLit;
 }
 
+// ignored for part1
 std::any ASTBuilderPass::visitIndexExpr(GazpreaParser::IndexExprContext *ctx) {
 
 }
 
-std::any ASTBuilderPass::visitTupleLiteral(GazpreaParser::TupleLiteralContext *ctx) {
 
+std::any ASTBuilderPass::visitTupleLiteral(GazpreaParser::TupleLiteralContext *ctx) {
+    auto TupleLit = PM->Builder.build<TupleLiteral>();
+
+    for (auto *Child : ctx->expr()) {
+        auto Expr = castToNodeVisit(Child);
+        TupleLit->addChild(Expr);
+        Expr->setParent(TupleLit);
+    }
+
+    return TupleLit;
 }
 
+// ignored for part1
 std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
 
 }
@@ -800,22 +821,36 @@ std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
     return AndExpr;
 }
 
-std::any ASTBuilderPass::visitRealLit(GazpreaParser::RealLitContext *ctx) {
-
-}
-
 std::any ASTBuilderPass::visitSciRealLiteral(GazpreaParser::SciRealLiteralContext *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    auto *FullRealLit = std::any_cast<RealLiteral*>(visit(ctx->fullRealLiteral()));
 
+    string RealString = std::to_string(FullRealLit->getVal()) + "e" + ctx->INTLITERAL()->getText();
+    RealLit->setVal(RealString);
+
+    return RealLit;
 }
 
 std::any ASTBuilderPass::visitMainReal(GazpreaParser::MainRealContext *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    string RealString = ctx->INTLITERAL(0)->getText() + "." + ctx->INTLITERAL(1)->getText();
+    RealLit->setVal(RealString);
 
+    return RealLit;
 }
 
 std::any ASTBuilderPass::visitIntReal(GazpreaParser::IntRealContext *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    string RealString = ctx->INTLITERAL()->getText() + ".";
+    RealLit->setVal(RealString);
 
+    return RealLit;
 }
 
 std::any ASTBuilderPass::visitDotReal(GazpreaParser::DotRealContext *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    string RealString = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(RealString);
 
+    return RealLit;
 }

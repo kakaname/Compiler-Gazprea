@@ -348,8 +348,8 @@ struct IdentityLiteral: public TreeNode {
 struct RealLiteral: public TreeNode {
     float Val;
 
-    void setVal(float Val) {
-        this->Val = Val;
+    void setVal(string &FloatString) {
+        this->Val = std::stof(FloatString);
     }
 
     float getVal() {
