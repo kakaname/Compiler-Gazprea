@@ -51,19 +51,28 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     // be inferred by the type inference pass later.
     if (!ctx->type())
         Decl->setIdentTypeNode(nullptr);
-    else
-        Decl->setIdentTypeNode(castToNodeVisit(ctx->type()));
+    else {
+        auto TypeNode = castToNodeVisit(ctx->type());
+        Decl->setIdentTypeNode(TypeNode);
+        TypeNode->setParent(Decl);
+    }
+
 
     // Build the identifier that is being assigned to.
     auto Ident = PM->Builder.build<Identifier>(Decl);
     Ident->setName(ctx->ID()->getText());
+    Decl->setIdent(Ident);
+    Ident->setParent(Decl);
 
     // Set the expression to null if it is omitted, the default initializer
     // pass will make sure to set the init value to null for that type.
     if (!ctx->expr())
         Decl->setInitExpr(nullptr);
-    else
-        Decl->setInitExpr(castToNodeVisit(ctx->expr()));
+    else {
+        auto *Expr = castToNodeVisit(ctx->expr());
+        Decl->setInitExpr(Expr);
+        Expr->setParent(Decl);
+    }
 
     return Decl;
 }
@@ -71,9 +80,15 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) {
     auto Assign = PM->Builder.build<Assignment>();
     auto Ident = PM->Builder.build<Identifier>();
+
     Ident->setName(ctx->ID()->getText());
     Assign->setIdentifier(Ident);
-    Assign->setExpr(castToNodeVisit(ctx->expr()));
+    Ident->setParent(Assign);
+
+    auto *Expr = castToNodeVisit(ctx->expr());
+    Assign->setExpr(Expr);
+    Expr->setParent(Assign);
+
     return Assign;
 }
 
@@ -250,19 +265,94 @@ std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWi
 }
 
 std::any ASTBuilderPass::visitTupleTypeDecl(GazpreaParser::TupleTypeDeclContext *ctx) {
+    auto TupleTypeDeclaration = PM->Builder.build<TupleTypeDecl>();
 
+    for (auto *Decl : ctx->typeOptionalIdentPair()) {
+        auto Child = castToNodeVisit(Decl);
+        TupleTypeDeclaration->addChild(Child);
+        Child->setParent(TupleTypeDeclaration);
+    }
+
+    return TupleTypeDeclaration;
 }
 
 std::any ASTBuilderPass::visitTypeOptionalIdentPair(GazpreaParser::TypeOptionalIdentPairContext *ctx) {
+    auto Decl = PM->Builder.build<Declaration>();
 
+    // Mark the decl as const if we see a const type qualifier.
+    if (ctx->typeQualifier()->CONST())
+        Decl->setConst();
+
+    // Set the type node
+    auto TypeNode = castToNodeVisit(ctx->type());
+    Decl->setIdentTypeNode(TypeNode);
+    TypeNode->setParent(Decl);
+
+    // Set the identifier node to null if it is not specified.
+    if (!ctx->ID())
+        Decl->setIdent(nullptr);
+    else {
+        auto Ident = PM->Builder.build<Identifier>(Decl);
+        Ident->setName(ctx->ID()->getText());
+        Decl->setIdent(Ident);
+        Ident->setParent(Decl);
+    }
+
+    // No expression for this decl
+    Decl->setInitExpr(nullptr);
+
+    return Decl;
 }
 
 std::any ASTBuilderPass::visitTypeIdentPair(GazpreaParser::TypeIdentPairContext *ctx) {
+    auto Decl = PM->Builder.build<Declaration>();
 
+    // Mark the decl as const if we see a const type qualifier.
+    if (ctx->typeQualifier()->CONST())
+        Decl->setConst();
+
+    // Set the type node
+    auto TypeNode = castToNodeVisit(ctx->type());
+    Decl->setIdentTypeNode(TypeNode);
+    TypeNode->setParent(Decl);
+
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>(Decl);
+    Ident->setName(ctx->ID()->getText());
+    Decl->setIdent(Ident);
+    Ident->setParent(Decl);
+
+    // No expression for this decl
+    Decl->setInitExpr(nullptr);
+
+    return Decl;
 }
 
 std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext *ctx) {
+    auto FuncDecl = PM->Builder.build<FunctionDecl>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    FuncDecl->setIdent(Ident);
+    Ident->setParent(FuncDecl);
+
+    // Set parameters list
+    auto ParametersList = PM->Builder.build<ParasList>();
+    for (auto *Decl : ctx->typeOptionalIdentPair()) {
+        auto Declaration = castToNodeVisit(Decl);
+        ParametersList->addChild(Declaration);
+        Declaration->setParent(ParametersList);
+    }
+    FuncDecl->setParasList(ParametersList);
+    ParametersList->setParent(FuncDecl);
+
+    // Set returns type node
+    auto ReturnsTypeNode = castToNodeVisit(ctx->type());
+    FuncDecl->setReturnsType(ReturnsTypeNode);
+    ReturnsTypeNode->setParent(FuncDecl);
+    
+    return FuncDecl;
 }
 
 std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefinitionContext *ctx) {
@@ -270,7 +360,34 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
 }
 
 std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContext *ctx) {
+    auto ProcedDecl = PM->Builder.build<ProcedureDecl>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    ProcedDecl->setIdent(Ident);
+    Ident->setParent(ProcedDecl);
+
+    // Set parameters list
+    auto ParametersList = PM->Builder.build<ParasList>();
+    for (auto *Decl : ctx->typeOptionalIdentPair()) {
+        auto Declaration = castToNodeVisit(Decl);
+        ParametersList->addChild(Declaration);
+        Declaration->setParent(ParametersList);
+    }
+    ProcedDecl->setParasList(ParametersList);
+    ParametersList->setParent(ProcedDecl);
+
+    // Set returns type to null if it is not specified
+    if (!ctx->type())
+        ProcedDecl->setReturnsType(nullptr);
+    else {
+        auto ReturnsTypeNode = castToNodeVisit(ctx->type());
+        ProcedDecl->setReturnsType(ReturnsTypeNode);
+        ReturnsTypeNode->setParent(ProcedDecl);
+    }
+
+    return ProcedDecl;
 }
 
 std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefinitionContext *ctx) {
