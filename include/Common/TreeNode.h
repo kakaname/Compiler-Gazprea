@@ -55,7 +55,9 @@ public:
         N_AST_ProcedureCall,
         N_AST_Return,
         N_AST_Break,
-        N_AST_Continue
+        N_AST_Continue,
+        N_AST_OutStream,
+        N_AST_InStream,
     };
 
     TreeNodeKind getKind() const {
