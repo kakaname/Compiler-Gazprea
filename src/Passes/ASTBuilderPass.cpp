@@ -204,12 +204,18 @@ std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
 
 // Remains to be done
 std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
-
+    auto Output = PM->Builder.build<OutStream>();
+    Output->setOutStreamExpr(castToNodeVisit(ctx->expr()));
+    return Output;
 }
 
 // Remains to be done
 std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
-
+    auto Input = PM->Builder.build<InStream>();
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    Input->setIdentifier(Ident);
+    return Input;
 }
 
 std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {

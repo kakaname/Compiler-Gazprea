@@ -982,4 +982,40 @@ struct Continue: public TreeNode {
     Continue(): TreeNode(TreeNodeKind::N_AST_Continue) {}
 };
 
+struct OutStream: public TreeNode {
+    static constexpr size_t OutStreamExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_OutStream;
+    }
+
+    void setOutStreamExpr(ASTNodeT *Expr) {
+        setChildAt(OutStreamExprIdx, Expr);
+    }
+
+    ASTNodeT *getOutStreamExpr() {
+        return getChildAt(OutStreamExprIdx);
+    }
+
+    OutStream(): TreeNode(TreeNodeKind::N_AST_OutStream) {}
+};
+
+struct InStream: public TreeNode {
+    static constexpr size_t IdentIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_InStream;
+    }
+
+    void setIdentifier(Identifier *Ident) {
+        setChildAt(IdentIdx, Ident);
+    }
+
+    Identifier *getIdentifier() {
+        return getChildAtAs<Identifier>(IdentIdx);
+    }
+
+    InStream(): TreeNode(TreeNodeKind::N_AST_InStream) {}
+};
+
 #endif //GAZPREABASE_ASTNODES_H
