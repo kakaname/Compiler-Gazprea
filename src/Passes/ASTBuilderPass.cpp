@@ -459,15 +459,59 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
 }
 
 std::any ASTBuilderPass::visitFunctionCall(GazpreaParser::FunctionCallContext *ctx) {
+    auto FuncCall = PM->Builder.build<FunctionCall>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    FuncCall->setIdent(Ident);
+    Ident->setParent(FuncCall);
+
+    // Set arguments list
+    auto ArgumentsList = PM->Builder.build<ArgsList>();
+    for (auto *Expr : ctx->expr()) {
+        auto Declaration = castToNodeVisit(Expr);
+        ArgumentsList->addChild(Declaration);
+        Declaration->setParent(ArgumentsList);
+    }
+    FuncCall->setArgsList(ArgumentsList);
+    ArgumentsList->setParent(FuncCall);
+
+    return FuncCall;
 }
 
 std::any ASTBuilderPass::visitProcedureCall(GazpreaParser::ProcedureCallContext *ctx) {
+    auto ProcedCall = PM->Builder.build<ProcedureCall>();
 
+    // Set the identifier node
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    ProcedCall->setIdent(Ident);
+    Ident->setParent(ProcedCall);
+
+    // Set arguments list
+    auto ArgumentsList = PM->Builder.build<ArgsList>();
+    for (auto *Expr : ctx->expr()) {
+        auto Declaration = castToNodeVisit(Expr);
+        ArgumentsList->addChild(Declaration);
+        Declaration->setParent(ArgumentsList);
+    }
+    ProcedCall->setArgsList(ArgumentsList);
+    ArgumentsList->setParent(ProcedCall);
+
+    return ProcedCall;
 }
 
 std::any ASTBuilderPass::visitBlock(GazpreaParser::BlockContext *ctx) {
+    auto *Blk = PM->Builder.build<Block>();
 
+    for (auto *Stmt : ctx->stmt()) {
+        auto Statement = castToNodeVisit(Stmt);
+        Blk->addChild(Statement);
+        Statement->setParent(Blk);
+    }
+
+    return Blk;
 }
 
 std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *ctx) {
@@ -561,7 +605,7 @@ std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {
-
+    return visit(ctx->functionCall());
 }
 
 std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
