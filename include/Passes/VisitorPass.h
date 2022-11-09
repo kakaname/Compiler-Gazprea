@@ -12,6 +12,228 @@
 template<typename DerivedT, typename RetT>
 class VisitorPass {
 
+    RetT visitProgram(Program *Prog) {
+        for (auto *child : *Prog) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitIdentifier(Identifier *Ident) {
+        return RetT();
+    }
+
+    RetT visitAssignment(Assignment *Assign) {
+        visit(Assign->getIdentifier());
+        visit(Assign->getExpr());
+        return RetT();
+    }
+
+    RetT visitDeclaration(Declaration *Decl) {
+        visit(Decl->getIdentTypeNode());
+        visit(Decl->getIdentifier());
+        visit(Decl->getInitExpr());
+        return RetT();
+    }
+
+    RetT visitBlock(Block *Blk) {
+        for (auto *child : *Blk) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitLogicalOp(LogicalOp *Op) {
+        visit(Op->getLeftExpr());
+        visit(Op->getRightExpr());
+        return RetT();
+    }
+
+    RetT visitArithmeticOp(ArithmeticOp *Op) {
+        visit(Op->getLeftExpr());
+        visit(Op->getRightExpr());
+        return RetT();
+    }
+
+    RetT visitIndex(Index *Idx) {
+        visit(Idx->getBaseExpr());
+        visit(Idx->getIndexExpr());
+        return RetT();
+    }
+
+    RetT visitInfiniteLoop(InfiniteLoop *Loop) {
+        visit(Loop->getStatement());
+        return RetT();
+    }
+
+    RetT visitConditionalLoop(ConditionalLoop *Loop) {
+        visit(Loop->getConditional());
+        visit(Loop->getStatement());
+    }
+
+    // ignored for part1
+    RetT visitDomainLoop(DomainLoop *Loop) {
+        return RetT();
+    }
+
+    RetT visitIntLiteral(IntLiteral *IntLit) {
+        return RetT();
+    }
+
+    RetT visitNullLiteral(NullLiteral *NullLit) {
+        return RetT();
+    }
+
+    RetT visitIdentityLiteral(IdentityLiteral *IdentityLit) {
+        return RetT();
+    }
+
+    RetT visitRealLiteral(RealLiteral *RealLit) {
+        return RetT();
+    }
+
+    RetT visitBoolLiteral(BoolLiteral *BoolLit) {
+        return RetT();
+    }
+
+    RetT visitCharLiteral(CharLiteral *CharLit) {
+        return RetT();
+    }
+
+    RetT visitTupleLiteral(TupleLiteral *TupleLit) {
+        for (auto *child : *TupleLit) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitMemberAccess(MemberAccess *MemberAcc) {
+        visit(MemberAcc->getIdentifier());
+        visit(MemberAcc->getMemberExpr());
+        return RetT();
+    }
+
+    RetT visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl) {
+        for (auto *child : *TupleTypeDecl) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitConditional(Conditional *Cond) {
+        visit(Cond->getConditional());
+        visit(Cond->getStatement());
+        return RetT();
+    }
+
+    RetT visitConditionalElse(ConditionalElse *Cond) {
+        visit(Cond->getConditional());
+        visit(Cond->getStatement());
+        visit(Cond->getElseConditional());
+        visit(Cond->getElseStatement());
+        return RetT();
+    }
+
+    RetT visitTypeCast(TypeCast *Cast) {
+        visit(Cast->getOldTypeNode());
+        visit(Cast->getNewTypeNode());
+        return RetT();
+    }
+
+    RetT visitBitwiseOp(BitwiseOp *Op) {
+        visit(Op->getLeftExpr());
+        visit(Op->getRightExpr());
+        return RetT();
+    }
+
+    RetT visitUnaryOp(UnaryOp *Op) {
+        visit(Op->getExpr());
+        return RetT();
+    }
+
+    RetT visitArgsList(ArgsList *List) {
+        for (auto *child : *List) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitParasList(ParasList *List) {
+        for (auto *child : *List) {
+            visit(child);
+        }
+        return RetT();
+    }
+
+    RetT visitFunctionDecl(FunctionDecl *FuncDecl) {
+        visit(FuncDecl->getIdentifier());
+        visit(FuncDecl->getParasList());
+        visit(FuncDecl->getReturnsType());
+        return RetT();
+    }
+
+    RetT visitFunctionDef(FunctionDef *FuncDef) {
+        visit(FuncDef->getIdentifier());
+        visit(FuncDef->getParasList());
+        visit(FuncDef->getReturnsType());
+        if (dynamic_cast<Block*>(FuncDef->getBlock()))
+           visit(FuncDef->getBlock());
+        else
+            visit(FuncDef->getExpr());
+        return RetT();
+    }
+
+    RetT visitFunctionCall(FunctionCall *FuncCall) {
+        visit(FuncCall->getIdentifier());
+        visit(FuncCall->getArgsList());
+        return RetT();
+    }
+
+    RetT visitProcedureDecl(ProcedureDecl *ProcedureDecl) {
+        visit(ProcedureDecl->getIdentifier());
+        visit(ProcedureDecl->getParasList());
+        visit(ProcedureDecl->getReturnsType());
+        return RetT();
+    }
+
+    RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
+        visit(ProcedureDef->getIdentifier());
+        visit(ProcedureDef->getParasList());
+        visit(ProcedureDef->getReturnsType());
+        visit(ProcedureDef->getBlock());
+        return RetT();
+    }
+
+    RetT visitProcedureCall(ProcedureCall *ProcedureCall) {
+        visit(ProcedureCall->getIdentifier());
+        visit(ProcedureCall->getArgsList());
+        return RetT();
+    }
+
+    RetT visitReturn(Return *Return) {
+        visit(Return->getReturnExpr());
+        return RetT();
+    }
+
+    RetT visitBreak(Break *Break) {
+        return RetT();
+    }
+
+    RetT visitContinue(Continue *Continue) {
+        return RetT();
+    }
+
+    RetT visitOutStream(OutStream *OutStream) {
+        visit(OutStream->getOutStreamExpr());
+        return RetT();
+    }
+
+    RetT visitInStream(InStream *InStream) {
+        visit(InStream->getIdentifier());
+        return RetT();
+    }
+    
+
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitAssignment(Prog);
     }

@@ -82,6 +82,14 @@ public:
         Children.emplace_back(Child);
     }
 
+    ChildrenContainerT::iterator begin() {
+        return Children.begin();
+    }
+
+    ChildrenContainerT::iterator end() {
+        return Children.end();
+    }
+
     virtual ~TreeNode() {};
 
 protected:
