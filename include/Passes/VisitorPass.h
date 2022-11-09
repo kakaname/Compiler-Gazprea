@@ -393,7 +393,7 @@ class VisitorPass {
     }
 
     RetT callVisitExplicitCastImpl(ASTNodeT *ExpliCast) {
-        return static_cast<DerivedT*>(this)->explicitCast(ExpliCast);
+        return static_cast<DerivedT*>(this)->visitExplicitCast(ExpliCast);
     }
 
 public:
