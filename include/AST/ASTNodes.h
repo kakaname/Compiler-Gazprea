@@ -976,4 +976,31 @@ struct InStream: public TreeNode {
     InStream(): TreeNode(TreeNodeKind::N_AST_InStream) {}
 };
 
+struct ExplicitCast: public TreeNode {
+    static constexpr size_t TypeIdxIdx = 0;
+    static constexpr size_t ExprIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_ExplicitCast;
+    }
+
+    void setType(ASTNodeT *N) {
+        setChildAt(TypeIdxIdx, N);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getType() {
+        return getChildAt(TypeIdxIdx);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
+    }
+
+    ExplicitCast(): TreeNode(TreeNodeKind::N_AST_ExplicitCast) {}
+};
+
 #endif //GAZPREABASE_ASTNODES_H

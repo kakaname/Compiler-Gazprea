@@ -58,6 +58,7 @@ public:
         N_AST_Continue,
         N_AST_OutStream,
         N_AST_InStream,
+        N_AST_ExplicitCast
     };
 
     TreeNodeKind getKind() const {

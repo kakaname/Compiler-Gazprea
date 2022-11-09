@@ -531,7 +531,19 @@ std::any ASTBuilderPass::visitBlock(GazpreaParser::BlockContext *ctx) {
 
 // Remains to be done
 std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *ctx) {
-    return nullptr;
+    auto *ExpliCast = PM->Builder.build<ExplicitCast>();
+
+    // Set the type node
+    auto Type = castToNodeVisit(ctx->type());
+    ExpliCast->setType(Type);
+    Type->setParent(ExpliCast);
+
+    // Set expression
+    auto Expr = castToNodeVisit(ctx->expr());
+    ExpliCast->setExpr(Expr);
+    Expr->setParent(ExpliCast);
+
+    return ExpliCast;
 }
 
 std::any ASTBuilderPass::visitBoolLiteral(GazpreaParser::BoolLiteralContext *ctx) {

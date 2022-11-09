@@ -232,10 +232,16 @@ class VisitorPass {
         visit(InStream->getIdentifier());
         return RetT();
     }
-    
+
+    RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
+        visit(ExplicitCast->getType());
+        visit(ExplicitCast->getExpr());
+        return RetT();
+    }
+
 
     RetT callVisitProgramImpl(Program *Prog) {
-        return static_cast<DerivedT*>(this)->visitAssignment(Prog);
+        return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
 
     RetT callVisitIdentifierImpl(Identifier *Ident) {
@@ -384,6 +390,10 @@ class VisitorPass {
 
     RetT callVisitInStreamImpl(ASTNodeT *InStream) {
         return static_cast<DerivedT*>(this)->visitInStream(InStream);
+    }
+
+    RetT callVisitExplicitCastImpl(ASTNodeT *ExpliCast) {
+        return static_cast<DerivedT*>(this)->explicitCast(ExpliCast);
     }
 
 public:
@@ -538,6 +548,10 @@ public:
 
         if (auto *InS = dynamic_cast<InStream*>(Node)) {
             return callVisitInStreamImpl(InS);
+        }
+
+        if (auto *ExpliCast = dynamic_cast<ExplicitCast*>(Node)) {
+            return callVisitExplicitCastImpl(ExpliCast);
         }
     }
 };
