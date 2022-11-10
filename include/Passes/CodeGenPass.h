@@ -15,9 +15,14 @@
 
 #include "Passes/PassManager.h"
 #include "Passes/VisitorPass.h"
+#include "Passes/ExprTypeAnnotatorPass.h"
 
 
 class CodeGenPass: VisitorPass<CodeGenPass, llvm::Value*> {
+public:
+    using AnnotationT = llvm::Value*;
+private:
+
     llvm::LLVMContext GlobalCtx;
     llvm::IRBuilder<> IR;
     llvm::Module Mod;

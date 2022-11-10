@@ -3,6 +3,7 @@
 //
 
 #include "Passes/CodeGenPass.h"
+#include "Passes/LoopCheckPass.h"
 
 using llvm::Value;
 
@@ -39,11 +40,45 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody");
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(GlobalCtx, "LoopEnd");
+    // FIXME this is a hack to annotate the LoopBody and LoopEnd
+    PM->setAnnotation<CodeGenPass>(Loop, LoopEnd);
+    PM->setAnnotation<CodeGenPass>(Loop->getStatement(), LoopBody);
+    IR.CreateBr(LoopBody);
 
+    MainFunc->getBasicBlockList().push_back(LoopBody);
+    IR.SetInsertPoint(LoopBody);
+    visit(Loop->getStatement());
+    IR.CreateBr(LoopBody);
+    MainFunc->getBasicBlockList().push_back(LoopEnd);
+    IR.SetInsertPoint(LoopEnd);
+    return nullptr
 }
 
 llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
+    Type* CondType = PM->getAnnotation<ExprTypeAnnotatorPass>(Loop->getConditional())
+    assert(CondType == BoolType);
+    llvm::BasicBlock *Header = llvm::BasicBlock::Create(GlobalCtx, "LoopHeader", MainFunc);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody");
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(GlobalCtx, "LoopEnd");
+    PM->setAnnotation<CodeGenPass>(Loop, LoopEnd);
+    if (Loop->ConditionalBefore) {
+        IR.CreateBr(Header);
+    } else {
+        IR.CreateBr(LoopBody);
+    }
+    IR.SetInsertPoint(Header);
+    Value *Res = visit(Loop->getConditional());
+    IR.CreateCondBr(Res, LoopBody, LoopEnd);
 
+    MainFunc->getBasicBlockList().push_back(LoopBody);
+    IR.SetInsertPoint(LoopBody);
+    visit(Loop->getStatement());
+    IR.CreateBr(Header);
+    MainFunc->getBasicBlockList().push_back(LoopEnd);
+    IR.SetInsertPoint(LoopEnd);
+    return nullptr;
 }
 
 // ignored for part1
@@ -150,10 +185,36 @@ llvm::Value *CodeGenPass::visitReturn(Return *Return) {
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
+    llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(GlobalCtx, "AfterBreak");
+    TreeNode *Loop = PM->getAnnotation<LoopCheckPass>(Break);
+    // FIXME check if this works
+    auto *LoopEnd = static_cast<llvm::BasicBlock *>(PM->getAnnotation<CodeGenPass>(Loop));
+    IR.CreateBr(LoopEnd);
+    MainFunc->getBasicBlockList().push_back(AfterBreak);
+    IR.SetInsertPoint(AfterBreak);
+    return nullptr;
 
 }
 
 llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
+
+    llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(GlobalCtx, "AfterContinue");
+    TreeNode *Loop = PM->getAnnotation<LoopCheckPass>(Continue);
+    // FIXME check if this works
+    if (Loop->getKind() == TreeNode::N_AST_InfiniteLoop) {
+        auto *ILoop = dynamic_cast<InfiniteLoop *>(Loop);
+        auto *LoopBody = static_cast<llvm::BasicBlock *>(PM->getAnnotation<CodeGenPass>(ILoop->getStatement()));
+        IR.CreateBr(LoopBody);
+    } else if (Loop->getKind() == TreeNode::N_AST_ConditionalLoop) {
+        auto *CLoop = dynamic_cast<ConditionalLoop *>(Loop);
+        auto *LoopBody = static_cast<llvm::BasicBlock *>(PM->getAnnotation<CodeGenPass>(CLoop->getStatement()));
+        IR.CreateBr(LoopBody);
+    } else {
+        assert(false && "Unknown loop type");
+    }
+    MainFunc->getBasicBlockList().push_back(AfterBreak);
+    IR.SetInsertPoint(AfterBreak);
+    return nullptr;
 
 }
 
