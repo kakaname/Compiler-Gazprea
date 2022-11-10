@@ -13,6 +13,21 @@ using namespace std;
 // TODO organize files
 // FIXME consolidate
 
+// --- SYNTAX ERRORS ---
+
+class SyntaxError : public std::exception {
+private:
+    std::string msg;
+public:
+    SyntaxError(std::string msg) : msg(msg) {}
+
+    virtual const char* what() const throw() {
+        return msg.c_str();
+    }
+};
+
+// --- COMPILE TIME ERRORS ---
+
 class CompilerError : public std::exception {
 private:
     string message;
@@ -251,5 +266,3 @@ public:
             "Function " + name + " must return " + expected + " but returns " + actual
             ) {}
 };
-
-class Main
