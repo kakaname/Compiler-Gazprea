@@ -7,9 +7,11 @@
 Type* ExprTypeAnnotatorPass::visitOutStream(OutStream *OutStream) {
     // TODO update to new type registry system
     // I am guessing what the interface looks like
-    Type* ExprTy = visit(OutStream->getOutStreamExpr());
-    // FIXME error handling
-    assert(ExprTy->isOutputTy() && "Cannot output non-output type");
+    Type* ExprTy = visit(Expr->getOutStreamExpr());
+    // FIXME line number
+    if (!ExprTy.isOutputType()
+        throw OutputTypeError(Expr->getLine(), ExprTy.getName());
+
 
     if (ExprTy == NullType || ExprTy == IdentityType) {
         PM->setAnnotation<ExprTypeAnnotatorPass>(*OutStream->getOutStreamExpr(), CharType);
@@ -27,7 +29,10 @@ Type* ExprTypeAnnotatorPass::visitInStream(InStream *InStream) {
 
     // We shouldn't need to set the type annotation here, as it should already
     // be set for IDs
-    assert(IdentTy->isInputTy() && "Cannot input non-input type");
+
+    if (!IdentTy.isInputType())
+        throw InputTypeError(Ident->getLine(), IdentTy.getName());
+
     return IdentTy;
 
 }

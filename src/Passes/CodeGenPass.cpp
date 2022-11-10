@@ -370,7 +370,7 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *OutStream) {
     } else if (ValType == BoolType) {
         IR.CreateCall(PrintBoolFunc, {ValToOut});
     } else {
-        // TODO error handling
+        // should not reach here ever
         assert(false && "Cannot output non-output type");
     }
     return nullptr;
@@ -389,6 +389,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     } else if (IdentTy == BoolType) {
         IR.CreateCall(ReadBoolFunc, {StoreLoc, StreamStateLoc, Buffer});
     } else {
+        // should not reach here ever
         assert(false && "Cannot input non-input type");
     }
     return nullptr;
