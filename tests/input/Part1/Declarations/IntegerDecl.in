@@ -1,0 +1,21 @@
+var integer i;
+var integer i = 5;
+
+
+
+integer n0;
+n0 -> std_output;
+
+integer n1 = null;
+n1 -> std_output;
+
+integer n2 = identity;
+n2 -> std_output;
+
+var n3 = 3;
+n3 -> std_output;
+
+const n4 = 4;
+n4 ->std_output;
+
+

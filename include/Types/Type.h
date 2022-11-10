@@ -33,6 +33,19 @@ public:
         T_Int == Kind || T_Real == Kind;
     }
 
+    bool isInputTy() {
+        return T_Bool == Kind || T_Char == Kind ||
+               T_Int == Kind || T_Real == Kind;
+    }
+
+    bool isOutputTy() {
+        return T_Identity == Kind || T_Null == Kind ||
+        T_Bool == Kind || T_Char == Kind ||
+        T_Int == Kind || T_Real == Kind ||
+        T_Interval == Kind || T_String == Kind ||
+        T_Vector == Kind || T_Matrix == Kind;
+    }
+
     TypeKind getKind() const {
         return Kind;
     }

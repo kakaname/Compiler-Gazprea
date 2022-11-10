@@ -120,14 +120,6 @@ struct Block: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_Block;
     }
 
-    ChildrenContainerT::iterator begin() {
-        return Children.begin();
-    }
-
-    ChildrenContainerT::iterator end() {
-        return Children.end();
-    }
-
     Block() : TreeNode(TreeNodeKind::N_AST_Block) {}
 };
 
@@ -297,7 +289,7 @@ struct ConditionalLoop: public TreeNode {
     ConditionalLoop() : TreeNode(TreeNodeKind::N_AST_ConditionalLoop) {}
 };
 
-// Remains to be done!!!!!
+// ignored for part1
 struct DomainLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_DomainLoop;
@@ -419,14 +411,6 @@ struct TupleLiteral: public TreeNode {
         return getChildAt(Pos);
     }
 
-    ChildrenContainerT::iterator begin() {
-        return Children.begin();
-    }
-
-    ChildrenContainerT::iterator end() {
-        return Children.end();
-    }
-
     TupleLiteral(): TreeNode(TreeNodeKind::N_AST_TupleLiteral) {};
 };
 
@@ -466,14 +450,6 @@ struct TupleTypeDecl: public TreeNode {
 
     Declaration *getDeclAtPos(long Pos) {
         return getChildAtAs<Declaration>(Pos);
-    }
-
-    ChildrenContainerT::iterator begin() {
-        return Children.begin();
-    }
-
-    ChildrenContainerT::iterator end() {
-        return Children.end();
     }
 
     static bool classof(const TreeNode *N) {
@@ -676,15 +652,6 @@ struct ArgsList: public TreeNode {
         return getChildAt(Pos);
     }
 
-    // Iterate over the expressions
-    ChildrenContainerT::iterator begin() {
-        return Children.begin();
-    }
-
-    ChildrenContainerT::iterator end() {
-        return Children.end();
-    }
-
     ArgsList(): TreeNode(TreeNodeKind::N_AST_ArgsList) {}
 };
 
@@ -700,15 +667,6 @@ struct ParasList: public TreeNode {
 
     Declaration *getDeclAtPos(long Pos) {
         return getChildAtAs<Declaration>(Pos);
-    }
-
-    // Iterate over the declarations
-    ChildrenContainerT::iterator begin() {
-        return Children.begin();
-    }
-
-    ChildrenContainerT::iterator end() {
-        return Children.end();
     }
 
     ParasList(): TreeNode(TreeNodeKind::N_AST_ParasList) {}
@@ -864,7 +822,7 @@ struct ProcedureDecl: public TreeNode {
         return getChildAtAs<ParasList>(ParasListIdx);
     }
 
-    ASTNodeT *getReturnsTypeNode() {
+    ASTNodeT *getReturnsType() {
         return getChildAt(ReturnsTypeIdx);
     }
 
@@ -906,7 +864,7 @@ struct ProcedureDef: public TreeNode {
         return getChildAtAs<ParasList>(ParasListIdx);
     }
 
-    ASTNodeT *getReturnsTypeNode() {
+    ASTNodeT *getReturnsType() {
         return getChildAt(ReturnsTypeIdx);
     }
 
@@ -957,7 +915,7 @@ struct Return: public TreeNode {
         setChildAt(ReturnExprIdx, Expr);
     }
 
-    ASTNodeT *getLeftExpr() {
+    ASTNodeT *getReturnExpr() {
         return getChildAt(ReturnExprIdx);
     }
 
@@ -980,6 +938,69 @@ struct Continue: public TreeNode {
     }
 
     Continue(): TreeNode(TreeNodeKind::N_AST_Continue) {}
+};
+
+struct OutStream: public TreeNode {
+    static constexpr size_t OutStreamExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_OutStream;
+    }
+
+    void setOutStreamExpr(ASTNodeT *Expr) {
+        setChildAt(OutStreamExprIdx, Expr);
+    }
+
+    ASTNodeT *getOutStreamExpr() {
+        return getChildAt(OutStreamExprIdx);
+    }
+
+    OutStream(): TreeNode(TreeNodeKind::N_AST_OutStream) {}
+};
+
+struct InStream: public TreeNode {
+    static constexpr size_t IdentIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_InStream;
+    }
+
+    void setIdentifier(Identifier *Ident) {
+        setChildAt(IdentIdx, Ident);
+    }
+
+    Identifier *getIdentifier() {
+        return getChildAtAs<Identifier>(IdentIdx);
+    }
+
+    InStream(): TreeNode(TreeNodeKind::N_AST_InStream) {}
+};
+
+struct ExplicitCast: public TreeNode {
+    static constexpr size_t TypeIdxIdx = 0;
+    static constexpr size_t ExprIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_ExplicitCast;
+    }
+
+    void setType(ASTNodeT *N) {
+        setChildAt(TypeIdxIdx, N);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getType() {
+        return getChildAt(TypeIdxIdx);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
+    }
+
+    ExplicitCast(): TreeNode(TreeNodeKind::N_AST_ExplicitCast) {}
 };
 
 #endif //GAZPREABASE_ASTNODES_H
