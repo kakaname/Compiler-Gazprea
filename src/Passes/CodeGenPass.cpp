@@ -12,14 +12,29 @@ llvm::Value *CodeGenPass::visitProgram(Program *Prog) {
 }
 
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
-
+    Type *IdentType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Ident);
+    // If the identifier is an integer, load it and return the value.
+    return IR.CreateLoad(SymbolMap[Ident->getSymbolId()]);
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
+    Value *StoreVal = visit(Assign->getExpr());
+    Type *AssignType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Assign->getExpr());
+    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getSymbolId()];
 
+    // We are storing an integer. So we know the value of the expression is
+    // in register itself.
+    IR.CreateStore(StoreVal, StoreLoc);
 }
 
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
+    Value *InitValue = visit(Decl->getInitExpr());
+    Type DeclType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Decl->getInitExpr());
+    // We are declaring an integer.
+    Value *DeclValue = createAlloca(LLVMIntType);
+    IR.CreateStore(InitValue, DeclValue);
+    SymbolMap[Decl->getIdentifier()->getSymbolId()] = DeclValue;
+    return nullptr;
 
 }
 
@@ -28,11 +43,70 @@ llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
+    Value *LeftOperand = visit(Op->getLeftExpr());
+    Value *RightOperand = visit(Op->getRightExpr());
+
+    // Just an assertion, not needed for code gen.
+    Type* LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getLeftExpr());
+    Type* RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getRightExpr());
+    assert( RightType == LeftType && "Operation between different types should not"
+                                     " have reached the code gen");
+
+    llvm::CmpInst::Predicate Pred;
+    switch (Op->getOpKind()) {
+        case LogicalOp::EQEQ:
+            Pred = llvm::CmpInst::Predicate::ICMP_EQ;
+            break;
+        case LogicalOp::NEQ:
+            Pred = llvm::CmpInst::Predicate::ICMP_NE;
+            break;
+        case LogicalOp::GT:
+            Pred = llvm::CmpInst::Predicate::ICMP_SGT;
+            break;
+        case LogicalOp::LT:
+            Pred = llvm::CmpInst::Predicate::ICMP_SLT;
+            break;
+        case LogicalOp::LTEQ:
+            Pred = llvm::CmpInst::Predicate::ICMP_SLE;
+            break;
+        case LogicalOp::GTEQ:
+            Pred = llvm::CmpInst::Predicate::ICMP_SGE;
+            break;
+    }
+
+    return IR.CreateICmp(Pred, LeftOperand, RightOperand);
 
 }
 
 llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
+    Value *LeftOperand = visit(Op->getLeftExpr());
+    Value *RightOperand = visit(Op->getRightExpr());
+    Type *OpType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op);
 
+    // Just an assertion, not needed for code gen.
+    Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getLeftExpr());
+    Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getRightExpr());
+    assert( RightType == LeftType && "Operation between different types should not"
+                                     " have reached the code gen");
+
+    // Easy integer case where we just return the result of the operation.
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                return IR.CreateAdd(LeftOperand, RightOperand);
+            case ArithmeticOp::SUB:
+                return IR.CreateSub(LeftOperand, RightOperand);
+            case ArithmeticOp::MUL:
+                return IR.CreateMul(LeftOperand, RightOperand);
+            case ArithmeticOp::DIV:
+                return IR.CreateSDiv(LeftOperand, RightOperand);
+            case ArithmeticOp::EXP:
+                // get llvm exponentiation function
+                return IR.CreateCall(llvm::Intrinsic::getDeclaration(&Mod, llvm::Intrinsic::powi), {LeftOperand, RightOperand});
+            case ArithmeticOp::MOD:
+                return IR.CreateSRem(LeftOperand, RightOperand);
+            default:
+                assert(false && "Unknown arithmetic operation");
+        }
 }
 
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
@@ -87,27 +161,62 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 }
 
 llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
-
+    return IR.getInt32(IntLit->getVal());
 }
 
 llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral *NullLit) {
+    Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(NullLit);
+    switch (ExprTy->getKind()) {
+        case Type::TypeKind::T_Int:
+            return IR.getInt32(0);
+        case Type::TypeKind::T_Char:
+            return IR.getInt8(0);
+        case Type::TypeKind::T_Bool:
+            return IR.getInt1(false);
+        case Type::TypeKind::T_Real:
+            return llvm::ConstantFP::get(llvm::Type::getDoubleTy(GlobalCtx), llvm::APFloat(0.0));
+        default:
+            assert(false && "Invalid type for null literal");
+            return nullptr;
+    }
 
 }
 
 llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral *IdentityLit) {
-
+    Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(IdentityLit);
+    switch (ExprTy->getKind()) {
+        case Type::TypeKind::T_Int:
+            return IR.getInt32(1);
+        case Type::TypeKind::T_Char:
+            return IR.getInt8(1);
+        case Type::TypeKind::T_Bool:
+            return IR.getInt1(true);
+        case Type::TypeKind::T_Real:
+            return llvm::ConstantFP::get(llvm::Type::getDoubleTy(GlobalCtx), llvm::APFloat(1.0));
+        default:
+            assert(false && "Invalid type for identity literal");
+            return nullptr;
+    }
 }
 
 llvm::Value *CodeGenPass::visitRealLiteral(RealLiteral *RealLit) {
+    // get float value
+    float val = RealLit->getVal();
+    // convert to llvm IR
+    // TODO verify precision of float
+    // TODO exponential notation
 
+    llvm::APFloat apf(val);
+    return llvm::ConstantFP::get(GlobalCtx, apf);
 }
 
 llvm::Value *CodeGenPass::visitBoolLiteral(BoolLiteral *BoolLit) {
-
+    return IR.getInt1(BoolLit->getVal());
 }
 
 llvm::Value *CodeGenPass::visitCharLiteral(CharLiteral *CharLit) {
-
+    // TODO verify escape sequences are handled correctly in ASTBuilder
+    return IR.getInt8(CharLit->getCharacter());
 }
 
 llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
@@ -135,10 +244,39 @@ llvm::Value *CodeGenPass::visitTypeCast(TypeCast *Cast) {
 }
 
 llvm::Value *CodeGenPass::visitBitwiseOp(BitwiseOp *Op) {
+    Value *LeftOperand = visit(Op->getLeftExpr());
+    Value *RightOperand = visit(Op->getRightExpr());
 
+    // Just an assertion, not needed for code gen.
+    Type* LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getLeftExpr());
+    Type* RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Op->getRightExpr());
+    assert( RightType == LeftType && "Operation between different types should not"
+                                     " have reached the code gen");
+
+    llvm::CmpInst::Predicate Pred;
+    switch (Op->getOpKind()) {
+        case BitwiseOp::AND:
+            return IR.CreateAnd(LeftOperand, RightOperand);
+        case BitwiseOp::OR:
+            return IR.CreateOr(LeftOperand, RightOperand);
+        case BitwiseOp::XOR:
+            return IR.CreateXor(LeftOperand, RightOperand);
+        default:
+            assert(false && "Unknown bitwise operation");
+    }
 }
 
 llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
+    Value *Operand = visit(Op->getExpr());
+
+    switch (Op->getOpKind()) {
+        case UnaryOp::NOT:
+            return IR.CreateNot(Operand);
+        case UnaryOp::ADD:
+            return Operand;
+        case UnaryOp::SUB:
+            return IR.CreateNeg(Operand);
+    }
 
 }
 
@@ -235,6 +373,7 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *OutStream) {
         // TODO error handling
         assert(false && "Cannot output non-output type");
     }
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
@@ -252,6 +391,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     } else {
         assert(false && "Cannot input non-input type");
     }
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *ExplicitCast) {
