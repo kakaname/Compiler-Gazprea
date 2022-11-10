@@ -2,6 +2,7 @@
 set(
   gazprea_rt_files
   "${CMAKE_CURRENT_SOURCE_DIR}/placeholder.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/errors.h"
 )
 
 # Build our executable from the source files.
