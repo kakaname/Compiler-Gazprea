@@ -260,8 +260,8 @@ class VisitorPass {
         return static_cast<DerivedT*>(this)->visitBlock(Block);
     }
 
-    RetT callVisitLogicalOpImpl(ASTNodeT *LogicOp) {
-        return static_cast<DerivedT*>(this)->visitLogicalOp(LogicOp);
+    RetT callVisitLogicalOpImpl(LogicalOp *LogicOp) {
+        return static_cast<DerivedT*>(this)->visitLogicalOp(dynamic_cast<LogicalOp *>(LogicOp));
     }
 
     RetT callVisitArithmeticOpImpl(ASTNodeT *ArithOp) {

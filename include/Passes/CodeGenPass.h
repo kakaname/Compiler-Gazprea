@@ -36,7 +36,7 @@ private:
     // The file to dump the outputs to.
     const char *OutputFile;
 
-    explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile) {}
+    explicit CodeGenPass(const char *OutFile) : VisitorPass(), GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile) {}
 
     llvm::Value *visitProgram(Program *Prog);
 
