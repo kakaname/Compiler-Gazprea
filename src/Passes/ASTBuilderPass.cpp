@@ -460,15 +460,19 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     ProcedDef->setParasList(ParametersList);
     ParametersList->setParent(ProcedDef);
 
-    // Set returns type node
-    auto ReturnsTypeNode = castToNodeVisit(ctx->type());
-    ProcedDef->setReturnsType(ReturnsTypeNode);
-    ReturnsTypeNode->setParent(ProcedDef);
-
     // Set block if it is not null
     auto Block = castToNodeVisit(ctx->block());
     ProcedDef->setBlock(Block);
     Block->setParent(ProcedDef);
+
+    // Set returns type to null if it is not specified
+    if (!ctx->type())
+        ProcedDef->setReturnsType(nullptr);
+    else {
+        auto ReturnsTypeNode = castToNodeVisit(ctx->type());
+        ProcedDef->setReturnsType(ReturnsTypeNode);
+        ReturnsTypeNode->setParent(ProcedDef);
+    }
 
     return ProcedDef;
 }

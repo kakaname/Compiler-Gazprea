@@ -10,7 +10,7 @@
 #include "AST/ASTNodes.h"
 
 template<typename DerivedT, typename RetT>
-class VisitorPass {
+class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProgram(Program *Prog) {
         for (auto *child : *Prog) {
@@ -199,7 +199,6 @@ class VisitorPass {
     RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
         visit(ProcedureDef->getIdentifier());
         visit(ProcedureDef->getParasList());
-        visit(ProcedureDef->getReturnsType());
         visit(ProcedureDef->getBlock());
         return RetT();
     }

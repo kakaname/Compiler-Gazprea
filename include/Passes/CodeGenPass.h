@@ -38,6 +38,8 @@ private:
 
     explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile) {}
 
+    void runOnAST(ASTPassManager &Manager, ASTNodeT &Root);
+
     llvm::Value *visitProgram(Program *Prog);
 
     llvm::Value *visitIdentifier(Identifier *Ident);

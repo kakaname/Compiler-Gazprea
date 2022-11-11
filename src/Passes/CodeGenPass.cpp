@@ -7,6 +7,16 @@
 
 using llvm::Value;
 
+void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT &Root) {
+    PM = &Manager;
+    ScopeTreeNode &GlobalScope = Manager.getResult<ScopeResolutionPass>();
+
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "entry", MainFunc);
+    llvm::BasicBlock *Prog = llvm::BasicBlock::Create(GlobalCtx, "prog", MainFunc);
+
+
+}
+
 llvm::Value *CodeGenPass::visitProgram(Program *Prog) {
 
 }
@@ -35,10 +45,6 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     IR.CreateStore(InitValue, DeclValue);
     SymbolMap[Decl->getIdentifier()->getSymbolId()] = DeclValue;
     return nullptr;
-
-}
-
-llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
 
 }
 
@@ -109,6 +115,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
         }
 }
 
+// Ignored for part1
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
 
 }
@@ -398,3 +405,5 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *ExplicitCast) {
 
 }
+
+
