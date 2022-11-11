@@ -18,6 +18,8 @@ void FunctionFlowPass::visitFunctionDef(FunctionDef *FuncDef) {
     if (!isFunctionBranchSafe)
         throw InvalidControlFlowError(FuncDef->getLine(), FuncDef->getIdentifier()->getName());
 
+    // Set type of block (note that this is not the same as the function AST type)
+    PM->setAnnotation<ExprTypeAnnotatorPass>(FuncDef->getBlock(), currFuncReturnType);
     inFunction = nullptr;
     currFuncReturnType = nullptr;
 
