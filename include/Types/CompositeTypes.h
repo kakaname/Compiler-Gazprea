@@ -5,6 +5,7 @@
 #ifndef GAZPREABASE_COMPOSITETYPES_H
 #define GAZPREABASE_COMPOSITETYPES_H
 
+#include <utility>
 #include <vector>
 #include <map>
 #include <string>
@@ -14,6 +15,7 @@
 using std::vector;
 using std::map;
 using std::string;
+using std::pair;
 
 struct IntervalTy : public Type {
     static bool classof(const Type *T) {
@@ -22,7 +24,8 @@ struct IntervalTy : public Type {
 
     IntervalTy() = delete;
 
-    explicit IntervalTy(bool IsConst, int StepSize) : Type(TypeKind::T_Interval, IsConst), StepSize(1) {
+    explicit IntervalTy(bool IsConst, int StepSize):
+        Type(TypeKind::T_Interval, IsConst), StepSize(1) {
         StepSizeKnown = (StepSize > 0);
     }
 
@@ -46,21 +49,24 @@ struct VectorTy : public Type {
 
     VectorTy() = delete;
 
-    VectorTy(bool IsConst, int Size) : Type(TypeKind::T_Vector, IsConst), Size(Size) {
-        IsSizeKnown = (Size > 0);
-    }
+    VectorTy(const Type *InnerTy, int Size, bool IsConst):
+        Type(TypeKind::T_Vector, IsConst), Size(Size), InnerTy(InnerTy) {}
 
     bool isSizeKnown() const {
-        return IsSizeKnown;
+        return Size != -1;
     }
 
     int getSize() const {
         return Size;
     }
 
+    const Type *getInnerTy() {
+        return InnerTy;
+    }
+
 private:
     int Size;
-    bool IsSizeKnown;
+    const Type *InnerTy;
 };
 
 struct MatrixTy : public Type {
@@ -70,39 +76,35 @@ struct MatrixTy : public Type {
 
     MatrixTy() = delete;
     
-    MatrixTy(bool IsConst, int Rows, int Columns) :
-        Type(TypeKind::T_Matrix, IsConst), Rows(Rows), Columns(Columns) {
-        RowsIsKnown = (Rows > 0);
-        ColumnsIsKnown = (Columns > 0);
-    }
+    MatrixTy(const Type *InnerTy, pair<int, int> Dimensions,  bool IsConst):
+        Type(TypeKind::T_Matrix, IsConst),
+        InnerTy(InnerTy),
+        Dimensions(std::move(Dimensions)) {}
 
     int getNumOfRows() const {
-        return Rows;
+        return Dimensions.first;
     };
 
     int getNumOfColumns() const {
-        return Columns;
+        return Dimensions.second;
     };
 
     bool isNumOfRowsIsKnown() const {
-        return RowsIsKnown;
+        return Dimensions.first != -1;
     };
 
     bool isNumOfColumnsIsKnown() const {
-        return ColumnsIsKnown;
+        return Dimensions.second != -1;
     };
 
 private:
-    int Rows;
-    int Columns;
-    bool RowsIsKnown;
-    bool ColumnsIsKnown;
+    const Type *InnerTy;
+    std::pair<int, int> Dimensions;
 };
 
 struct TupleTy : public Type {
 
-    using MemberTyContainer = vector<Type*>;
-    using IdentMappingTy = map<string, size_t>;
+    using MemberTyContainer = vector<const Type*>;
 
     static bool classof(const Type *T) {
         return T->getKind() == TypeKind::T_Tuple;
@@ -120,8 +122,8 @@ struct TupleTy : public Type {
         return ContainedTypes.size();
     }
 
-    TupleTy(bool IsConst, MemberTyContainer &&ContainedTypes) :
-        Type(TypeKind::T_Tuple, IsConst), ContainedTypes(ContainedTypes) {}
+    TupleTy(bool IsConst, MemberTyContainer ContainedTypes) :
+        Type(TypeKind::T_Tuple, IsConst), ContainedTypes(std::move(ContainedTypes)) {}
 
 private:
     MemberTyContainer ContainedTypes;
@@ -149,6 +151,32 @@ struct FunctionTy : public Type {
 
     explicit FunctionTy(ArgsTypeContainer &&Args) :
         Type(TypeKind::T_Function, true), Args(Args) {}
+
+private:
+    ArgsTypeContainer Args;
+};
+
+struct ProcedureTy : public Type {
+    static bool classof(const Type *T) {
+        return T->getKind() == TypeKind::T_Procedure;
+    }
+
+    using ArgsTypeContainer = vector<Type*>;
+
+    const Type *getArgTypeAt(size_t Pos) {
+        if (Pos >= Args.size())
+            return nullptr;
+        return Args.at(Pos);
+    }
+
+    size_t getNumOfArgs() {
+        return Args.size();
+    }
+
+    ProcedureTy() = delete;
+
+    explicit ProcedureTy(ArgsTypeContainer Args, const Type* ReturnTy):
+            Type(TypeKind::T_Function, true), Args(std::move(Args)) {}
 
 private:
     ArgsTypeContainer Args;

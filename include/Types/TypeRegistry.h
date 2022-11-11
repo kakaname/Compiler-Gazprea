@@ -8,6 +8,8 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <array>
+#include <cassert>
 
 #include "Types/Type.h"
 #include "Types/ScalarTypes.h"
@@ -17,41 +19,98 @@ using std::unique_ptr;
 using std::make_unique;
 using std::pair;
 using std::vector;
+using std::array;
 
 class TypeRegistry {
 
-    using VectorTyContainer = map<int, unique_ptr<VectorTy>>;
-    using MatrixTyContainer = map<pair<int, int>, unique_ptr<MatrixTy>>;
-    using TupleTyContainer = map<vector<Type*>, unique_ptr<TupleTy>>;
-    using FunctionTypeContainer = map<vector<Type*>, unique_ptr<FunctionTy>>;
 
+    template<typename T>
+    using ConstTypeIdPair = pair<bool, T>;
+
+    using VectorTyId = ConstTypeIdPair<pair<const Type*, int>>;
+    using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
+    using TupleTypeId = ConstTypeIdPair<vector<const Type*>>;
+    using FunctionTypeId = vector<Type*>;
+
+    // A size of -1 for sized types implies that the size is not known at
+    // compile time.
+    using VectorTyContainer = map<VectorTyId, unique_ptr<VectorTy>>;
+    using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
+    using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
+    using FunctionTypeContainer = map<vector<Type*>, unique_ptr<FunctionTy>>;
 
     NullTy NullType;
     IdentityTy IdentityType;
-    BoolTy ConstBoolType;
-    BoolTy BoolType;
-    CharTy ConstCharType;
-    CharTy CharType;
-    IntegerTy ConstIntType;
-    IntegerTy IntType;
-    RealTy ConstRealType;
-    RealTy RealType;
+    array<BoolTy, 2> BooleanTypes;
+    array<CharTy, 2> CharacterTypes;
+    array<IntegerTy, 2> IntegerTypes;
+    array<RealTy, 2> RealTypes;
 
     VectorTyContainer VectorTypes;
     MatrixTyContainer MatrixTypes;
     TupleTyContainer TupleTypes;
     FunctionTypeContainer FunctionTypes;
 
-    explicit TypeRegistry() : NullType(), IdentityType(), ConstBoolType(true),
-        BoolType(false), ConstCharType(true), CharType(false), ConstIntType(true),
-                              IntType(false), ConstRealType(true), RealType(true) {
 
+public:
+    explicit TypeRegistry(): NullType(), IdentityType(),
+                             BooleanTypes{BoolTy(false), BoolTy(true)},
+                             CharacterTypes{CharTy(false), CharTy(true)},
+                             IntegerTypes{IntegerTy(false), IntegerTy(true)},
+                             RealTypes{RealTy(false), RealTy(true)} {};
+
+    const Type *getNullTy() {
+        return &NullType;
     }
 
-};
+    const Type *getIdentityTy() {
+        return &IdentityType;
+    }
 
-class TupleTypeBuilder {
+    const Type *getBooleanTy(bool Const = true) {
+        return &BooleanTypes[Const];
+    }
 
+    const Type *getCharTy(bool Const = true) {
+        return &CharacterTypes[Const];
+    }
+
+    const Type *getIntegerTy(bool Const = true) {
+        return &IntegerTypes[Const];
+    }
+
+    const Type *getRealTy(bool Const = true) {
+        return &RealTypes[Const];
+    }
+
+    const Type *getVectorType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
+        auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
+        if (Res != VectorTypes.end())
+            return Res->second.get();
+
+        auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
+        ConstTypeIdPair<pair<int, int>> Key{IsConst, {InnerTy, Size}};
+        auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
+        assert(Inserted.second && "We just checked that type wasn't in the map");
+        return Inserted.first->second.get();
+    }
+
+    const Type *getMatrixType(const Type *InnerTy, int Rows = -1, int Cols = -1 ,
+                              bool IsConst = true) {
+        auto Res = MatrixTypes.find({InnerTy, {Rows, Cols}});
+        if (Res != MatrixTypes.end())
+            return Res->second.get();
+
+        auto NewMatrixTy = make_unique<MatrixTy>(
+                MatrixTy(InnerTy,{Rows, Cols}, IsConst));
+
+        pair<const Type*, pair<int, int>> Key{InnerTy, pair{Rows, Cols}};
+        auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
+        assert(Inserted.second && "We just check that type wasn't in the map");
+        return Inserted.first->second.get();
+    }
+
+    const Type *getTupleType(const TupleTy::MemberTyContainer &ContainedTypes, bool IsConst = true)
 };
 
 #endif //GAZPREABASE_TYPEREGISTERY_H

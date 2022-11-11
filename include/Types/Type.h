@@ -19,7 +19,8 @@ public:
         T_Vector,
         T_Matrix,
         T_Tuple,
-        T_Function
+        T_Function,
+        T_Procedure
     };
 
     bool isConst() const {
