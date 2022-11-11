@@ -15,7 +15,7 @@
 using std::vector;
 using llvm::cast;
 
-class TreeNode {
+struct TreeNode {
 public:
     using ChildrenContainerT = vector<TreeNode*>;
 
@@ -39,18 +39,26 @@ public:
         N_AST_TupleLiteral,
         N_AST_MemberAccess,
         N_AST_TupleTypeDecl,
+        N_AST_InfiniteLoop,
         N_AST_Conditional,
         N_AST_ConditionalElse,
         N_AST_TypeCast,
         N_AST_BitwiseOp,
         N_AST_UnaryOp,
+        N_AST_ArgsList,
+        N_AST_ParasList,
         N_AST_FunctionDecl,
+        N_AST_FunctionDef,
         N_AST_FunctionCall,
         N_AST_ProcedureDecl,
+        N_AST_ProcedureDef,
         N_AST_ProcedureCall,
         N_AST_Return,
         N_AST_Break,
-        N_AST_Continue
+        N_AST_Continue,
+        N_AST_OutStream,
+        N_AST_InStream,
+        N_AST_ExplicitCast
     };
 
     TreeNodeKind getKind() const {
@@ -74,6 +82,16 @@ public:
             Child->setParent(this);
         Children.emplace_back(Child);
     }
+
+    ChildrenContainerT::iterator begin() {
+        return Children.begin();
+    }
+
+    ChildrenContainerT::iterator end() {
+        return Children.end();
+    }
+
+    virtual ~TreeNode() {};
 
 protected:
     ChildrenContainerT Children;

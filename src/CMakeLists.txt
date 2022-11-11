@@ -11,6 +11,11 @@ set(
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/ScalarTypes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
+
 )
 
 # Build our executable from the source files.
