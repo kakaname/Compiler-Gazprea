@@ -3,6 +3,7 @@
 //
 
 #include "Passes/FunctionFlowPass.h"
+#include "Passes/PassManager.h"
 
 void FunctionFlowPass::visitFunctionDef(FunctionDef *FuncDef) {
     inFunction = FuncDef;
@@ -11,7 +12,7 @@ void FunctionFlowPass::visitFunctionDef(FunctionDef *FuncDef) {
 
     // Check if there is a return statement
     if (currFuncReturnType != nullptr)
-        throw NoReturnError(FuncDef->getLine(), FuncDef->getIdentifier()->getName());
+        throw runtime_error("One of the branches of the function has no returns.");
 
     // Check if the function is branch safe
     bool isFunctionBranchSafe = PM->getAnnotation<FunctionFlowPass>(FuncDef->getBlock());

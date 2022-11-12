@@ -563,6 +563,29 @@ struct TypeCast: public TreeNode {
 };
 
 
+struct TypeDef: public TreeNode {
+    static constexpr int BaseTypeIdx = 0;
+    static constexpr int AliasIdx = 1;
+
+    TypeDef(): TreeNode(TreeNode::N_AST_TypeDef) {}
+
+    void setBaseType(ASTNodeT *N) {
+        setChildAt(BaseTypeIdx, N);
+    }
+
+    void setAlias(Identifier *I) {
+        setChildAt(AliasIdx, I);
+    }
+
+    Identifier *getAlias() {
+        return getChildAtAs<Identifier>(AliasIdx);
+    }
+
+    ASTNodeT *getBaseType() {
+        return getChildAt(BaseTypeIdx);
+    }
+};
+
 struct BitwiseOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
     static constexpr int RightExprIdx = 1;
@@ -764,6 +787,18 @@ struct FunctionDef: public TreeNode {
     FunctionDef(): TreeNode(TreeNodeKind::N_AST_FunctionDef) {};
 };
 
+struct ResolvedType: public TreeNode {
+    string Name;
+    ResolvedType(): TreeNode(TreeNode::N_AST_ResolvedType) {}
+
+    void setName(const string& N) {
+        Name = N;
+    }
+
+    const string &getName() const {
+        return Name;
+    }
+};
 
 struct FunctionCall: public TreeNode {
     static constexpr size_t IdentIdx = 0;

@@ -89,7 +89,7 @@ public:
             return Res->second.get();
 
         auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
-        ConstTypeIdPair<pair<int, int>> Key{IsConst, {InnerTy, Size}};
+        VectorTyId Key{IsConst, {InnerTy, Size}};
         auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
         assert(Inserted.second && "We just checked that type wasn't in the map");
         return Inserted.first->second.get();
@@ -97,20 +97,31 @@ public:
 
     const Type *getMatrixType(const Type *InnerTy, int Rows = -1, int Cols = -1 ,
                               bool IsConst = true) {
-        auto Res = MatrixTypes.find({InnerTy, {Rows, Cols}});
-        if (Res != MatrixTypes.end())
+        MatrixTypeId Key{IsConst, {InnerTy, pair{Rows, Cols}}};
+        auto Res = MatrixTypes.find(Key);
+        if (Res != MatrixTypes.end()) {
             return Res->second.get();
-
+        }
         auto NewMatrixTy = make_unique<MatrixTy>(
                 MatrixTy(InnerTy,{Rows, Cols}, IsConst));
-
-        pair<const Type*, pair<int, int>> Key{InnerTy, pair{Rows, Cols}};
         auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
         assert(Inserted.second && "We just check that type wasn't in the map");
         return Inserted.first->second.get();
     }
 
-    const Type *getTupleType(const TupleTy::MemberTyContainer &ContainedTypes, bool IsConst = true)
+    const Type *getTupleType(const TupleTy::MemberTyContainer &ContainedTypes,
+                             bool IsConst = true) {
+        TupleTypeId Key{IsConst,  ContainedTypes};
+        auto Res = TupleTypes.find(Key);
+        if (Res != TupleTypes.end())
+            return Res->second.get();
+
+        auto NewTupleTy = make_unique<TupleTy>(TupleTy(
+                IsConst, ContainedTypes));
+        auto Inserted = TupleTypes.insert({Key, std::move(NewTupleTy)});
+        assert(Inserted.second && "We just checked that the type wasn't in the map");
+        return Inserted.first->second.get();
+    }
 };
 
 #endif //GAZPREABASE_TYPEREGISTERY_H

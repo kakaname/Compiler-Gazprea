@@ -9,13 +9,14 @@
 #include "Pass.h"
 #include "AST/ASTNodes.h"
 
+using llvm::dyn_cast;
+
 template<typename DerivedT, typename RetT>
 class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProgram(Program *Prog) {
-        for (auto *child : *Prog) {
+        for (auto *child : *Prog)
             visit(child);
-        }
         return RetT();
     }
 
@@ -69,6 +70,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitConditionalLoop(ConditionalLoop *Loop) {
         visit(Loop->getConditional());
         visit(Loop->getStatement());
+        return RetT();
     }
 
     // ignored for part1
@@ -176,7 +178,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         visit(FuncDef->getIdentifier());
         visit(FuncDef->getParasList());
         visit(FuncDef->getReturnsType());
-        if (dynamic_cast<Block*>(FuncDef->getBlock()))
+        if (dyn_cast<Block*>(FuncDef->getBlock()))
            visit(FuncDef->getBlock());
         else
             visit(FuncDef->getExpr());
@@ -260,298 +262,261 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT callVisitLogicalOpImpl(LogicalOp *LogicOp) {
-        return static_cast<DerivedT*>(this)->visitLogicalOp(dynamic_cast<LogicalOp *>(LogicOp));
+        return static_cast<DerivedT*>(this)->visitLogicalOp(LogicOp);
     }
 
-    RetT callVisitArithmeticOpImpl(ASTNodeT *ArithOp) {
+    RetT callVisitArithmeticOpImpl(ArithmeticOp *ArithOp) {
         return static_cast<DerivedT*>(this)->visitArithmeticOp(ArithOp);
     }
 
-    RetT callVisitIndexImpl(ASTNodeT *Ind) {
-        return static_cast<DerivedT*>(this)->visitIndex(Ind);
+    RetT callVisitIndexImpl(Index *Idx) {
+        return static_cast<DerivedT*>(this)->visitIndex(Idx);
     }
 
-    RetT callVisitInfiniteLoopImpl(ASTNodeT *Loop) {
+    RetT callVisitInfiniteLoopImpl(InfiniteLoop *Loop) {
         return static_cast<DerivedT*>(this)->visitInfiniteLoop(Loop);
     }
 
-    RetT callVisitConditionalLoopImpl(ASTNodeT *CondLoop) {
+    RetT callVisitConditionalLoopImpl(ConditionalLoop *CondLoop) {
         return static_cast<DerivedT*>(this)->visitConditionalLoop(CondLoop);
     }
 
-    RetT callVisitDomainLoopImpl(ASTNodeT *DomainLoop) {
+    RetT callVisitDomainLoopImpl(DomainLoop *DomainLoop) {
         return static_cast<DerivedT*>(this)->visitDomainLoop(DomainLoop);
     }
 
-    RetT callVisitIntLiteralImpl(ASTNodeT *IntLiteral) {
+    RetT callVisitIntLiteralImpl(IntLiteral *IntLiteral) {
         return static_cast<DerivedT*>(this)->visitIntLiteral(IntLiteral);
     }
 
-    RetT callVisitNullLiteralImpl(ASTNodeT *NullLiteral) {
+    RetT callVisitNullLiteralImpl(NullLiteral *NullLiteral) {
         return static_cast<DerivedT*>(this)->visitNullLiteral(NullLiteral);
     }
 
-    RetT callVisitIdentityLiteralImpl(ASTNodeT *Identity) {
+    RetT callVisitIdentityLiteralImpl(IdentityLiteral *Identity) {
         return static_cast<DerivedT*>(this)->visitIdentityLiteral(Identity);
     }
 
-    RetT callVisitRealLiteralImpl(ASTNodeT *RealLiteral) {
+    RetT callVisitRealLiteralImpl(RealLiteral *RealLiteral) {
         return static_cast<DerivedT*>(this)->visitRealLiteral(RealLiteral);
     }
 
-    RetT callVisitBoolLiteralImpl(ASTNodeT *BoolLiteral) {
+    RetT callVisitBoolLiteralImpl(BoolLiteral *BoolLiteral) {
         return static_cast<DerivedT*>(this)->visitBoolLiteral(BoolLiteral);
     }
 
-    RetT callVisitCharLiteralImpl(ASTNodeT *CharLiteral) {
+    RetT callVisitCharLiteralImpl(CharLiteral *CharLiteral) {
         return static_cast<DerivedT*>(this)->visitCharLiteral(CharLiteral);
     }
 
-    RetT callVisitTupleLiteralImpl(ASTNodeT *TupleLiteral) {
+    RetT callVisitTupleLiteralImpl(TupleLiteral *TupleLiteral) {
         return static_cast<DerivedT*>(this)->visitTupleLiteral(TupleLiteral);
     }
 
-    RetT callVisitMemberAccessImpl(ASTNodeT *MemberAccess) {
+    RetT callVisitMemberAccessImpl(MemberAccess *MemberAccess) {
         return static_cast<DerivedT*>(this)->visitMemberAccess(MemberAccess);
     }
 
-    RetT callVisitTupleTypeDeclImpl(ASTNodeT *TupleTypeDecl) {
+    RetT callVisitTupleTypeDeclImpl(TupleTypeDecl *TupleTypeDecl) {
         return static_cast<DerivedT*>(this)->visitTupleTypeDecl(TupleTypeDecl);
     }
 
-    RetT callVisitConditionalImpl(ASTNodeT *Cond) {
+    RetT callVisitConditionalImpl(Conditional *Cond) {
         return static_cast<DerivedT*>(this)->visitConditional(Cond);
     }
 
-    RetT callVisitConditionalElseImpl(ASTNodeT *CondElse) {
+    RetT callVisitConditionalElseImpl(ConditionalElse *CondElse) {
         return static_cast<DerivedT*>(this)->visitConditionalElse(CondElse);
     }
 
-    RetT callVisitTypeCastImpl(ASTNodeT *TypeCast) {
-        return static_cast<DerivedT*>(this)->visitTypeCast(TypeCast);
+    RetT callVisitTypeCastImpl(TypeCast *T) {
+        return static_cast<DerivedT*>(this)->visitTypeCast(T);
     }
 
-    RetT callVisitBitwiseOpImpl(ASTNodeT *BitwiseOp) {
-        return static_cast<DerivedT*>(this)->visitBitwiseOp(BitwiseOp);
+    RetT callVisitBitwiseOpImpl(BitwiseOp *O) {
+        return static_cast<DerivedT*>(this)->visitBitwiseOp(O);
     }
 
-    RetT callVisitUnaryOpImpl(ASTNodeT *UnaryOp) {
-        return static_cast<DerivedT*>(this)->visitUnaryOp(UnaryOp);
+    RetT callVisitUnaryOpImpl(UnaryOp *O) {
+        return static_cast<DerivedT*>(this)->visitUnaryOp(O);
     }
 
-    RetT callVisitArgsListImpl(ASTNodeT *ArgsList) {
-        return static_cast<DerivedT*>(this)->visitArgsList(ArgsList);
+    RetT callVisitArgsListImpl(ArgsList *A) {
+        return static_cast<DerivedT*>(this)->visitArgsList(A);
     }
 
-    RetT callVisitParasListImpl(ASTNodeT *ParasList) {
+    RetT callVisitParasListImpl(ParasList *ParasList) {
         return static_cast<DerivedT*>(this)->visitParasList(ParasList);
     }
 
-    RetT callVisitFunctionDeclImpl(ASTNodeT *FuncDecl) {
-        return static_cast<DerivedT*>(this)->visitFunctionDecl(FuncDecl);
+    RetT callVisitFunctionDeclImpl(FunctionDecl *F) {
+        return static_cast<DerivedT*>(this)->visitFunctionDecl(F);
     }
 
-    RetT callVisitFunctionDefImpl(ASTNodeT *FuncDef) {
-        return static_cast<DerivedT*>(this)->visitFunctionDef(FuncDef);
+    RetT callVisitFunctionDefImpl(FunctionDef *F) {
+        return static_cast<DerivedT*>(this)->visitFunctionDef(F);
     }
 
-    RetT callVisitFunctionCallImpl(ASTNodeT *FuncCall) {
-        return static_cast<DerivedT*>(this)->visitFunctionCall(FuncCall);
+    RetT callVisitFunctionCallImpl(FunctionCall *F) {
+        return static_cast<DerivedT*>(this)->visitFunctionCall(F);
     }
 
-    RetT callVisitProcedureDeclImpl(ASTNodeT *ProcedureDecl) {
-        return static_cast<DerivedT*>(this)->visitProcedureDecl(ProcedureDecl);
+    RetT callVisitProcedureDeclImpl(ProcedureDecl *P) {
+        return static_cast<DerivedT*>(this)->visitProcedureDecl(P);
     }
 
-    RetT callVisitProcedureDefImpl(ASTNodeT *ProcedureDef) {
-        return static_cast<DerivedT*>(this)->visitProcedureDef(ProcedureDef);
+    RetT callVisitProcedureDefImpl(ProcedureDef *P) {
+        return static_cast<DerivedT*>(this)->visitProcedureDef(P);
     }
 
-    RetT callVisitProcedureCallImpl(ASTNodeT *ProcedureCall) {
-        return static_cast<DerivedT*>(this)->visitProcedureCall(ProcedureCall);
+    RetT callVisitProcedureCallImpl(ProcedureCall *P) {
+        return static_cast<DerivedT*>(this)->visitProcedureCall(P);
     }
 
-    RetT callVisitReturnImpl(ASTNodeT *Return) {
-        return static_cast<DerivedT*>(this)->visitReturn(Return);
+    RetT callVisitReturnImpl(Return *R) {
+        return static_cast<DerivedT*>(this)->visitReturn(R);
     }
 
-    RetT callVisitBreakImpl(ASTNodeT *Break) {
-        return static_cast<DerivedT*>(this)->visitBreak(Break);
+    RetT callVisitBreakImpl(Break *B) {
+        return static_cast<DerivedT*>(this)->visitBreak(B);
     }
 
-    RetT callVisitContinueImpl(ASTNodeT *Continue) {
-        return static_cast<DerivedT*>(this)->visitContinue(Continue);
+    RetT callVisitContinueImpl(Continue *C) {
+        return static_cast<DerivedT*>(this)->visitContinue(C);
     }
 
-    RetT callVisitOutStreamImpl(ASTNodeT *OutStream) {
-        return static_cast<DerivedT*>(this)->visitOutStream(OutStream);
+    RetT callVisitOutStreamImpl(OutStream *S) {
+        return static_cast<DerivedT*>(this)->visitOutStream(S);
     }
 
-    RetT callVisitInStreamImpl(ASTNodeT *InStream) {
-        return static_cast<DerivedT*>(this)->visitInStream(InStream);
+    RetT callVisitInStreamImpl(InStream *S) {
+        return static_cast<DerivedT*>(this)->visitInStream(S);
     }
 
-    RetT callVisitExplicitCastImpl(ASTNodeT *ExpliCast) {
-        return static_cast<DerivedT*>(this)->visitExplicitCast(ExpliCast);
+    RetT callVisitExplicitCastImpl(ExplicitCast *C) {
+        return static_cast<DerivedT*>(this)->visitExplicitCast(C);
     }
 
 public:
     RetT visit(ASTNodeT *Node) {
-        if (auto *Prog = dynamic_cast<Program*>(Node)) {
+        if (auto *Prog = dyn_cast<Program>(Node))
             return callVisitProgramImpl(Prog);
-        }
 
-        if (auto *Ident = dynamic_cast<Identifier*>(Node)) {
+        if (auto *Ident = dyn_cast<Identifier>(Node))
             return callVisitIdentifierImpl(Ident);
-        }
 
-        if (auto *Assign = dynamic_cast<Assignment*>(Node)) {
+        if (auto *Assign = dyn_cast<Assignment>(Node))
             return callVisitAssignmentImpl(Assign);
-        }
 
-        if (auto *Decl = dynamic_cast<Declaration*>(Node)) {
+        if (auto *Decl = dyn_cast<Declaration>(Node))
             return callVisitDeclarationImpl(Decl);
-        }
 
-        if (auto *Blk = dynamic_cast<Block*>(Node)) {
+        if (auto *Blk = dyn_cast<Block>(Node))
             return callVisitBlockImpl(Blk);
-        }
 
-        if (auto *LogicOp = dynamic_cast<LogicalOp*>(Node)) {
+        if (auto *LogicOp = dyn_cast<LogicalOp>(Node))
             return callVisitLogicalOpImpl(LogicOp);
-        }
 
-        if (auto *ArithOp = dynamic_cast<ArithmeticOp*>(Node)) {
+        if (auto *ArithOp = dyn_cast<ArithmeticOp>(Node))
             return callVisitArithmeticOpImpl(ArithOp);
-        }
 
-        if (auto *Idx = dynamic_cast<Index*>(Node)) {
+        if (auto *Idx = dyn_cast<Index>(Node))
             return callVisitIndexImpl(Idx);
-        }
 
-        if (auto *InfLoop = dynamic_cast<InfiniteLoop*>(Node)) {
+        if (auto *InfLoop = dyn_cast<InfiniteLoop>(Node))
             return callVisitInfiniteLoopImpl(InfLoop);
-        }
 
-        if (auto *CondLoop = dynamic_cast<ConditionalLoop*>(Node)) {
+        if (auto *CondLoop = dyn_cast<ConditionalLoop>(Node))
             return callVisitConditionalLoopImpl(CondLoop);
-        }
 
-        if (auto *DomLoop = dynamic_cast<DomainLoop*>(Node)) {
+        if (auto *DomLoop = dyn_cast<DomainLoop>(Node))
             return callVisitDomainLoopImpl(DomLoop);
-        }
 
-        if (auto *IntLit = dynamic_cast<IntLiteral*>(Node)) {
+        if (auto *IntLit = dyn_cast<IntLiteral>(Node))
             return callVisitIntLiteralImpl(IntLit);
-        }
 
-        if (auto *NullLit = dynamic_cast<NullLiteral*>(Node)) {
+        if (auto *NullLit = dyn_cast<NullLiteral>(Node))
             return callVisitNullLiteralImpl(NullLit);
-        }
 
-        if (auto *IdentLit = dynamic_cast<IdentityLiteral*>(Node)) {
+        if (auto *IdentLit = dyn_cast<IdentityLiteral>(Node))
             return callVisitIdentityLiteralImpl(IdentLit);
-        }
 
-        if (auto *RealLit = dynamic_cast<RealLiteral*>(Node)) {
+        if (auto *RealLit = dyn_cast<RealLiteral>(Node))
             return callVisitRealLiteralImpl(RealLit);
-        }
 
-        if (auto *BoolLit = dynamic_cast<BoolLiteral*>(Node)) {
+        if (auto *BoolLit = dyn_cast<BoolLiteral>(Node))
             return callVisitBoolLiteralImpl(BoolLit);
-        }
 
-        if (auto *CharLit = dynamic_cast<CharLiteral*>(Node)) {
+        if (auto *CharLit = dyn_cast<CharLiteral>(Node))
             return callVisitCharLiteralImpl(CharLit);
-        }
 
-        if (auto *TupleLit = dynamic_cast<TupleLiteral*>(Node)) {
+        if (auto *TupleLit = dyn_cast<TupleLiteral>(Node))
             return callVisitTupleLiteralImpl(TupleLit);
-        }
 
-        if (auto *MemberAcc = dynamic_cast<MemberAccess*>(Node)) {
+        if (auto *MemberAcc = dyn_cast<MemberAccess>(Node))
             return callVisitMemberAccessImpl(MemberAcc);
-        }
 
-        if (auto *TupleTypeDec = dynamic_cast<TupleTypeDecl*>(Node)) {
+        if (auto *TupleTypeDec = dyn_cast<TupleTypeDecl>(Node))
             return callVisitTupleTypeDeclImpl(TupleTypeDec);
-        }
 
-        if (auto *Cond = dynamic_cast<Conditional*>(Node)) {
+        if (auto *Cond = dyn_cast<Conditional>(Node))
             return callVisitConditionalImpl(Cond);
-        }
 
-        if (auto *CondElse = dynamic_cast<ConditionalElse*>(Node)) {
+        if (auto *CondElse = dyn_cast<ConditionalElse>(Node))
             return callVisitConditionalElseImpl(CondElse);
-        }
 
-        if (auto *TypeC = dynamic_cast<TypeCast*>(Node)) {
+        if (auto *TypeC = dyn_cast<TypeCast>(Node))
             return callVisitTypeCastImpl(TypeC);
-        }
 
-        if (auto *BitwsOp = dynamic_cast<BitwiseOp*>(Node)) {
-            return callVisitBitwiseOpImpl(BitwsOp);
-        }
+        if (auto *BitOp = dyn_cast<BitwiseOp>(Node))
+            return callVisitBitwiseOpImpl(BitOp);
 
-        if (auto *UnaOp = dynamic_cast<UnaryOp*>(Node)) {
-            return callVisitUnaryOpImpl(UnaOp);
-        }
+        if (auto *UOp = dyn_cast<UnaryOp>(Node))
+            return callVisitUnaryOpImpl(UOp);
 
-        if (auto *ArgsLi = dynamic_cast<ArgsList*>(Node)) {
+        if (auto *ArgsLi = dyn_cast<ArgsList>(Node))
             return callVisitArgsListImpl(ArgsLi);
-        }
 
-        if (auto *ParaLi = dynamic_cast<ParasList*>(Node)) {
+        if (auto *ParaLi = dyn_cast<ParasList>(Node))
             return callVisitParasListImpl(ParaLi);
-        }
 
-        if (auto *FunDec = dynamic_cast<FunctionDecl*>(Node)) {
+        if (auto *FunDec = dyn_cast<FunctionDecl>(Node))
             return callVisitFunctionDeclImpl(FunDec);
-        }
 
-        if (auto *FuncDef = dynamic_cast<FunctionDef*>(Node)) {
+        if (auto *FuncDef = dyn_cast<FunctionDef>(Node))
             return callVisitFunctionDefImpl(FuncDef);
-        }
 
-        if (auto *FuncCall = dynamic_cast<FunctionCall*>(Node)) {
+        if (auto *FuncCall = dyn_cast<FunctionCall>(Node))
             return callVisitFunctionCallImpl(FuncCall);
-        }
 
-        if (auto *ProcedDecl = dynamic_cast<ProcedureDecl*>(Node)) {
+        if (auto *ProcedDecl = dyn_cast<ProcedureDecl>(Node))
             return callVisitProcedureDeclImpl(ProcedDecl);
-        }
 
-        if (auto *ProcedDef = dynamic_cast<ProcedureDef*>(Node)) {
+        if (auto *ProcedDef = dyn_cast<ProcedureDef>(Node))
             return callVisitProcedureDefImpl(ProcedDef);
-        }
 
-        if (auto *ProcedCall = dynamic_cast<ProcedureCall*>(Node)) {
+        if (auto *ProcedCall = dyn_cast<ProcedureCall>(Node))
             return callVisitProcedureCallImpl(ProcedCall);
-        }
 
-        if (auto *Ret = dynamic_cast<Return*>(Node)) {
+        if (auto *Ret = dyn_cast<Return>(Node))
             return callVisitReturnImpl(Ret);
-        }
 
-        if (auto *Brk = dynamic_cast<Break*>(Node)) {
+        if (auto *Brk = dyn_cast<Break>(Node))
             return callVisitBreakImpl(Brk);
-        }
 
-        if (auto *Cont = dynamic_cast<Continue*>(Node)) {
+        if (auto *Cont = dyn_cast<Continue>(Node))
             return callVisitContinueImpl(Cont);
-        }
 
-        if (auto *OutS = dynamic_cast<OutStream*>(Node)) {
+        if (auto *OutS = dyn_cast<OutStream>(Node))
             return callVisitOutStreamImpl(OutS);
-        }
 
-        if (auto *InS = dynamic_cast<InStream*>(Node)) {
+        if (auto *InS = dyn_cast<InStream>(Node))
             return callVisitInStreamImpl(InS);
-        }
 
-        if (auto *ExpliCast = dynamic_cast<ExplicitCast*>(Node)) {
-            return callVisitExplicitCastImpl(ExpliCast);
-        }
+        if (auto *Cast = dyn_cast<ExplicitCast>(Node))
+            return callVisitExplicitCastImpl(Cast);
+
+        assert(false && "Should be unreachable");
     }
 };
 

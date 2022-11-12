@@ -7,18 +7,16 @@
 
 #include "PassManager.h"
 #include "VisitorPass.h"
-#include "SymbolTable.h"
-#include "SymbolTableDummyPass.h"
 #include "ExprTypeAnnotatorPass.h"
 
 class ASTPrinterPass {
 
-    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
-        PM = &PManager;
-        SymTab = &PManager.getResult<SymbolTableDummyPass>();
-        this->Root = &Root;
-        printTree(this->Root);
-    }
+//    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
+//        PM = &PManager;
+//        SymTab = &PManager.getResult<SymbolTableDummyPass>();
+//        this->Root = &Root;
+//        printTree(this->Root);
+//    }
 };
 
 

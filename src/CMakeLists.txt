@@ -2,20 +2,27 @@
 set(
   gazprea_src_files
     "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManager.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManagerResource.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Passes/Pass.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTBuilderPass.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Common/TestPasses.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Types/Type.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Types/ScalarTypes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Types/Type.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Types/ScalarTypes.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
+
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManager.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManagerResource.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/Pass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTBuilderPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExprTypeAnnotatorPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/FunctionFlowPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
+
 	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 
+	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
 )
 
 # Build our executable from the source files.

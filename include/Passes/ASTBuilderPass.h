@@ -42,9 +42,9 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
 
     std::any visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) override;
 
-    std::any visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) override;
-
     std::any visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) override;
+
+    std::any visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) override;
 
     std::any visitIterDomain(GazpreaParser::IterDomainContext *ctx) override;
 

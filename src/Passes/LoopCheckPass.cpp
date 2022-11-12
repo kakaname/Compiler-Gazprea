@@ -8,8 +8,6 @@
  * statements are within a loop.
  */
 
-
-
 // For part 1, no AST nodes need to be modified.
 //void LoopCheckPass::visitInfiniteLoop(InfiniteLoop *Loop) {
 //}

@@ -30,7 +30,7 @@
 #include "Passes/VisitorPass.h"
 #include "ErrorHandling/exceptions.h"
 
-class FunctionFlowPass : public VisitorPass<FunctionFlowPass, void> {
+struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
     // The annotation determines if a branch is safe or not
     // could be substituted with return type
     using AnnotationT = bool;
@@ -40,6 +40,8 @@ class FunctionFlowPass : public VisitorPass<FunctionFlowPass, void> {
     Type *currFuncReturnType;
 
     void visitFunctionDef(FunctionDef *FuncDef);
+    void visitBlock
+
 //    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
 //        PM = &PManager;
 //        visit(&Root);

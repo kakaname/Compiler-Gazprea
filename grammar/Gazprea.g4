@@ -42,13 +42,12 @@ conditional : IF expr stmt              # ifConditional
 
 loop : LOOP stmt                 #infiniteLoop
      | LOOP WHILE expr stmt      #whileLoop
-     | LOOP stmt WHILE expr      #doWhileLoop
+     | LOOP stmt WHILE expr SC   #doWhileLoop
      | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
 
 // I don't quite understand this one
 iterDomain : ID GET expr;
 
-//change the first ID token to type
 typeDef : TYPEDEF type ID SC;
 
 output : expr PUT STDOUT SC;

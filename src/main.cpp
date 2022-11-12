@@ -12,6 +12,8 @@
 #include "Types/CompositeTypes.h"
 #include "ErrorHandling/exceptions.h"
 
+#include "Symbol/SymbolTable.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -64,15 +66,14 @@ int main(int argc, char **argv) {
   // HOW TO WRITE OUT.
   // std::ofstream out(argv[2]);
   // out << "This is out...\n";
-    VectorTy Vec(true, 0);
 
-    Type *T = &Vec;
+//    Type *T = &Vec;
 
-    auto *V = dyn_cast<VectorTy>(T);
-    std::cout << V->isConst() << std::endl;
-    TreeNodeBuilder Builder;
-    auto *Assign = Builder.build<Assignment>();
-//  ASTPassManager Manager;
+//    auto *V = dyn_cast<VectorTy>(T);
+//    std::cout << V->isConst() << std::endl;
+//    TreeNodeBuilder Builder;
+//    auto *Assign = Builder.build<Assignment>();
+    ASTPassManager Manager;
 //  Manager.registerAnonymousPass(HelloWorldPass());
 //  Manager.registerPass(SetsMessage());
 //  Manager.registerPass(SetsInt());

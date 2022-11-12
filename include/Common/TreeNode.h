@@ -43,6 +43,8 @@ public:
         N_AST_Conditional,
         N_AST_ConditionalElse,
         N_AST_TypeCast,
+        N_AST_TypeDef,
+        N_AST_ResolvedType,
         N_AST_BitwiseOp,
         N_AST_UnaryOp,
         N_AST_ArgsList,

@@ -16,6 +16,7 @@
 #include "Passes/Pass.h"
 #include "AST/ASTNodes.h"
 #include "PassManagerResource.h"
+#include "Symbol/SymbolTable.h"
 
 using std::vector;
 using std::map;
@@ -88,7 +89,8 @@ class ASTPassManager {
     ASTNodeT *Root;
 public:
     TreeNodeBuilder Builder;
-    ASTPassManager() : Builder() {
+    SymbolTable SymTable;
+    ASTPassManager() : Builder(), SymTable() {
         Root = Builder.build<Program>();
     };
 
@@ -168,7 +170,7 @@ public:
     template<typename ResourceT>
     void setResource(ResourceT Resource) {
         static_assert(!std::is_reference_v<decltype(Resource)>);
-        Resources.insert({typename ResourceT::ID(),
+        Resources.insert({ResourceT::ID(),
                           make_unique<ResultObject>(std::move(Resource))});
     }
 
