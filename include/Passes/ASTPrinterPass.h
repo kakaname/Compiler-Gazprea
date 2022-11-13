@@ -35,7 +35,7 @@ public:
     }
 
     void visitDeclaration(Declaration *Decl) {
-        std:: cout << "Decl(ID:" << Decl->getIdentifier()->getSymbolId() << ')' << "\n";
+        std:: cout << "Decl(Name:" << Decl->getIdentifier()->getName() << ')' << "\n";
     }
 
     void visitBlock(Block *Blk) {

@@ -43,7 +43,7 @@ struct Identifier: public TreeNode {
     void setIdentType(const Type *T) {
         IdentType = T;
     }
-
+    
     const Type *getIdentType() const {
         return IdentType;
     }
