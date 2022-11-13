@@ -74,7 +74,7 @@ expressionOrWildcard: (MUL | expr);
 
 tupleTypeDecl
     : TUPLE LPAREN typeOptionalIdentPair COMMA typeOptionalIdentPair
-    (COMMA typeOptionalIdentPair)*;
+    (COMMA typeOptionalIdentPair)* RPAREN;
 
 
 // added (typeQualifier)? because procedure parameters can have type qualifiers
