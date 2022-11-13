@@ -59,15 +59,15 @@ return : RETURN expr SC;
 typeQualifier : VAR
               | CONST;
 
-type : ID                #resolvedType
-     | tupleTypeDecl     #tupleType
-     | ID LSQRPAREN expressionOrWildcard RSQRPAREN   #vectorType
+type : ID                                               #resolvedType
+     | tupleTypeDecl                                    #tupleType
+     | ID LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
      | ID LSQRPAREN expressionOrWildcard COMMA
-     expressionOrWildcard RSQRPAREN                  #matrixType
-     | INTEGER           #intType
-     | CHARACTER         #charType
-     | BOOLEANA          #booleanType
-     | REAL              #realType
+     expressionOrWildcard RSQRPAREN                     #matrixType
+     | INTEGER                                          #intType
+     | CHARACTER                                        #charType
+     | BOOLEANA                                         #booleanType
+     | REAL                                             #realType
      ;
 
 expressionOrWildcard: (MUL | expr);

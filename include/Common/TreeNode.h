@@ -10,19 +10,21 @@
 #include "llvm/Support/Casting.h"
 
 #include <vector>
+#include <list>
 
-
-using std::vector;
+using std::list;
+using std::advance;
 using llvm::cast;
 
 struct TreeNode {
 public:
-    using ChildrenContainerT = vector<TreeNode*>;
+    using ChildrenContainerT = list<TreeNode*>;
 
     enum TreeNodeKind {
         N_AST_Program,
         N_AST_Identifier,
         N_AST_Assignment,
+        N_AST_CalleeParameter,
         N_AST_Declaration,
         N_AST_Block,
         N_AST_LogicalOp,
@@ -39,6 +41,10 @@ public:
         N_AST_TupleLiteral,
         N_AST_MemberAccess,
         N_AST_TupleTypeDecl,
+        N_AST_IntegerTypeNode,
+        N_AST_BooleanTypeNode,
+        N_AST_CharacterTypeNode,
+        N_AST_RealTypeNode,
         N_AST_InfiniteLoop,
         N_AST_Conditional,
         N_AST_ConditionalElse,
@@ -60,7 +66,10 @@ public:
         N_AST_Continue,
         N_AST_OutStream,
         N_AST_InStream,
-        N_AST_ExplicitCast
+        N_AST_ExplicitCast,
+
+        // Split AST nodes from tree node.
+        N_ScopeTreeNode
     };
 
     TreeNodeKind getKind() const {
@@ -99,18 +108,25 @@ protected:
     ChildrenContainerT Children;
 
     TreeNode *getChildAt(size_t Pos) {
-        return Children.at(Pos);
+        assert(Pos < Children.size());
+        auto I = Children.begin();
+        advance(I, Pos);
+        return *I;
     }
 
     template<typename T>
     T *getChildAtAs(size_t Pos) {
-        return cast<T>(Children.at(Pos));
+        return cast<T>(getChildAt(Pos));
     }
 
     void setChildAt(long Pos, TreeNode *Child) {
         if (Child)
             Child->setParent(this);
-        Children.insert(Children.begin() + Pos, Child);
+        while (Children.size() < Pos)
+            Children.emplace_back(nullptr);
+        auto I = Children.begin();
+        advance(I, Pos);
+        Children.insert(I, Child);
     }
 
 private:

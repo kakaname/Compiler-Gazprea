@@ -61,7 +61,7 @@ public:
 
 
 class TypeSymbol: public Symbol {
-    Type *Ty;
+    const Type *Ty;
 public:
     static bool classof(const Symbol *S) {
         return S->getKind() == SymbolKind::S_TypeSymbol;

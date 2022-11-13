@@ -60,7 +60,7 @@ struct VectorTy : public Type {
         return Size;
     }
 
-    const Type *getInnerTy() {
+    const Type *getInnerTy() const {
         return InnerTy;
     }
 
@@ -96,6 +96,10 @@ struct MatrixTy : public Type {
     bool isNumOfColumnsIsKnown() const {
         return Dimensions.second != -1;
     };
+
+    const Type *getInnerTy() const {
+        return InnerTy;
+    }
 
 private:
     const Type *InnerTy;
@@ -135,7 +139,7 @@ struct FunctionTy : public Type {
         return T->getKind() == TypeKind::T_Function;
     }
 
-    using ArgsTypeContainer = vector<Type*>;
+    using ArgsTypeContainer = vector<const Type*>;
 
     const Type *getArgTypeAt(size_t Pos) {
         if (Pos >= Args.size())
@@ -147,13 +151,18 @@ struct FunctionTy : public Type {
         return Args.size();
     }
 
+    const Type *getRetType() const {
+        return RetTy;
+    }
+
     FunctionTy() = delete;
 
-    explicit FunctionTy(ArgsTypeContainer &&Args) :
-        Type(TypeKind::T_Function, true), Args(Args) {}
+    explicit FunctionTy(ArgsTypeContainer Args, const Type *RetTy) :
+        Type(TypeKind::T_Function, true), Args(std::move(Args)), RetTy(RetTy) {}
 
 private:
     ArgsTypeContainer Args;
+    const Type *RetTy;
 };
 
 struct ProcedureTy : public Type {

@@ -17,6 +17,7 @@
 #include "AST/ASTNodes.h"
 #include "PassManagerResource.h"
 #include "Symbol/SymbolTable.h"
+#include "Types/TypeRegistry.h"
 
 using std::vector;
 using std::map;
@@ -90,7 +91,8 @@ class ASTPassManager {
 public:
     TreeNodeBuilder Builder;
     SymbolTable SymTable;
-    ASTPassManager() : Builder(), SymTable() {
+    TypeRegistry TypeReg;
+    ASTPassManager() : Builder(), SymTable(), TypeReg() {
         Root = Builder.build<Program>();
     };
 
@@ -176,12 +178,12 @@ public:
 
     template<typename ResourceT>
     ResourceT &getResource() {
-        auto Res = Results.find(ResourceT::ID());
-        assert(Res != Results.end() && "Attempt to access a resource from the "
+        auto Res = Resources.find(ResourceT::ID());
+        assert(Res != Resources.end() && "Attempt to access a resource from the "
                                        "PassManager before it is set.");
 
         // We just ran the pass, therefore the result should be here.
-        ResultObject *ResourceResult = Results.find(ResourceT::ID())->second.get();
+        ResultObject *ResourceResult = Resources.find(ResourceT::ID())->second.get();
         return ResourceResult->template getConcreteResult<ResourceT>();
     };
 

@@ -5,7 +5,7 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
-using TypeId = unsigned;
+class TypeRegistry;
 
 class Type {
 public:
@@ -45,6 +45,11 @@ public:
         T_Int == Kind || T_Real == Kind ||
         T_Interval == Kind || T_String == Kind ||
         T_Vector == Kind || T_Matrix == Kind;
+    }
+
+
+    const Type *getConstTy() {
+
     }
 
     TypeKind getKind() const {

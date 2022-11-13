@@ -160,17 +160,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
-    RetT visitParasList(ParasList *List) {
-        for (auto *child : *List) {
-            visit(child);
-        }
-        return RetT();
-    }
-
     RetT visitFunctionDecl(FunctionDecl *FuncDecl) {
         visit(FuncDecl->getIdentifier());
         visit(FuncDecl->getParasList());
-        visit(FuncDecl->getReturnsType());
+        visit(FuncDecl->getReturnsTypeNode());
         return RetT();
     }
 
@@ -178,10 +171,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         visit(FuncDef->getIdentifier());
         visit(FuncDef->getParasList());
         visit(FuncDef->getReturnsType());
-        if (dyn_cast<Block*>(FuncDef->getBlock()))
-           visit(FuncDef->getBlock());
-        else
-            visit(FuncDef->getExpr());
+        visit(FuncDef->getBlock());
         return RetT();
     }
 
@@ -200,7 +190,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
         visit(ProcedureDef->getIdentifier());
-        visit(ProcedureDef->getParasList());
+        visit(ProcedureDef->getParameterList());
         visit(ProcedureDef->getBlock());
         return RetT();
     }
@@ -345,10 +335,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitArgsList(A);
     }
 
-    RetT callVisitParasListImpl(ParasList *ParasList) {
-        return static_cast<DerivedT*>(this)->visitParasList(ParasList);
-    }
-
     RetT callVisitFunctionDeclImpl(FunctionDecl *F) {
         return static_cast<DerivedT*>(this)->visitFunctionDecl(F);
     }
@@ -476,9 +462,6 @@ public:
 
         if (auto *ArgsLi = dyn_cast<ArgsList>(Node))
             return callVisitArgsListImpl(ArgsLi);
-
-        if (auto *ParaLi = dyn_cast<ParasList>(Node))
-            return callVisitParasListImpl(ParaLi);
 
         if (auto *FunDec = dyn_cast<FunctionDecl>(Node))
             return callVisitFunctionDeclImpl(FunDec);

@@ -11,6 +11,7 @@
 #include <array>
 #include <cassert>
 
+#include "llvm/Support/Casting.h"
 #include "Types/Type.h"
 #include "Types/ScalarTypes.h"
 #include "Types/CompositeTypes.h"
@@ -21,6 +22,9 @@ using std::pair;
 using std::vector;
 using std::array;
 
+using llvm::dyn_cast;
+using llvm::isa;
+
 class TypeRegistry {
 
 
@@ -30,14 +34,14 @@ class TypeRegistry {
     using VectorTyId = ConstTypeIdPair<pair<const Type*, int>>;
     using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
     using TupleTypeId = ConstTypeIdPair<vector<const Type*>>;
-    using FunctionTypeId = vector<Type*>;
+    using FunctionTypeId = pair<vector<const Type*>, const Type*>;
 
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
     using VectorTyContainer = map<VectorTyId, unique_ptr<VectorTy>>;
     using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
-    using FunctionTypeContainer = map<vector<Type*>, unique_ptr<FunctionTy>>;
+    using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
 
     NullTy NullType;
     IdentityTy IdentityType;
@@ -121,6 +125,45 @@ public:
         auto Inserted = TupleTypes.insert({Key, std::move(NewTupleTy)});
         assert(Inserted.second && "We just checked that the type wasn't in the map");
         return Inserted.first->second.get();
+    }
+
+    const Type *getFunctionType(const FunctionTy::ArgsTypeContainer& Args, const Type *RetTy) {
+        pair Key{Args, RetTy};
+        auto Res = FunctionTypes.find(Key);
+        if (Res != FunctionTypes.end())
+            return Res->second.get();
+
+        auto NewFuncType = make_unique<FunctionTy>(FunctionTy(Args, RetTy));
+        auto Inserted = FunctionTypes.insert({Key, std::move(NewFuncType)});
+        assert(Inserted.second && "We just checked that the type wasn't in the map");
+        return Inserted.first->second.get();
+    }
+
+
+    const Type *getVarTypeOf(const Type *Ty) {
+        if (isa<NullTy>(Ty) || isa<IdentityTy>(Ty))
+            assert(false && "Asking for var identity or null");
+
+        if (isa<IntegerTy>(Ty))
+            return getIntegerTy(false);
+
+        if (isa<BoolTy>(Ty))
+            return getBooleanTy(false);
+
+        if (isa<CharTy>(Ty))
+            return getCharTy(false);
+
+        if (isa<RealTy>(Ty))
+            return getRealTy(false);
+
+        if (auto *Vec = dyn_cast<VectorTy>(Ty))
+            return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
+            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+                                 Mat->getNumOfColumns(), false);
+
+        assert(false && "Should not be reachable.");
     }
 };
 

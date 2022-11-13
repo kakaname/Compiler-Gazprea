@@ -18,11 +18,14 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ScopeResolutionPass.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeDefResolutionPass.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeBuilderPass.cpp"
 
-	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 
-	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
 )
 
 # Build our executable from the source files.

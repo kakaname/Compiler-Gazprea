@@ -58,6 +58,7 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
 
     std::any visitTypeQualifier(GazpreaParser::TypeQualifierContext *ctx) override;
 
+    // Type nodes.
     std::any visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) override;
 
     std::any visitTupleType(GazpreaParser::TupleTypeContext *ctx) override;
@@ -75,8 +76,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
     std::any visitRealType(GazpreaParser::RealTypeContext *ctx) override;
 
     std::any visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) override;
-
-    std::any visitTupleTypeDecl(GazpreaParser::TupleTypeDeclContext *ctx) override;
 
     std::any visitTypeOptionalIdentPair(GazpreaParser::TypeOptionalIdentPairContext *ctx) override;
 

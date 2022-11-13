@@ -5,12 +5,14 @@
 #ifndef GAZPREABASE_ASTNODES_H
 #define GAZPREABASE_ASTNODES_H
 
-#include "string"
+#include <string>
+#include <vector>
 
 #include "Common/TreeNode.h"
 #include "Types/Type.h"
 
 using std::string;
+using std::vector;
 
 using ASTNodeT = TreeNode;
 
@@ -23,25 +25,33 @@ struct Program: public TreeNode {
     Program() : TreeNode(TreeNodeKind::N_AST_Program) {}
 };
 
-
 struct Identifier: public TreeNode {
     string IdentName;
+    const Type *IdentType;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Identifier;
     }
 
-    Identifier() : TreeNode(TreeNodeKind::N_AST_Identifier) {}
+    Identifier() : TreeNode(TreeNodeKind::N_AST_Identifier),
+        IdentType(nullptr) {}
 
     void setName(const string &N) {
         IdentName = N;
     }
 
-    const string &getName() {
+    void setIdentType(const Type *T) {
+        IdentType = T;
+    }
+
+    const Type *getIdentType() const {
+        return IdentType;
+    }
+
+    const string &getName() const {
         return IdentName;
     }
 };
-
 
 struct Assignment: public TreeNode {
 
@@ -71,11 +81,12 @@ struct Assignment: public TreeNode {
     Assignment() : TreeNode(TreeNodeKind::N_AST_Assignment) {};
 };
 
-
 struct Declaration: public TreeNode {
     static constexpr size_t IdentTypeIdx = 0;
     static constexpr size_t IdentIdx = 1;
     static constexpr size_t InitExprIdx = 2;
+
+    const Type *IdentType;
 
     bool IsConst{false};
 
@@ -85,6 +96,10 @@ struct Declaration: public TreeNode {
 
     void setIdentTypeNode(ASTNodeT *N) {
         setChildAt(IdentTypeIdx, N);
+    }
+
+    void setIdentType(const Type *T) {
+        IdentType = T;
     }
 
     void setIdent(Identifier *Ident) {
@@ -107,13 +122,16 @@ struct Declaration: public TreeNode {
         return getChildAt(InitExprIdx);
     }
 
+    const Type *getIdentType() {
+        return IdentType;
+    }
+
     void setConst() {
         IsConst = true;
     }
 
     Declaration() : TreeNode(TreeNodeKind::N_AST_Declaration) {}
 };
-
 
 struct Block: public TreeNode {
     static bool classof(const TreeNode *N) {
@@ -122,7 +140,6 @@ struct Block: public TreeNode {
 
     Block() : TreeNode(TreeNodeKind::N_AST_Block) {}
 };
-
 
 struct LogicalOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
@@ -165,7 +182,6 @@ struct LogicalOp: public TreeNode {
     LogicalOp() : TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
 };
 
-
 struct ArithmeticOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
     static constexpr int RightExprIdx = 1;
@@ -207,7 +223,6 @@ struct ArithmeticOp: public TreeNode {
     ArithmeticOp() : TreeNode(TreeNodeKind::N_AST_ArithmeticOp) {}
 };
 
-
 struct Index: public TreeNode {
     static constexpr int BaseExprIdx = 0;
     static constexpr int IndexExprIdx = 1;
@@ -234,7 +249,6 @@ struct Index: public TreeNode {
 
     Index() : TreeNode(TreeNodeKind::N_AST_Index) {};
 };
-
 
 struct InfiniteLoop: public TreeNode {
     static constexpr int StatementIdx = 0;
@@ -288,7 +302,6 @@ struct ConditionalLoop: public TreeNode {
 
     ConditionalLoop() : TreeNode(TreeNodeKind::N_AST_ConditionalLoop) {}
 };
-
 // ignored for part1
 struct DomainLoop: public TreeNode {
     static bool classof(const TreeNode *N) {
@@ -297,7 +310,6 @@ struct DomainLoop: public TreeNode {
 
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}
 };
-
 
 struct IntLiteral: public TreeNode {
     int32_t Val;
@@ -317,7 +329,6 @@ struct IntLiteral: public TreeNode {
     IntLiteral(): TreeNode(TreeNodeKind::N_AST_IntLiteral) {}
 };
 
-
 struct NullLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_NullLiteral;
@@ -326,7 +337,6 @@ struct NullLiteral: public TreeNode {
     NullLiteral(): TreeNode(TreeNodeKind::N_AST_NullLiteral) {}
 };
 
-
 struct IdentityLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_IdentityLiteral;
@@ -334,7 +344,6 @@ struct IdentityLiteral: public TreeNode {
 
     IdentityLiteral(): TreeNode(TreeNodeKind::N_AST_IdentityLiteral) {}
 };
-
 
 // Remains to be checked!!!!!
 struct RealLiteral: public TreeNode {
@@ -354,7 +363,6 @@ struct RealLiteral: public TreeNode {
 
     RealLiteral(): TreeNode(TreeNodeKind::N_AST_RealLiteral) {}
 };
-
 
 struct BoolLiteral: public TreeNode {
     bool Val{false};
@@ -378,7 +386,6 @@ struct BoolLiteral: public TreeNode {
     BoolLiteral(): TreeNode(TreeNodeKind::N_AST_BoolLiteral) {}
 };
 
-
 struct CharLiteral: public TreeNode {
     char Character;
 
@@ -397,7 +404,6 @@ struct CharLiteral: public TreeNode {
     CharLiteral(): TreeNode(TreeNodeKind::N_AST_CharLiteral) {}
 };
 
-
 struct TupleLiteral: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleLiteral;
@@ -413,7 +419,6 @@ struct TupleLiteral: public TreeNode {
 
     TupleLiteral(): TreeNode(TreeNodeKind::N_AST_TupleLiteral) {};
 };
-
 
 struct MemberAccess: public TreeNode {
     static constexpr size_t IdentIdx = 0;
@@ -444,19 +449,91 @@ struct MemberAccess: public TreeNode {
 
 // Remains to be checked!!!!!
 struct TupleTypeDecl: public TreeNode {
-    void setDeclAtPos(Declaration *Decl, long Pos) {
-        setChildAt(Pos, Decl);
-    }
-
-    Declaration *getDeclAtPos(long Pos) {
-        return getChildAtAs<Declaration>(Pos);
-    }
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TupleTypeDecl;
     }
 
-    TupleTypeDecl(): TreeNode(TreeNodeKind::N_AST_TupleTypeDecl) {}
+    bool IsConst;
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() {
+        return IsConst;
+    }
+
+    TupleTypeDecl():
+        TreeNode(TreeNodeKind::N_AST_TupleTypeDecl),
+        IsConst(false) {}
+};
+
+struct IntegerTypeNode: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNode::N_AST_IntegerTypeNode;
+    }
+    bool IsConst;
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() {
+        return IsConst;
+    }
+
+    IntegerTypeNode(): TreeNode(TreeNode::N_AST_IntegerTypeNode) {}
+};
+
+struct CharTypeNode: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNode::N_AST_CharacterTypeNode;
+    }
+    bool IsConst;
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() {
+        return IsConst;
+    }
+    CharTypeNode(): TreeNode(TreeNode::N_AST_CharacterTypeNode) {}
+};
+
+struct BoolTypeNode: public TreeNode {
+    static bool classof (const TreeNode *N) {
+        return N->getKind() == TreeNode::N_AST_BooleanTypeNode;
+    }
+    bool IsConst;
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() {
+        return IsConst;
+    }
+    BoolTypeNode(): TreeNode(TreeNode::N_AST_BooleanTypeNode) {}
+};
+
+struct RealTypeNode: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNode::N_AST_RealTypeNode;
+    }
+
+    bool IsConst;
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() {
+        return IsConst;
+    }
+
+    RealTypeNode(): TreeNode(TreeNode::N_AST_RealTypeNode) {}
 };
 
 // Remains to be checked!!!!!
@@ -534,7 +611,6 @@ struct ConditionalElse: public TreeNode {
     ConditionalElse(): TreeNode(TreeNodeKind::N_AST_ConditionalElse) {}
 };
 
-
 struct TypeCast: public TreeNode {
     static constexpr int OldTypeIdx = 0;
     static constexpr int NewTypeIdx = 1;
@@ -562,10 +638,14 @@ struct TypeCast: public TreeNode {
     TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast) {}
 };
 
-
 struct TypeDef: public TreeNode {
     static constexpr int BaseTypeIdx = 0;
     static constexpr int AliasIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNode::N_AST_TypeDef;
+    }
+
 
     TypeDef(): TreeNode(TreeNode::N_AST_TypeDef) {}
 
@@ -627,7 +707,6 @@ struct BitwiseOp: public TreeNode {
     BitwiseOp(): TreeNode(TreeNodeKind::N_AST_BitwiseOp) {}
 };
 
-
 struct UnaryOp: public TreeNode {
     static constexpr int ExprIdx = 0;
 
@@ -645,7 +724,7 @@ struct UnaryOp: public TreeNode {
         Op = OpKind;
     }
 
-    OpKind getOpKind() {
+    OpKind getOpKind() const {
         return Op;
     }
 
@@ -659,8 +738,6 @@ struct UnaryOp: public TreeNode {
 
     UnaryOp(): TreeNode(TreeNodeKind::N_AST_UnaryOp) {}
 };
-
-
 
 struct ArgsList: public TreeNode {
     static bool classof(const TreeNode *N) {
@@ -678,23 +755,60 @@ struct ArgsList: public TreeNode {
     ArgsList(): TreeNode(TreeNodeKind::N_AST_ArgsList) {}
 };
 
+struct CalleeParameter: public TreeNode {
+    static constexpr size_t TypeNodeIdx = 0;
+    static constexpr size_t IdentifierIdx = 1;
 
-struct ParasList: public TreeNode {
+    bool IsConst{false};
+
+    void setTypeNode(ASTNodeT *N) {
+        setChildAt(TypeNodeIdx, N);
+    }
+
+    void setIdentifier(Identifier *I) {
+        setChildAt(IdentifierIdx, I);
+    }
+
+    ASTNodeT *getTypeNode() {
+        return getChildAt(TypeNodeIdx);
+    }
+
+    Identifier *getIdentifier() {
+        return getChildAtAs<Identifier>(IdentifierIdx);
+    }
+
+    static bool classof(const TreeNode* N) {
+        return N->getKind() == TreeNode::N_AST_CalleeParameter;
+    }
+
+    void setConst() {
+        IsConst = true;
+    }
+
+    bool isConst() const {
+        return IsConst;
+    }
+
+    CalleeParameter(): TreeNode(TreeNode::N_AST_CalleeParameter) {}
+};
+
+// Represent a list of ASTNodes representing the type of each parameter of
+// a function or a procedure.
+struct ParameterList: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ParasList;
     }
 
-    void setDeclAtPos(Declaration *Decl, long Pos) {
-        setChildAt(Pos, Decl);
+    void addParam(CalleeParameter *P) {
+        addChild(P);
     }
 
-    Declaration *getDeclAtPos(long Pos) {
-        return getChildAtAs<Declaration>(Pos);
+    CalleeParameter *getParamAt(long Pos) {
+        return getChildAtAs<CalleeParameter>(Pos);
     }
 
-    ParasList(): TreeNode(TreeNodeKind::N_AST_ParasList) {}
+    ParameterList(): TreeNode(TreeNodeKind::N_AST_ParasList) {}
 };
-
 
 struct FunctionDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
@@ -709,11 +823,11 @@ struct FunctionDecl: public TreeNode {
         setChildAt(IdentIdx, Ident);
     }
 
-    void setParasList(ParasList *ParasList) {
-        setChildAt(ParasListIdx, ParasList);
+    void setParameterList(ParameterList *L) {
+        setChildAt(ParasListIdx, L);
     }
 
-    void setReturnsType(ASTNodeT *N) {
+    void setReturnsTypeNode(ASTNodeT *N) {
         setChildAt(ReturnsTypeIdx, N);
     }
 
@@ -721,24 +835,22 @@ struct FunctionDecl: public TreeNode {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    ParasList *getParasList() {
-        return getChildAtAs<ParasList>(ParasListIdx);
+    ParameterList *getParasList() {
+        return getChildAtAs<ParameterList>(ParasListIdx);
     }
 
-    ASTNodeT *getReturnsType() {
+    ASTNodeT *getReturnsTypeNode() {
         return getChildAt(ReturnsTypeIdx);
     }
 
     FunctionDecl(): TreeNode(TreeNodeKind::N_AST_FunctionDecl) {};
 };
 
-
 struct FunctionDef: public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t ParasListIdx = 1;
     static constexpr size_t ReturnsTypeIdx = 2;
     static constexpr size_t BlockIdx = 3;
-    static constexpr size_t ExprIdx = 3; // should be 3
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDef;
@@ -748,8 +860,8 @@ struct FunctionDef: public TreeNode {
         setChildAt(IdentIdx, Ident);
     }
 
-    void setParasList(ParasList *ParasList) {
-        setChildAt(ParasListIdx, ParasList);
+    void setParamList(ParameterList *P) {
+        setChildAt(ParasListIdx, P);
     }
 
     void setReturnsType(ASTNodeT *N) {
@@ -760,16 +872,12 @@ struct FunctionDef: public TreeNode {
         setChildAt(BlockIdx, Block);
     }
 
-    void setExpr(ASTNodeT *Expr) {
-        setChildAt(ExprIdx, Expr);
-    }
-
     Identifier *getIdentifier() {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    ParasList *getParasList() {
-        return getChildAtAs<ParasList>(ParasListIdx);
+    ParameterList *getParasList() {
+        return getChildAtAs<ParameterList>(ParasListIdx);
     }
 
     ASTNodeT *getReturnsType() {
@@ -778,10 +886,6 @@ struct FunctionDef: public TreeNode {
 
     Block *getBlock() {
         return getChildAtAs<Block>(BlockIdx);
-    }
-
-    ASTNodeT *getExpr() {
-        return getChildAt(ExprIdx);
     }
 
     FunctionDef(): TreeNode(TreeNodeKind::N_AST_FunctionDef) {};
@@ -827,7 +931,6 @@ struct FunctionCall: public TreeNode {
     FunctionCall(): TreeNode(TreeNodeKind::N_AST_FunctionCall) {}
 };
 
-
 struct ProcedureDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t ParasListIdx = 1;
@@ -841,7 +944,7 @@ struct ProcedureDecl: public TreeNode {
         setChildAt(IdentIdx, Ident);
     }
 
-    void setParasList(ParasList *ParasList) {
+    void setParameterList(ParameterList *ParasList) {
         setChildAt(ParasListIdx, ParasList);
     }
 
@@ -853,8 +956,8 @@ struct ProcedureDecl: public TreeNode {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    ParasList *getParasList() {
-        return getChildAtAs<ParasList>(ParasListIdx);
+    ParameterList *getParasList() {
+        return getChildAtAs<ParameterList>(ParasListIdx);
     }
 
     ASTNodeT *getReturnsType() {
@@ -863,7 +966,6 @@ struct ProcedureDecl: public TreeNode {
 
     ProcedureDecl(): TreeNode(TreeNodeKind::N_AST_ProcedureDecl) {}
 };
-
 
 struct ProcedureDef: public TreeNode {
     static constexpr size_t IdentIdx = 0;
@@ -879,8 +981,8 @@ struct ProcedureDef: public TreeNode {
         setChildAt(IdentIdx, Ident);
     }
 
-    void setParasList(ParasList *ParasList) {
-        setChildAt(ParasListIdx, ParasList);
+    void setParameterList(ParameterList *P) {
+        setChildAt(ParasListIdx, P);
     }
 
     void setReturnsType(ASTNodeT *N) {
@@ -895,8 +997,8 @@ struct ProcedureDef: public TreeNode {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    ParasList *getParasList() {
-        return getChildAtAs<ParasList>(ParasListIdx);
+    ParameterList *getParameterList() {
+        return getChildAtAs<ParameterList>(ParasListIdx);
     }
 
     ASTNodeT *getReturnsType() {
@@ -909,7 +1011,6 @@ struct ProcedureDef: public TreeNode {
 
     ProcedureDef(): TreeNode(TreeNodeKind::N_AST_ProcedureDef) {}
 };
-
 
 struct ProcedureCall: public TreeNode {
     static constexpr size_t IdentIdx = 0;
@@ -938,7 +1039,6 @@ struct ProcedureCall: public TreeNode {
     ProcedureCall(): TreeNode(TreeNodeKind::N_AST_ProcedureCall) {}
 };
 
-
 struct Return: public TreeNode {
     static constexpr size_t ReturnExprIdx = 0;
 
@@ -957,7 +1057,6 @@ struct Return: public TreeNode {
     Return(): TreeNode(TreeNodeKind::N_AST_Return) {}
 };
 
-
 struct Break: public TreeNode {
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_Break;
@@ -965,7 +1064,6 @@ struct Break: public TreeNode {
 
     Break(): TreeNode(TreeNodeKind::N_AST_Break) {}
 };
-
 
 struct Continue: public TreeNode {
     static bool classof(const TreeNode *N) {

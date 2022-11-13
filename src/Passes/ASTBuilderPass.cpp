@@ -226,39 +226,27 @@ std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) 
 
 // Remains to be done
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {
-    return nullptr;
+    return PM->Builder.build<IntegerTypeNode>();
 }
 
 // Remains to be done
 std::any ASTBuilderPass::visitCharType(GazpreaParser::CharTypeContext *ctx) {
-    return nullptr;
+    return PM->Builder.build<CharTypeNode>();
 }
 
 // Remains to be done
 std::any ASTBuilderPass::visitBooleanType(GazpreaParser::BooleanTypeContext *ctx) {
-    return nullptr;
+    return PM->Builder.build<BoolTypeNode>();
 }
 
 // Remains to be done
 std::any ASTBuilderPass::visitRealType(GazpreaParser::RealTypeContext *ctx) {
-    return nullptr;
+    return PM->Builder.build<RealTypeNode>();
 }
 
 // Ignore for part1
 std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) {
     return nullptr;
-}
-
-std::any ASTBuilderPass::visitTupleTypeDecl(GazpreaParser::TupleTypeDeclContext *ctx) {
-    auto TupleTypeDeclaration = PM->Builder.build<TupleTypeDecl>();
-
-    for (auto *Child : ctx->typeOptionalIdentPair()) {
-        auto Decl = castToNodeVisit(Child);
-        TupleTypeDeclaration->addChild(Decl);
-        Decl->setParent(TupleTypeDeclaration);
-    }
-
-    return TupleTypeDeclaration;
 }
 
 std::any ASTBuilderPass::visitTypeOptionalIdentPair(GazpreaParser::TypeOptionalIdentPairContext *ctx) {
@@ -318,24 +306,23 @@ std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext 
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
-    Ident->setName(ctx->ID()->getText());
+    Ident->setName(ctx->funcName->getText());
     FuncDecl->setIdent(Ident);
-    Ident->setParent(FuncDecl);
 
     // Set parameters list
-    auto ParametersList = PM->Builder.build<ParasList>();
-    for (auto *Decl : ctx->typeOptionalIdentPair()) {
-        auto Declaration = castToNodeVisit(Decl);
-        ParametersList->addChild(Declaration);
-        Declaration->setParent(ParametersList);
+    auto Params = PM->Builder.build<ParameterList>();
+    for (auto *Param : ctx->typeOptionalIdentPair()) {
+        auto CalleeParam = PM->Builder.build<CalleeParameter>();
+        auto ParamTypeNode = castToNodeVisit(Param->type());
+        CalleeParam->setTypeNode(ParamTypeNode);
+        auto ParamIdent = PM->Builder.build<Identifier>();
+        Params->addParam(CalleeParam);
     }
-    FuncDecl->setParasList(ParametersList);
-    ParametersList->setParent(FuncDecl);
+    FuncDecl->setParameterList(Params);
 
-    // Set returns type node
+    // Set returns type node.
     auto ReturnsTypeNode = castToNodeVisit(ctx->type());
-    FuncDecl->setReturnsType(ReturnsTypeNode);
-    ReturnsTypeNode->setParent(FuncDecl);
+    FuncDecl->setReturnsTypeNode(ReturnsTypeNode);
 
     return FuncDecl;
 }
@@ -347,36 +334,35 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     FuncDef->setIdent(Ident);
-    Ident->setParent(FuncDef);
 
     // Set parameters list
-    auto ParametersList = PM->Builder.build<ParasList>();
-    for (auto *Decl : ctx->typeIdentPair()) {
-        auto Declaration = castToNodeVisit(Decl);
-        ParametersList->addChild(Declaration);
-        Declaration->setParent(ParametersList);
+    auto ParamList = PM->Builder.build<ParameterList>();
+    for (auto *Param : ctx->typeIdentPair()) {
+        auto CalleeParam = PM->Builder.build<CalleeParameter>();
+        auto ParamTypeNode = castToNodeVisit(Param->type());
+        CalleeParam->setTypeNode(ParamTypeNode);
+        auto ParamIdent = PM->Builder.build<Identifier>();
+        ParamIdent->setName(Param->ID()->getText());
+        CalleeParam->setConst();
+        ParamList->addParam(CalleeParam);
     }
-    FuncDef->setParasList(ParametersList);
-    ParametersList->setParent(FuncDef);
+    FuncDef->setParamList(ParamList);
 
     // Set returns type node
     auto ReturnsTypeNode = castToNodeVisit(ctx->type());
     FuncDef->setReturnsType(ReturnsTypeNode);
-    ReturnsTypeNode->setParent(FuncDef);
 
-    // Set expression if it is not null
+    // If it is an expression type definition, we simplify it to block type.
     if (ctx->expr()) {
-        auto Expr = castToNodeVisit(ctx->expr());
-        FuncDef->setExpr(Expr);
-        Expr->setParent(FuncDef);
+        auto FuncBody = PM->Builder.build<Block>();
+        auto RetStmt = PM->Builder.build<Return>();
+        RetStmt->setReturnExpr(castToNodeVisit(ctx->expr()));
+        FuncBody->addChild(RetStmt);
+        FuncDef->setBlock(FuncBody);
+        return FuncDef;
     }
 
-    // Set block if it is not null
-    if (ctx->block()) {
-        auto Block = castToNodeVisit(ctx->block());
-        FuncDef->setBlock(Block);
-        Block->setParent(FuncDef);
-    }
+    FuncDef->setBlock(castToNodeVisit(ctx->block()));
 
     return FuncDef;
 }
@@ -388,17 +374,17 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     ProcedDecl->setIdent(Ident);
-    Ident->setParent(ProcedDecl);
 
-    // Set parameters list
-    auto ParametersList = PM->Builder.build<ParasList>();
-    for (auto *Decl : ctx->typeOptionalIdentPair()) {
-        auto Declaration = castToNodeVisit(Decl);
-        ParametersList->addChild(Declaration);
-        Declaration->setParent(ParametersList);
+    auto Params = PM->Builder.build<ParameterList>();
+    for (auto *Param : ctx->typeOptionalIdentPair()) {
+        auto CalleeParam = PM->Builder.build<CalleeParameter>();
+        auto ParamTypeNode = castToNodeVisit(Param->type());
+        CalleeParam->setTypeNode(ParamTypeNode);
+        auto ParamIdent = PM->Builder.build<Identifier>();
+        Params->addParam(CalleeParam);
     }
-    ProcedDecl->setParasList(ParametersList);
-    ParametersList->setParent(ProcedDecl);
+
+    ProcedDecl->setParameterList(Params);
 
     // Set returns type to null if it is not specified
     if (!ctx->type())
@@ -419,17 +405,20 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     ProcedDef->setIdent(Ident);
-    Ident->setParent(ProcedDef);
 
     // Set parameters list
-    auto ParametersList = PM->Builder.build<ParasList>();
-    for (auto *Decl : ctx->typeIdentPair()) {
-        auto Declaration = castToNodeVisit(Decl);
-        ParametersList->addChild(Declaration);
-        Declaration->setParent(ParametersList);
+    auto ParamList = PM->Builder.build<ParameterList>();
+    for (auto *Param : ctx->typeIdentPair()) {
+        auto CalleeParam = PM->Builder.build<CalleeParameter>();
+        auto ParamTypeNode = castToNodeVisit(Param->type());
+        CalleeParam->setTypeNode(ParamTypeNode);
+        auto ParamIdent = PM->Builder.build<Identifier>();
+        ParamIdent->setName(Param->ID()->getText());
+        CalleeParam->setConst();
+        ParamList->addParam(CalleeParam);
     }
-    ProcedDef->setParasList(ParametersList);
-    ParametersList->setParent(ProcedDef);
+
+    ProcedDef->setParameterList(ParamList);
 
     // Set block if it is not null
     auto Block = castToNodeVisit(ctx->block());
@@ -853,4 +842,13 @@ std::any ASTBuilderPass::visitDotReal(GazpreaParser::DotRealContext *ctx) {
     RealLit->setVal(RealString);
 
     return RealLit;
+}
+
+std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
+    auto Tuple = PM->Builder.build<TupleTypeDecl>();
+    for (auto *Member : ctx->tupleTypeDecl()->typeOptionalIdentPair()) {
+        Tuple->addChild(castToNodeVisit(Member));
+        Member->
+    }
+    return Tuple;
 }
