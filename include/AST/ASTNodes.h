@@ -27,7 +27,6 @@ struct Program: public TreeNode {
 
 struct Identifier: public TreeNode {
     string IdentName;
-    unsigned SymbolId;
     const Type *IdentType;
 
     static bool classof(const TreeNode *N) {
@@ -43,14 +42,6 @@ struct Identifier: public TreeNode {
 
     void setIdentType(const Type *T) {
         IdentType = T;
-    }
-
-    void setSymbol(unsigned Id) {
-        SymbolId = Id;
-    }
-
-    unsigned getSymbolId() {
-        return SymbolId;
     }
 
     const Type *getIdentType() const {
