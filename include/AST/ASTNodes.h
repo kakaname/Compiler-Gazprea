@@ -893,6 +893,11 @@ struct FunctionDef: public TreeNode {
 
 struct ResolvedType: public TreeNode {
     string Name;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_ResolvedType;
+    }
+
     ResolvedType(): TreeNode(TreeNode::N_AST_ResolvedType) {}
 
     void setName(const string& N) {
