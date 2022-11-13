@@ -122,6 +122,22 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitIntegerTypeNode(IntegerTypeNode *IntegerTypeNode) {
+        return RetT();
+    }
+
+    RetT visitCharTypeNode(CharTypeNode *CharTypeNode) {
+        return RetT();
+    }
+
+    RetT visitBoolTypeNode(BoolTypeNode *BoolTypeNode) {
+        return RetT();
+    }
+
+    RetT visitRealTypeNode(RealTypeNode *RealTypeNode) {
+        return RetT();
+    }
+
     RetT visitConditional(Conditional *Cond) {
         visit(Cond->getConditional());
         visit(Cond->getStatement());
@@ -139,6 +155,12 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitTypeCast(TypeCast *Cast) {
         visit(Cast->getOldTypeNode());
         visit(Cast->getNewTypeNode());
+        return RetT();
+    }
+
+    RetT visitTypeDef(TypeDef *TypeDef) {
+        visit(TypeDef->getBaseType());
+        visit(TypeDef->getAlias());
         return RetT();
     }
 
@@ -160,6 +182,19 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitCalleeParameter(CalleeParameter *CalleeParameter) {
+        visit(CalleeParameter->getTypeNode());
+        visit(CalleeParameter->getIdentifier());
+        return RetT();
+    }
+
+    RetT visitParameterList(ParameterList *List) {
+        for (auto *child : *List) {
+            visit(child);
+        }
+        return RetT();
+    }
+
     RetT visitFunctionDecl(FunctionDecl *FuncDecl) {
         visit(FuncDecl->getIdentifier());
         visit(FuncDecl->getParasList());
@@ -172,6 +207,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         visit(FuncDef->getParasList());
         visit(FuncDef->getReturnsType());
         visit(FuncDef->getBlock());
+        return RetT();
+    }
+
+    RetT visitResolvedType(ResolvedType *ResolvedType) {
         return RetT();
     }
 
@@ -311,6 +350,23 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitTupleTypeDecl(TupleTypeDecl);
     }
 
+
+    RetT callVisitIntegerTypeNodeImpl(IntegerTypeNode *IntegerTypeNode) {
+        return static_cast<DerivedT*>(this)->visitIntegerTypeNode(IntegerTypeNode);
+    }
+
+    RetT callVisitCharTypeNodeImpl(CharTypeNode *CharTypeNode) {
+        return static_cast<DerivedT*>(this)->visitCharTypeNode(CharTypeNode);
+    }
+
+    RetT callVisitBoolTypeNodeImpl(BoolTypeNode *BoolTypeNode) {
+        return static_cast<DerivedT*>(this)->visitBoolTypeNode(BoolTypeNode);
+    }
+
+    RetT callVisitRealTypeNodeImpl(RealTypeNode *RealTypeNode) {
+        return static_cast<DerivedT*>(this)->visitRealTypeNode(RealTypeNode);
+    }
+
     RetT callVisitConditionalImpl(Conditional *Cond) {
         return static_cast<DerivedT*>(this)->visitConditional(Cond);
     }
@@ -321,6 +377,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT callVisitTypeCastImpl(TypeCast *T) {
         return static_cast<DerivedT*>(this)->visitTypeCast(T);
+    }
+
+    RetT callVisitTypeDefImpl(TypeDef *TypeDef) {
+        return static_cast<DerivedT*>(this)->visitTypeDef(TypeDef);
     }
 
     RetT callVisitBitwiseOpImpl(BitwiseOp *O) {
@@ -335,12 +395,24 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitArgsList(A);
     }
 
+    RetT callVisitCalleeParameterImpl(CalleeParameter *CalleeParameter) {
+        return static_cast<DerivedT*>(this)->visitCalleeParameter(CalleeParameter);
+    }
+
+    RetT callVisitParameterListImpl(ParameterList *List) {
+        return static_cast<DerivedT*>(this)->visitParameterList(List);
+    }
+
     RetT callVisitFunctionDeclImpl(FunctionDecl *F) {
         return static_cast<DerivedT*>(this)->visitFunctionDecl(F);
     }
 
     RetT callVisitFunctionDefImpl(FunctionDef *F) {
         return static_cast<DerivedT*>(this)->visitFunctionDef(F);
+    }
+
+    RetT callVisitResolvedTypeImpl(ResolvedType *ResolvedType) {
+        return static_cast<DerivedT*>(this)->visitResolvedType(ResolvedType);
     }
 
     RetT callVisitFunctionCallImpl(FunctionCall *F) {
@@ -445,6 +517,22 @@ public:
         if (auto *TupleTypeDec = dyn_cast<TupleTypeDecl>(Node))
             return callVisitTupleTypeDeclImpl(TupleTypeDec);
 
+        if (auto *IntTypeNode = dyn_cast<IntegerTypeNode>(Node)) {
+            return callVisitIntegerTypeNodeImpl(IntTypeNode);
+        }
+
+        if (auto *ChTypeNode = dyn_cast<CharTypeNode>(Node)) {
+            return callVisitCharTypeNodeImpl(ChTypeNode);
+        }
+
+        if (auto *BooleanTypeNode = dyn_cast<BoolTypeNode>(Node)) {
+            return callVisitBoolTypeNodeImpl(BooleanTypeNode);
+        }
+
+        if (auto *RealNumTypeNode = dyn_cast<RealTypeNode>(Node)) {
+            return callVisitRealTypeNodeImpl(RealNumTypeNode);
+        }
+
         if (auto *Cond = dyn_cast<Conditional>(Node))
             return callVisitConditionalImpl(Cond);
 
@@ -453,6 +541,10 @@ public:
 
         if (auto *TypeC = dyn_cast<TypeCast>(Node))
             return callVisitTypeCastImpl(TypeC);
+
+        if (auto *TypeDefinition = dyn_cast<TypeDef>(Node)) {
+            return callVisitTypeDefImpl(TypeDefinition);
+        }
 
         if (auto *BitOp = dyn_cast<BitwiseOp>(Node))
             return callVisitBitwiseOpImpl(BitOp);
@@ -463,11 +555,23 @@ public:
         if (auto *ArgsLi = dyn_cast<ArgsList>(Node))
             return callVisitArgsListImpl(ArgsLi);
 
+        if (auto *CalleePara = dyn_cast<CalleeParameter>(Node)) {
+            return callVisitCalleeParameterImpl(CalleePara);
+        }
+
+        if (auto *ParaList = dyn_cast<ParameterList>(Node)) {
+            return callVisitParameterListImpl(ParaList);
+        }
+
         if (auto *FunDec = dyn_cast<FunctionDecl>(Node))
             return callVisitFunctionDeclImpl(FunDec);
 
         if (auto *FuncDef = dyn_cast<FunctionDef>(Node))
             return callVisitFunctionDefImpl(FuncDef);
+
+        if (auto *ResolType = dyn_cast<ResolvedType>(Node)) {
+            return callVisitResolvedTypeImpl(ResolType);
+        }
 
         if (auto *FuncCall = dyn_cast<FunctionCall>(Node))
             return callVisitFunctionCallImpl(FuncCall);
