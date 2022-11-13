@@ -31,7 +31,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitDeclaration(Declaration *Decl) {
-        visit(Decl->getIdentTypeNode());
         visit(Decl->getIdentifier());
         visit(Decl->getInitExpr());
         return RetT();
@@ -63,13 +62,13 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitInfiniteLoop(InfiniteLoop *Loop) {
-        visit(Loop->getStatement());
+        visit(Loop->getBlock());
         return RetT();
     }
 
     RetT visitConditionalLoop(ConditionalLoop *Loop) {
         visit(Loop->getConditional());
-        visit(Loop->getStatement());
+        visit(Loop->getBlock());
         return RetT();
     }
 
@@ -115,52 +114,22 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
-    RetT visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl) {
-        for (auto *child : *TupleTypeDecl) {
-            visit(child);
-        }
-        return RetT();
-    }
-
-    RetT visitIntegerTypeNode(IntegerTypeNode *IntegerTypeNode) {
-        return RetT();
-    }
-
-    RetT visitCharTypeNode(CharTypeNode *CharTypeNode) {
-        return RetT();
-    }
-
-    RetT visitBoolTypeNode(BoolTypeNode *BoolTypeNode) {
-        return RetT();
-    }
-
-    RetT visitRealTypeNode(RealTypeNode *RealTypeNode) {
-        return RetT();
-    }
 
     RetT visitConditional(Conditional *Cond) {
         visit(Cond->getConditional());
-        visit(Cond->getStatement());
+        visit(Cond->getBlock());
         return RetT();
     }
 
     RetT visitConditionalElse(ConditionalElse *Cond) {
         visit(Cond->getConditional());
-        visit(Cond->getStatement());
-        visit(Cond->getElseConditional());
-        visit(Cond->getElseStatement());
+        visit(Cond->getIfBlock());
+        visit(Cond->getElseBlock());
         return RetT();
     }
 
     RetT visitTypeCast(TypeCast *Cast) {
-        visit(Cast->getOldTypeNode());
-        visit(Cast->getNewTypeNode());
-        return RetT();
-    }
-
-    RetT visitTypeDef(TypeDef *TypeDef) {
-        visit(TypeDef->getBaseType());
-        visit(TypeDef->getAlias());
+        visit(Cast->getExpr());
         return RetT();
     }
 
@@ -197,15 +166,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitFunctionDecl(FunctionDecl *FuncDecl) {
         visit(FuncDecl->getIdentifier());
-        visit(FuncDecl->getParasList());
-        visit(FuncDecl->getReturnsTypeNode());
         return RetT();
     }
 
     RetT visitFunctionDef(FunctionDef *FuncDef) {
         visit(FuncDef->getIdentifier());
-        visit(FuncDef->getParasList());
-        visit(FuncDef->getReturnsType());
         visit(FuncDef->getBlock());
         return RetT();
     }
@@ -222,14 +187,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProcedureDecl(ProcedureDecl *ProcedureDecl) {
         visit(ProcedureDecl->getIdentifier());
-        visit(ProcedureDecl->getParasList());
-        visit(ProcedureDecl->getReturnsType());
         return RetT();
     }
 
     RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
         visit(ProcedureDef->getIdentifier());
-        visit(ProcedureDef->getParameterList());
         visit(ProcedureDef->getBlock());
         return RetT();
     }
@@ -264,7 +226,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
-        visit(ExplicitCast->getType());
         visit(ExplicitCast->getExpr());
         return RetT();
     }
@@ -346,26 +307,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitMemberAccess(MemberAccess);
     }
 
-    RetT callVisitTupleTypeDeclImpl(TupleTypeDecl *TupleTypeDecl) {
-        return static_cast<DerivedT*>(this)->visitTupleTypeDecl(TupleTypeDecl);
-    }
-
-
-    RetT callVisitIntegerTypeNodeImpl(IntegerTypeNode *IntegerTypeNode) {
-        return static_cast<DerivedT*>(this)->visitIntegerTypeNode(IntegerTypeNode);
-    }
-
-    RetT callVisitCharTypeNodeImpl(CharTypeNode *CharTypeNode) {
-        return static_cast<DerivedT*>(this)->visitCharTypeNode(CharTypeNode);
-    }
-
-    RetT callVisitBoolTypeNodeImpl(BoolTypeNode *BoolTypeNode) {
-        return static_cast<DerivedT*>(this)->visitBoolTypeNode(BoolTypeNode);
-    }
-
-    RetT callVisitRealTypeNodeImpl(RealTypeNode *RealTypeNode) {
-        return static_cast<DerivedT*>(this)->visitRealTypeNode(RealTypeNode);
-    }
 
     RetT callVisitConditionalImpl(Conditional *Cond) {
         return static_cast<DerivedT*>(this)->visitConditional(Cond);
@@ -379,9 +320,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitTypeCast(T);
     }
 
-    RetT callVisitTypeDefImpl(TypeDef *TypeDef) {
-        return static_cast<DerivedT*>(this)->visitTypeDef(TypeDef);
-    }
 
     RetT callVisitBitwiseOpImpl(BitwiseOp *O) {
         return static_cast<DerivedT*>(this)->visitBitwiseOp(O);
@@ -514,25 +452,6 @@ public:
         if (auto *MemberAcc = dyn_cast<MemberAccess>(Node))
             return callVisitMemberAccessImpl(MemberAcc);
 
-        if (auto *TupleTypeDec = dyn_cast<TupleTypeDecl>(Node))
-            return callVisitTupleTypeDeclImpl(TupleTypeDec);
-
-        if (auto *IntTypeNode = dyn_cast<IntegerTypeNode>(Node)) {
-            return callVisitIntegerTypeNodeImpl(IntTypeNode);
-        }
-
-        if (auto *ChTypeNode = dyn_cast<CharTypeNode>(Node)) {
-            return callVisitCharTypeNodeImpl(ChTypeNode);
-        }
-
-        if (auto *BooleanTypeNode = dyn_cast<BoolTypeNode>(Node)) {
-            return callVisitBoolTypeNodeImpl(BooleanTypeNode);
-        }
-
-        if (auto *RealNumTypeNode = dyn_cast<RealTypeNode>(Node)) {
-            return callVisitRealTypeNodeImpl(RealNumTypeNode);
-        }
-
         if (auto *Cond = dyn_cast<Conditional>(Node))
             return callVisitConditionalImpl(Cond);
 
@@ -541,10 +460,6 @@ public:
 
         if (auto *TypeC = dyn_cast<TypeCast>(Node))
             return callVisitTypeCastImpl(TypeC);
-
-        if (auto *TypeDefinition = dyn_cast<TypeDef>(Node)) {
-            return callVisitTypeDefImpl(TypeDefinition);
-        }
 
         if (auto *BitOp = dyn_cast<BitwiseOp>(Node))
             return callVisitBitwiseOpImpl(BitOp);

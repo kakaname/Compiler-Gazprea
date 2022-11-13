@@ -95,26 +95,6 @@ public:
         std::cout << "MemberAccess" << "\n";
     }
 
-    void visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl) {
-        std::cout << "TupleTypeDecl" << "\n";
-    }
-
-    void visitIntegerTypeNode(IntegerTypeNode *IntegerTypeNode) {
-        std::cout << "IntType" << "\n";
-    }
-
-    void visitCharTypeNode(CharTypeNode *CharTypeNode) {
-        std::cout << "CharType" << "\n";
-    }
-
-    void visitBoolTypeNode(BoolTypeNode *BoolTypeNode) {
-        std::cout << "BoolType" << "\n";
-    }
-
-    void visitRealTypeNode(RealTypeNode *RealTypeNode) {
-        std::cout << "RealType" << "\n";
-    }
-
     void visitConditional(Conditional *Cond) {
         std::cout << "Conditional" << "\n";
     }
@@ -125,10 +105,6 @@ public:
 
     void visitTypeCast(TypeCast *Cast) {
         std::cout << "TypeCast" << "\n";
-    }
-
-    void visitTypeDef(TypeDef *TypeDef) {
-        std::cout << "TypeDef" << "\n";
     }
 
     void visitBitwiseOp(BitwiseOp *Op);
