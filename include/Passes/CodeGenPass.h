@@ -40,84 +40,86 @@ private:
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT &Root);
 
-    llvm::Value *visitProgram(Program *Prog);
+    llvm::Value* visitProgram(Program *Prog);
 
-    llvm::Value *visitIdentifier(Identifier *Ident);
+    llvm::Value* visitIdentifier(Identifier *Ident);
 
-    llvm::Value *visitAssignment(Assignment *Assign);
+    llvm::Value* visitAssignment(Assignment *Assign);
 
-    llvm::Value *visitDeclaration(Declaration *Decl);
+    llvm::Value* visitDeclaration(Declaration *Decl);
 
-    llvm::Value *visitBlock(Block *Blk);
+    llvm::Value* visitBlock(Block *Blk);
 
-    llvm::Value *visitLogicalOp(LogicalOp *Op);
+    llvm::Value* visitLogicalOp(LogicalOp *Op);
 
-    llvm::Value *visitArithmeticOp(ArithmeticOp *Op);
+    llvm::Value* visitArithmeticOp(ArithmeticOp *Op);
 
-    llvm::Value *visitIndex(Index *Idx);
+    llvm::Value* visitIndex(Index *Idx);
 
-    llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
+    llvm::Value* visitInfiniteLoop(InfiniteLoop *Loop);
 
-    llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
+    llvm::Value* visitConditionalLoop(ConditionalLoop *Loop);
 
     // ignored for part1
-    llvm::Value *visitDomainLoop(DomainLoop *Loop);
+    llvm::Value* visitDomainLoop(DomainLoop *Loop);
 
-    llvm::Value *visitIntLiteral(IntLiteral *IntLit);
+    llvm::Value* visitIntLiteral(IntLiteral *IntLit);
 
-    llvm::Value *visitNullLiteral(NullLiteral *NullLit);
+    llvm::Value* visitNullLiteral(NullLiteral *NullLit);
 
-    llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
+    llvm::Value* visitIdentityLiteral(IdentityLiteral *IdentityLit);
 
-    llvm::Value *visitRealLiteral(RealLiteral *RealLit);
+    llvm::Value* visitRealLiteral(RealLiteral *RealLit);
 
-    llvm::Value *visitBoolLiteral(BoolLiteral *BoolLit);
+    llvm::Value* visitBoolLiteral(BoolLiteral *BoolLit);
 
-    llvm::Value *visitCharLiteral(CharLiteral *CharLit);
+    llvm::Value* visitCharLiteral(CharLiteral *CharLit);
 
-    llvm::Value *visitTupleLiteral(TupleLiteral *TupleLit);
+    llvm::Value* visitTupleLiteral(TupleLiteral *TupleLit);
 
-    llvm::Value *visitMemberAccess(MemberAccess *MemberAcc);
+    llvm::Value* visitMemberAccess(MemberAccess *MemberAcc);
 
-    llvm::Value *visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl);
+    llvm::Value* visitConditional(Conditional *Cond);
 
-    llvm::Value *visitConditional(Conditional *Cond);
+    llvm::Value* visitConditionalElse(ConditionalElse *Cond);
 
-    llvm::Value *visitConditionalElse(ConditionalElse *Cond);
+    llvm::Value* visitTypeCast(TypeCast *Cast);
 
-    llvm::Value *visitTypeCast(TypeCast *Cast);
+    llvm::Value* visitBitwiseOp(BitwiseOp *Op);
 
-    llvm::Value *visitBitwiseOp(BitwiseOp *Op);
+    llvm::Value* visitUnaryOp(UnaryOp *Op);
 
-    llvm::Value *visitUnaryOp(UnaryOp *Op);
+    llvm::Value* visitArgsList(ArgsList *List);
 
-    llvm::Value *visitArgsList(ArgsList *List);
+    llvm::Value* visitCalleeParameter(CalleeParameter *CalleeParameter);
 
-    llvm::Value *visitParasList(ParasList *List);
+    llvm::Value* visitParameterList(ParameterList *List);
 
-    llvm::Value *visitFunctionDecl(FunctionDecl *FuncDecl);
+    llvm::Value* visitFunctionDecl(FunctionDecl *FuncDecl);
 
-    llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
+    llvm::Value* visitFunctionDef(FunctionDef *FuncDef);
 
-    llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
+    llvm::Value* visitResolvedType(ResolvedType *ResolvedType);
 
-    llvm::Value *visitProcedureDecl(ProcedureDecl *ProcedureDecl);
+    llvm::Value* visitFunctionCall(FunctionCall *FuncCall);
 
-    llvm::Value *visitProcedureDef(ProcedureDef *ProcedureDef);
+    llvm::Value* visitProcedureDecl(ProcedureDecl *ProcedureDecl);
 
-    llvm::Value *visitProcedureCall(ProcedureCall *ProcedureCall);
+    llvm::Value* visitProcedureDef(ProcedureDef *ProcedureDef);
 
-    llvm::Value *visitReturn(Return *Return);
+    llvm::Value* visitProcedureCall(ProcedureCall *ProcedureCall);
 
-    llvm::Value *visitBreak(Break *Break);
+    llvm::Value* visitReturn(Return *Return);
 
-    llvm::Value *visitContinue(Continue *Continue);
+    llvm::Value* visitBreak(Break *Break);
 
-    llvm::Value *visitOutStream(OutStream *OutStream);
+    llvm::Value* visitContinue(Continue *Continue);
 
-    llvm::Value *visitInStream(InStream *InStream);
+    llvm::Value* visitOutStream(OutStream *OutStream);
 
-    llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
+    llvm::Value* visitInStream(InStream *InStream);
+
+    llvm::Value* visitExplicitCast(ExplicitCast *ExplicitCast);
 
 };
 
