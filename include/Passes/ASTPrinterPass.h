@@ -26,9 +26,8 @@ public:
     }
 
     void visitIdentifier(Identifier *Ident) {
-        std::cout << "Ident(ID:" << Ident->SymbolId << ", Name: " << Ident->getName();
+        std::cout << "Ident(Name: " << Ident->getName() << ')' << "\n";
         //std::cout << ", Type: " << SymTab->getType(SymTab->getSymbolById(Ident->getSymbolId())->getTypeId())->getTag();
-        std::cout << ')' << "\n";
     }
 
     void visitAssignment(Assignment *Assign) {

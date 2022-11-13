@@ -21,7 +21,7 @@ void ASTPrinterPass::printSubTree(ASTNodeT *Root, const string &Prefix) {
     size_t NumOfChildren = Root->numOfChildren();
     std::cout << (NumOfChildren > 1 ? "├── " : "");
     for (size_t i = 0; i < NumOfChildren; ++i) {
-        ASTNodeT *Child = Root->getChildAt(i);
+        ASTNodeT *Child = Root->publicGetChildAt(i);
         if (i < NumOfChildren - 1) {
             if (i > 0) { // added fix
                 std::cout << Prefix<< "├── "; // added fix

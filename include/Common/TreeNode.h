@@ -102,6 +102,17 @@ public:
         return Children.end();
     }
 
+    size_t numOfChildren() {
+        return Children.size();
+    }
+
+    TreeNode *publicGetChildAt(size_t Pos) {
+        assert(Pos < Children.size());
+        auto I = Children.begin();
+        advance(I, Pos);
+        return *I;
+    }
+
     virtual ~TreeNode() {};
 
 protected:
