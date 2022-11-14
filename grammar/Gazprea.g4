@@ -7,33 +7,35 @@ tokens {
 // --- PARSER RULES ---
 file: (global)* EOF;
 
-global : identDecl
-       | functionDeclr
-       | functionDefinition
-       | procedureDeclr
-       | procedureDefinition
-       | typeDef
+global : globalIdentDecl        # globalIdentDeclStmt
+       | functionDeclr          # functionDeclrStmt
+       | functionDefinition     # functionDefStmt
+       | procedureDeclr         # procedureDeclrStmt
+       | procedureDefinition    # procedureDefStmt
+       | typeDef                # typeDefStmt
        ;
+
+globalIdentDecl : CONST (type)? ID EQ expr SC;
 
 stmt: simpleStmt | block; // Block should really be called compound statement.
 
 // typeDef can only appear at global scope, so I removed typeDef to global
 // Also, function/procedure declaration/definition are also removed for similar reason
-simpleStmt : identDecl
-           | assignment
-           | conditional
-           | loop
-           | output
-           | input
-           | breakStmt
-           | continueStmt
-           | return
-           | procedureCall
+simpleStmt : identDecl          # identDeclStmt
+           | assignment         # assignmentStmt
+           | conditional        # conditionalStmt
+           | loop               # loopStmt
+           | output             # outputStmt
+           | input              # inputStmt
+           | break              # breakStmt
+           | continue           # continueStmt
+           | return             # returnStmt
+           | procedureCall      # procedureCallStmt
            ;
 
-breakStmt : BREAK;
+break : BREAK;
 
-continueStmt : CONTINUE;
+continue : CONTINUE;
 
 identDecl
     : typeQualifier (type)? ID (EQ expr)? SC

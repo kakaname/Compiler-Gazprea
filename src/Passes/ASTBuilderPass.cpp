@@ -23,13 +23,8 @@ void ASTBuilderPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 }
 
 std::any ASTBuilderPass::visitFile(GazpreaParser::FileContext *ctx) {
-    for (auto Child : ctx->global()) {
-        if (Child->typeDef()) {
-            visit(Child->typeDef());
-            continue;
-        }
+    for (auto Child : ctx->global())
         Prog->addChild(castToNodeVisit(Child));
-    }
     return nullptr;
 }
 
@@ -54,6 +49,7 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     Ident->setIdentType(Decl->getIdentType());
+    Decl->setIdent(Ident);
 
     // If there is an init expression, we set it. Else we insert an initialization
     // with null.
@@ -91,7 +87,7 @@ std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext 
         auto CondBody = PM->Builder.build<Block>();
         CondBody->addChild(StatementBody);
         IfStat->setBlock(CondBody);
-        return IfStat;
+        return cast<ASTNodeT>(IfStat);
     }
 
     IfStat->setBlock(dyn_cast<Block>(StatementBody));
@@ -758,3 +754,82 @@ std::any ASTBuilderPass::visitContinueStmt(GazpreaParser::ContinueStmtContext *c
 std::any ASTBuilderPass::visitRealLit(GazpreaParser::RealLitContext *ctx) {
     return castToNodeVisit(ctx->children.at(0));
 }
+
+std::any ASTBuilderPass::visitStmt(GazpreaParser::StmtContext *ctx) {
+    if (ctx->simpleStmt())
+        return castToNodeVisit(ctx->simpleStmt());
+
+    return castToNodeVisit(ctx->block());
+}
+
+std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclContext *ctx) {
+    auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+    auto Expr = castToNodeVisit(ctx->expr());
+    auto Decl = PM->Builder.build<Declaration>();
+    Decl->setIdentType(Type);
+    Decl->setInitExpr(Expr);
+    Decl->setConst();
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID()->getText());
+    Ident->setIdentType(Type);
+    Decl->setIdent(Ident);
+    return Decl;
+}
+
+std::any ASTBuilderPass::visitGlobalIdentDeclStmt(GazpreaParser::GlobalIdentDeclStmtContext *ctx) {
+    return castToNodeVisit(ctx->globalIdentDecl());
+}
+
+std::any ASTBuilderPass::visitFunctionDeclrStmt(GazpreaParser::FunctionDeclrStmtContext *ctx) {
+    return castToNodeVisit(ctx->functionDeclr());
+}
+
+std::any ASTBuilderPass::visitFunctionDefStmt(GazpreaParser::FunctionDefStmtContext *ctx) {
+    return castToNodeVisit(ctx->functionDefinition());
+}
+
+std::any ASTBuilderPass::visitProcedureDeclrStmt(GazpreaParser::ProcedureDeclrStmtContext *ctx) {
+    return castToNodeVisit(ctx->procedureDeclr());
+}
+
+std::any ASTBuilderPass::visitProcedureDefStmt(GazpreaParser::ProcedureDefStmtContext *ctx) {
+    return castToNodeVisit(ctx->procedureDefinition());
+}
+
+std::any ASTBuilderPass::visitTypeDefStmt(GazpreaParser::TypeDefStmtContext *ctx) {
+    return castToNodeVisit(ctx->typeDef());
+}
+
+std::any ASTBuilderPass::visitIdentDeclStmt(GazpreaParser::IdentDeclStmtContext *ctx) {
+    return castToNodeVisit(ctx->identDecl());
+}
+
+std::any ASTBuilderPass::visitAssignmentStmt(GazpreaParser::AssignmentStmtContext *ctx) {
+    return castToNodeVisit(ctx->assignment());
+}
+
+std::any ASTBuilderPass::visitConditionalStmt(GazpreaParser::ConditionalStmtContext *ctx) {
+    return castToNodeVisit(ctx->conditional());
+}
+
+std::any ASTBuilderPass::visitLoopStmt(GazpreaParser::LoopStmtContext *ctx) {
+    return castToNodeVisit(ctx->loop());
+}
+
+std::any ASTBuilderPass::visitOutputStmt(GazpreaParser::OutputStmtContext *ctx) {
+    return castToNodeVisit(ctx->output());
+}
+
+std::any ASTBuilderPass::visitInputStmt(GazpreaParser::InputStmtContext *ctx) {
+    return castToNodeVisit(ctx->input());
+}
+
+std::any ASTBuilderPass::visitProcedureCallStmt(GazpreaParser::ProcedureCallStmtContext *ctx) {
+    return castToNodeVisit(ctx->procedureCall());
+}
+
+
+
+
+
+

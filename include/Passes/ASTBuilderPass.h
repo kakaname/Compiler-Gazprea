@@ -32,9 +32,43 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitFile(GazpreaParser::FileContext *ctx) override;
 
+    std::any visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclContext *ctx) override;
+
+    std::any visitGlobalIdentDeclStmt(GazpreaParser::GlobalIdentDeclStmtContext *ctx) override;
+
+    std::any visitFunctionDeclrStmt(GazpreaParser::FunctionDeclrStmtContext *ctx) override;
+
+    std::any visitFunctionDefStmt(GazpreaParser::FunctionDefStmtContext *ctx) override;
+
+    std::any visitProcedureDeclrStmt(GazpreaParser::ProcedureDeclrStmtContext *ctx) override;
+
+    std::any visitProcedureDefStmt(GazpreaParser::ProcedureDefStmtContext *ctx) override;
+
+    std::any visitTypeDefStmt(GazpreaParser::TypeDefStmtContext *ctx) override;
+
+    std::any visitIdentDeclStmt(GazpreaParser::IdentDeclStmtContext *ctx) override;
+
+    std::any visitAssignmentStmt(GazpreaParser::AssignmentStmtContext *ctx) override;
+
+    std::any visitConditionalStmt(GazpreaParser::ConditionalStmtContext *ctx) override;
+
+    std::any visitLoopStmt(GazpreaParser::LoopStmtContext *ctx) override;
+
+    std::any visitOutputStmt(GazpreaParser::OutputStmtContext *ctx) override;
+
+    std::any visitInputStmt(GazpreaParser::InputStmtContext *ctx) override;
+
+    std::any visitProcedureCallStmt(GazpreaParser::ProcedureCallStmtContext *ctx) override;
+
+    std::any visitBreakStmt(GazpreaParser::BreakStmtContext *ctx) override;
+
+    std::any visitContinueStmt(GazpreaParser::ContinueStmtContext *ctx) override;
+
     std::any visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) override;
 
     std::any visitAssignment(GazpreaParser::AssignmentContext *ctx) override;
+
+    std::any visitStmt(GazpreaParser::StmtContext *ctx) override;
 
     std::any visitIfConditional(GazpreaParser::IfConditionalContext *ctx) override;
 
@@ -152,10 +186,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
     std::any visitIntReal(GazpreaParser::IntRealContext *ctx) override;
 
     std::any visitDotReal(GazpreaParser::DotRealContext *ctx) override;
-
-    std::any visitBreakStmt(GazpreaParser::BreakStmtContext *ctx) override;
-
-    std::any visitContinueStmt(GazpreaParser::ContinueStmtContext *ctx) override;
 
 public:
 
