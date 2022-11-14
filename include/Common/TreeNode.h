@@ -142,11 +142,11 @@ protected:
     void setChildAt(unsigned Pos, TreeNode *Child) {
         if (Child)
             Child->setParent(this);
-        while (Children.size() < Pos)
+        while (Children.size() < Pos + 1)
             Children.push_back(nullptr);
         auto I = Children.begin();
         advance(I, Pos);
-        Children.insert(I, Child);
+        *I = Child;
     }
 
 private:

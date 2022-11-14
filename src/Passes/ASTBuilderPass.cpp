@@ -316,7 +316,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
         auto FuncBody = PM->Builder.build<Block>();
         FuncBody->addChild(RetStmt);
         FuncDef->setBlock(FuncBody);
-        return FuncDef;
+        return cast<ASTNodeT>(FuncDef);
     }
 
     FuncDef->setBlock(castToNodeVisit(ctx->block()));
@@ -361,6 +361,7 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
         if (!IsVar)
             ParamType = PM->TypeReg.getConstTypeOf(ParamType);
         auto ParamIdent = PM->Builder.build<Identifier>();
+        ParamIdent->setName(Param->ID()->getText());
         ParamIdent->setIdentType(ParamType);
         ParamList->addParam(ParamIdent);
     }
@@ -566,7 +567,7 @@ std::any ASTBuilderPass::visitBracketExpr(GazpreaParser::BracketExprContext *ctx
 }
 
 std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) {
-   throw std::runtime_error("Unimplemented");
+    return castToNodeVisit(ctx->realLit());
 }
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {

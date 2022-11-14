@@ -61,13 +61,13 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     ExprTypeAnnotatorPass ExprAnnotator;
 
-    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
-        assert(isa<Program>(&Root) && "ScopeResolutionPass should run on the"
+    void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
+        assert(isa<Program>(Root) && "ScopeResolutionPass should run on the"
                                       " entire program");
         PM = &PManager;
         auto &GlobalScope = PM->getResource<ScopeTreeNode>();
         CurrentScope = &GlobalScope;
-        visit(&Root);
+        visit(Root);
     }
 
     void visitDeclaration(Declaration *Decl) {
@@ -79,15 +79,17 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }
-        auto Ty = PM->SymTable.defineObject(
+        auto Sym = PM->SymTable.defineObject(
                 Decl->getIdentifier()->getName(), Decl->getIdentType());
-        Decl->getIdentifier()->setReferred(Ty);
+        Decl->getIdentifier()->setReferred(Sym);
+        CurrentScope->declareInScope(Decl->getIdentifier()->getName(), Sym);
     }
 
     void visitIdentifier(Identifier *Ident) const {
         auto Resolved = CurrentScope->resolve(Ident->getName());
         if (!Resolved)
-            throw std::runtime_error("Not found");
+            throw std::runtime_error("Symbol for identifier " + Ident->getName() + " not found");
+        Ident->setIdentType(Resolved->getSymbolType());
         Ident->setReferred(Resolved);
     }
 
@@ -117,6 +119,54 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(CondWithElse->getElseBlock());
         CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
     };
+
+    void visitProcedureDef(ProcedureDef *Def) {
+        auto ParamList = Def->getParamList();
+        auto FunctionParamScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(FunctionParamScope);
+        for (auto *Param : *ParamList) {
+            auto ParamIdent = dyn_cast<Identifier>(Param);
+            assert(ParamIdent);
+            assert(ParamIdent->getIdentType());
+            auto ParamSym = PM->SymTable.defineObject(
+                    ParamIdent->getName(), ParamIdent->getIdentType());
+            FunctionParamScope->declareInScope(ParamIdent->getName(), ParamSym);
+        }
+        auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
+        FunctionParamScope->addChild(FuncBodyScope);
+        CurrentScope = FuncBodyScope;
+        visit(Def->getBlock());
+        CurrentScope = dyn_cast<ScopeTreeNode>(FunctionParamScope->getParent());
+        assert(CurrentScope);
+    }
+
+    void visitFunctionDef(FunctionDef *Def) {
+        auto ParamList = Def->getParamList();
+        auto FunctionParamScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(FunctionParamScope);
+        for (auto *Param : *ParamList) {
+            auto ParamIdent = dyn_cast<Identifier>(Param);
+            assert(ParamIdent);
+            assert(ParamIdent->getIdentType());
+            auto ParamSym = PM->SymTable.defineObject(
+                    ParamIdent->getName(), ParamIdent->getIdentType());
+            FunctionParamScope->declareInScope(ParamIdent->getName(), ParamSym);
+        }
+        auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
+        FunctionParamScope->addChild(FuncBodyScope);
+        CurrentScope = FuncBodyScope;
+        visit(Def->getBlock());
+        CurrentScope = dyn_cast<ScopeTreeNode>(FunctionParamScope->getParent());
+        assert(CurrentScope);
+    }
+
+    void visitFunctionDecl(FunctionDecl *Decl) {
+        auto FuncName = Decl->getIdentifier()->getName();
+        auto FuncTy = PM->TypeReg.getFunctionType(
+                Decl->getParamTypes(), Decl->getRetType());
+        auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
+        CurrentScope->declareInScope(FuncName, FuncSym);
+    }
 };
 
 #endif //GAZPREABASE_SCOPERESOLUTIONPASS_H

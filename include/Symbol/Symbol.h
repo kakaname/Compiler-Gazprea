@@ -91,7 +91,7 @@ public:
     ScopedSymbol(string Name, const Type *Ty, map<string, int> Members):
         Symbol(SymbolKind::S_ScopedSymbol, std::move(Name), Ty), Members(std::move(Members)) {}
 
-    int getMemberIndex(const string& Member) {
+    int getMemberIndex(const string& Member) const {
         auto Res = Members.find(Member);
         if (Res == Members.end())
             throw std::runtime_error("Tried to get a member that does not exist.");

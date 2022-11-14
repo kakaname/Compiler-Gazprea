@@ -16,6 +16,7 @@
 
 #include "Symbol/SymbolTable.h"
 #include "Passes/ASTPrinterPass.h"
+#include "Passes/ScopeResolutionPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -78,6 +79,8 @@ int main(int argc, char **argv) {
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
+    Manager.registerAnonymousPass(ASTPrinterPass());
+    Manager.registerPass(ScopeResolutionPass());
     Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());

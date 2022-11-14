@@ -98,21 +98,25 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
         if (isa<IntegerTy>(LeftType) && isa<RealTy>(RightType)) {
             auto Cast = wrapWithCastToReal(LeftExpr);
             Op->setLeftExpr(Cast);
-            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, Cast->getTargetType());
-            return Cast->getTargetType();
+            LeftType = Cast->getTargetType();
         }
 
         if (isa<RealTy>(LeftType) && isa<IntegerTy>(RightType)) {
             auto Cast = wrapWithCastToReal(RightExpr);
             Op->setRightExpr(Cast);
-            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, Cast->getTargetType());
-            return Cast->getTargetType();
+            RightType = Cast->getTargetType();
         }
+
+        assert(LeftType->isSameTypeAs(RightType) && "Cannot compare incompatible types");
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
+        return PM->TypeReg.getBooleanTy();
 
     } else {
         // All other "logical ops" are only supported for booleans.
         assert(isa<BoolTy>(LeftType) && "Left type must be boolean");
         assert(isa<BoolTy>(RightType) && "Right type must be boolean");
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
+        return PM->TypeReg.getBooleanTy();
     }
 }
 
@@ -135,4 +139,42 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
 
     PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
     return PM->TypeReg.getBooleanTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
+    visit(MAccess->getIdentifier());
+    visit(MAccess->getMemberExpr());
+    auto IdentType = MAccess->getIdentifier()->getIdentType();
+    assert(IdentType && "Type not assigned to identifier.");
+    auto Tuple = dyn_cast<TupleTy>(IdentType);
+    assert(Tuple && "Only identifier that are of type tuple maybe have their members accessed");
+    auto MemberIdx = dyn_cast<IntLiteral>(MAccess->getMemberExpr());
+    assert(MemberIdx && "Only member accesses with integer literals "
+                        "should have reached this place.");
+
+    assert((int32_t) Tuple->getNumOfMembers() <= MemberIdx->getVal() && "Invalid index to access a member");
+    auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
+    return ResultTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
+    visit(Call->getArgsList());
+    auto IdentTy = Call->getIdentifier()->getIdentType();
+    assert(IdentTy && "Ident type not set for function call");
+    auto FuncTy = dyn_cast<FunctionTy>(IdentTy);
+    assert(FuncTy && "Only functions may be called");
+    auto RetTy = FuncTy->getRetType();
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
+    return RetTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntegerTy());
+    return PM->TypeReg.getIntegerTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Real, PM->TypeReg.getRealTy());
+    return PM->TypeReg.getRealTy();
 }
