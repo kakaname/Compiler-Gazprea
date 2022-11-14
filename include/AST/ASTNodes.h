@@ -46,7 +46,7 @@ struct Identifier: public TreeNode {
     void setIdentType(const Type *T) {
         IdentType = T;
     }
-
+    
     const Type *getIdentType() const {
         return IdentType;
     }
@@ -154,7 +154,7 @@ struct ComparisonOp: public TreeNode {
     OpKind Op;
 
     static bool classof(const TreeNode *N) {
-        return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
+        return N->getKind() == TreeNodeKind::N_AST_ComparisonOp;
     }
 
     void setOp(OpKind OpKind) {
@@ -181,7 +181,7 @@ struct ComparisonOp: public TreeNode {
         return getChildAt(RightExprIdx);
     }
 
-    ComparisonOp() : TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
+    ComparisonOp() : TreeNode(TreeNodeKind::N_AST_ComparisonOp) {}
 };
 
 struct ArithmeticOp: public TreeNode {
@@ -548,7 +548,7 @@ struct LogicalOp: public TreeNode {
     OpKind Op;
 
     static bool classof(const TreeNode *N) {
-        return N->getKind() == TreeNodeKind::N_AST_BitwiseOp;
+        return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
     }
 
     void setOp(OpKind OpKind) {
@@ -575,7 +575,7 @@ struct LogicalOp: public TreeNode {
         return getChildAt(RightExprIdx);
     }
 
-    LogicalOp(): TreeNode(TreeNodeKind::N_AST_BitwiseOp) {}
+    LogicalOp(): TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
 };
 
 struct UnaryOp: public TreeNode {
@@ -770,6 +770,11 @@ struct FunctionDef: public TreeNode {
 
 struct ResolvedType: public TreeNode {
     string Name;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_ResolvedType;
+    }
+
     ResolvedType(): TreeNode(TreeNode::N_AST_ResolvedType) {}
 
     void setName(const string& N) {

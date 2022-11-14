@@ -25,7 +25,7 @@ public:
         N_AST_CalleeParameter,
         N_AST_Declaration,
         N_AST_Block,
-        N_AST_LogicalOp,
+        N_AST_ComparisonOp,
         N_AST_ArithmeticOp,
         N_AST_Index,
         N_AST_ConditionalLoop,
@@ -49,7 +49,7 @@ public:
         N_AST_TypeCast,
         N_AST_TypeDef,
         N_AST_ResolvedType,
-        N_AST_BitwiseOp,
+        N_AST_LogicalOp,
         N_AST_UnaryOp,
         N_AST_ArgsList,
         N_AST_ParasList,
@@ -111,6 +111,11 @@ public:
         auto I = Children.begin();
         advance(I, Pos);
         return *I;
+    }
+
+
+    size_t numOfChildren() {
+        return Children.size();
     }
 
     void replaceChildWith(const TreeNode *Old, TreeNode *New) {
