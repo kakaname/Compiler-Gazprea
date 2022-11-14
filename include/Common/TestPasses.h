@@ -27,13 +27,13 @@
 //    }
 //};
 //
-//struct SetsInt : ASTPassIDMixin<SetsInt> {
-//    using ResultT = int;
-//
-//    static void runOnAST(ASTPassManager &PM, ASTNodeT &Root) {
-//        PM.setResult<SetsInt>(42);
-//    }
-//};
+struct SetsInt : ASTPassIDMixin<SetsInt> {
+    using ResultT = int;
+
+    static void runOnAST(ASTPassManager &PM, ASTNodeT *Root) {
+        PM.setResult<SetsInt>(42);
+    }
+};
 //
 //struct CustomResult {
 //    std::string getMessage() {

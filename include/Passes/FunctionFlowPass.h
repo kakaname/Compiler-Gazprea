@@ -31,16 +31,16 @@
 #include "ErrorHandling/exceptions.h"
 
 struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
-    // The annotation determines if a branch is safe or not
-    // could be substituted with return type
-    using AnnotationT = bool;
-
-//    using ReturnT
-    FunctionDef* inFunction = nullptr;
-    Type *currFuncReturnType;
-
-    void visitFunctionDef(FunctionDef *FuncDef);
-    void visitBlock
+//    // The annotation determines if a branch is safe or not
+//    // could be substituted with return type
+//    using AnnotationT = bool;
+//
+////    using ReturnT
+//    FunctionDef* inFunction = nullptr;
+//    Type *currFuncReturnType;
+//
+//    void visitFunctionDef(FunctionDef *FuncDef);
+//    void visitBlock
 
 //    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
 //        PM = &PManager;
@@ -49,7 +49,7 @@ struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
 
 
 
-    ASTPassManager *PM;
-
-    FunctionFlowPass() : VisitorPass() {}
+//    ASTPassManager *PM;
+//
+//    FunctionFlowPass() : VisitorPass() {}
 };

@@ -25,11 +25,15 @@ simpleStmt : identDecl
            | loop
            | output
            | input
-           | BREAK
-           | CONTINUE
+           | breakStmt
+           | continueStmt
            | return
            | procedureCall
            ;
+
+breakStmt : BREAK;
+
+continueStmt : CONTINUE;
 
 identDecl : (typeQualifier)? (type)? ID (EQ expr)? SC;
 
@@ -59,8 +63,8 @@ return : RETURN expr SC;
 typeQualifier : VAR
               | CONST;
 
-type : ID                                               #resolvedType
-     | tupleTypeDecl                                    #tupleType
+type
+     : tupleTypeDecl                                    #tupleType
      | ID LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
      | ID LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
@@ -68,23 +72,28 @@ type : ID                                               #resolvedType
      | CHARACTER                                        #charType
      | BOOLEANA                                         #booleanType
      | REAL                                             #realType
+     | ID                                               #resolvedType
      ;
 
 expressionOrWildcard: (MUL | expr);
 
 tupleTypeDecl
-    : TUPLE LPAREN typeOptionalIdentPair COMMA typeOptionalIdentPair
-    (COMMA typeOptionalIdentPair)* RPAREN;
+    : TUPLE LPAREN tupleMemberType COMMA tupleMemberType
+    (COMMA tupleMemberType)*;
 
+tupleMemberType
+    : type (ID)?;
 
 // added (typeQualifier)? because procedure parameters can have type qualifiers
 typeOptionalIdentPair : (typeQualifier)? type (ID)?;
 
 typeIdentPair : (typeQualifier)? type ID;
 
+functionParameter : (CONST)? type (ID)?;
+
 functionDeclr
     : FUNCTION funcName=ID LPAREN
-      (typeOptionalIdentPair (COMMA typeOptionalIdentPair)*)?
+      (functionParameter (COMMA functionParameter)*)?
       RPAREN RETURNS type SC;
 
 functionDefinition
@@ -125,7 +134,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | expr DD expr (BY expr)?               # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr op=EXP expr        # expExpr
-    | expr op=(MUL | DIV | MOD | SS) expr   # mulDivModSSExpr // A better name perhaps
+    | expr op=(MUL | DIV | MOD | DOTPROD) expr   # mulDivModDotProdExpr // A better name perhaps
     | expr op=(ADD | SUB) expr              # addSubExpr
     | expr BY expr                          # byExpr
     | expr op=(LT | GT | LTEQ | GTEQ) expr  # compExpr
@@ -183,7 +192,7 @@ ADD : '+' ;
 SUB : '-' ;
 DIV : '/' ;
 MUL : '*' ;
-SS : '**' ;
+DOTPROD : '**' ;
 LTEQ : '<=' ;
 GTEQ : '>=' ;
 LT : '<' ;
@@ -210,7 +219,7 @@ FUNCTION : 'function' ;
 IDENTITY : 'identity' ;
 IF : 'if' ;
 IN : 'in' ;
-INTEGER: 'interger';
+INTEGER: 'integer';
 INTERVAL : 'interval' ;
 LENGTH : 'length' ;
 LOOP : 'loop' ;

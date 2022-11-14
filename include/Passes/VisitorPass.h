@@ -114,7 +114,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
-
     RetT visitConditional(Conditional *Cond) {
         visit(Cond->getConditional());
         visit(Cond->getBlock());
@@ -132,7 +131,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         visit(Cast->getExpr());
         return RetT();
     }
-
+    
     RetT visitBitwiseOp(BitwiseOp *Op) {
         visit(Op->getLeftExpr());
         visit(Op->getRightExpr());
@@ -306,7 +305,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT callVisitMemberAccessImpl(MemberAccess *MemberAccess) {
         return static_cast<DerivedT*>(this)->visitMemberAccess(MemberAccess);
     }
-
 
     RetT callVisitConditionalImpl(Conditional *Cond) {
         return static_cast<DerivedT*>(this)->visitConditional(Cond);

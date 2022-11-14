@@ -10,8 +10,12 @@
 #include "PassManager.h"
 
 using gazprea::GazpreaParser;
+using std::string;
 
-class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
+class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<ASTBuilderPass> {
+
+    using AnnotationT = map<string, int>;
+
     ASTPassManager *PM{};
 
     Program *Prog;
@@ -19,16 +23,14 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
     antlr4::tree::ParseTree *File;
 
     ASTNodeT *castToNodeVisit(antlr4::tree::ParseTree *Tree) {
-        return std::any_cast<ASTNodeT *>(visit(Tree));
+        return std::any_cast<ASTNodeT*>(visit(Tree));
+    }
+
+    const Type *castToTypeVisit(antlr4::tree::ParseTree *Tree) {
+        return std::any_cast<const Type*>(visit(Tree));
     }
 
     std::any visitFile(GazpreaParser::FileContext *ctx) override;
-
-    std::any visitGlobal(GazpreaParser::GlobalContext *ctx) override;
-
-    std::any visitStmt(GazpreaParser::StmtContext *ctx) override;
-
-    std::any visitSimpleStmt(GazpreaParser::SimpleStmtContext *ctx) override;
 
     std::any visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) override;
 
@@ -56,8 +58,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
 
     std::any visitReturn(GazpreaParser::ReturnContext *ctx) override;
 
-    std::any visitTypeQualifier(GazpreaParser::TypeQualifierContext *ctx) override;
-
     // Type nodes.
     std::any visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) override;
 
@@ -76,10 +76,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
     std::any visitRealType(GazpreaParser::RealTypeContext *ctx) override;
 
     std::any visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) override;
-
-    std::any visitTypeOptionalIdentPair(GazpreaParser::TypeOptionalIdentPairContext *ctx) override;
-
-    std::any visitTypeIdentPair(GazpreaParser::TypeIdentPairContext *ctx) override;
 
     std::any visitFunctionDeclr(GazpreaParser::FunctionDeclrContext *ctx) override;
 
@@ -119,11 +115,9 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
 
     std::any visitBracketExpr(GazpreaParser::BracketExprContext *ctx) override;
 
-    std::any visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) override;
-
     std::any visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) override;
 
-    std::any visitMulDivModSSExpr(GazpreaParser::MulDivModSSExprContext *ctx) override;
+    std::any visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotProdExprContext *ctx) override;
 
     std::any visitByExpr(GazpreaParser::ByExprContext *ctx) override;
 
@@ -147,6 +141,8 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
 
     std::any visitAndExpr(GazpreaParser::AndExprContext *ctx) override;
 
+    std::any visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) override;
+
     std::any visitRealLit(GazpreaParser::RealLitContext *ctx) override;
 
     std::any visitSciRealLiteral(GazpreaParser::SciRealLiteralContext *ctx) override;
@@ -156,6 +152,10 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor {
     std::any visitIntReal(GazpreaParser::IntRealContext *ctx) override;
 
     std::any visitDotReal(GazpreaParser::DotRealContext *ctx) override;
+
+    std::any visitBreakStmt(GazpreaParser::BreakStmtContext *ctx) override;
+
+    std::any visitContinueStmt(GazpreaParser::ContinueStmtContext *ctx) override;
 
 public:
 

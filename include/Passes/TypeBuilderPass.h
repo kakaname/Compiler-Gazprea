@@ -9,7 +9,7 @@
 #include "VisitorPass.h"
 
 struct TypeBuilderPass: VisitorPass<TypeBuilderPass, const Type*> {
-    const Type *visit
+    // Implement just tuple, bool, real, int, char.
 };
 
 

@@ -66,6 +66,46 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope = &GlobalScope;
         visit(&Root);
     }
+
+    void visitDeclaration(Declaration *Decl) const {
+        auto Ty = PM->SymTable.defineObject(
+                Decl->getIdentifier()->getName(), Decl->getIdentType());
+        Decl->getIdentifier()->setReferred(Ty);
+    }
+
+    void visitIdentifier(Identifier *Ident) const {
+        auto Resolved = CurrentScope->resolve(Ident->getName());
+        if (!Resolved)
+            throw std::runtime_error("Not found");
+        Ident->setReferred(Resolved);
+    }
+
+    void visitConditionalLoop(ConditionalLoop *Loop) {
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+        visit(Loop->getBlock());
+        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
+    }
+
+    void visitConditional(Conditional *Cond) {
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        visit(Cond->getBlock());
+        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
+    };
+
+    void visitConditionalElse(ConditionalElse *CondWithElse) {
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        visit(CondWithElse->getIfBlock());
+        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
+
+        NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        visit(CondWithElse->getElseBlock());
+        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
+    };
 };
 
 #endif //GAZPREABASE_SCOPERESOLUTIONPASS_H

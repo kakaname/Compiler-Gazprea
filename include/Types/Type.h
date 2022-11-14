@@ -47,11 +47,6 @@ public:
         T_Vector == Kind || T_Matrix == Kind;
     }
 
-
-    const Type *getConstTy() {
-
-    }
-
     TypeKind getKind() const {
         return Kind;
     }

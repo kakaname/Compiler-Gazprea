@@ -9,19 +9,12 @@
 #include "VisitorPass.h"
 #include "PassManager.h"
 #include "ScopeResolutionPass.h"
+#include "TypeBuilderPass.h"
 
 
 struct TypeDefResolutionPass {
     void runOnAST(ASTPassManager &PM, ASTNodeT &Root) {
-        PM.setResource<ScopeTreeNode>(ScopeTreeNode());
-        auto GlobalScope =  &PM.getResource<ScopeTreeNode>();
-        assert(isa<Program>(&Root) && "Must be run on the Program");
-        TypeDef *TypeDefNode;
-        for (auto *GlobalStmt : Root) {
-            if (!(TypeDefNode = dyn_cast<TypeDef>(GlobalStmt)))
-                continue;
 
-        }
     }
 };
 

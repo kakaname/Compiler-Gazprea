@@ -59,6 +59,12 @@ public:
         Symbol(SymbolKind::S_ObjectSymbol, std::move(Name), Ty) {}
 };
 
+// tuple t;
+//
+// ...
+// getRefer
+// t.name
+// t.1;
 
 class TypeSymbol: public Symbol {
     const Type *Ty;
