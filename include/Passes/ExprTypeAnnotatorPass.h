@@ -9,7 +9,6 @@
 #include "Types/Type.h"
 #include "VisitorPass.h"
 #include "PassManager.h"
-#include "ScopeResolutionPass.h"
 
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
