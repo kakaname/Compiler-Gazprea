@@ -510,7 +510,7 @@ std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitIdentityLiteral(GazpreaParser::IdentityLiteralContext *ctx) {
-    cast<ASTNodeT>(PM->Builder.build<IdentityLiteral>());
+    return cast<ASTNodeT>(PM->Builder.build<IdentityLiteral>());
 }
 
 std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *ctx) {
@@ -594,9 +594,6 @@ std::any ASTBuilderPass::visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotPr
 
     if (ctx->MOD())
         Expr->setOp(ArithmeticOp::MOD);
-
-    if (ctx->DOTPROD())
-        Expr->setOp(ArithmeticOp::DOTPROD);
 
     // Set left expression
     Expr->setLeftExpr(castToNodeVisit(ctx->expr(0)));

@@ -10,6 +10,8 @@
 #include <vector>
 #include <list>
 
+#include <algorithm>
+
 using std::list;
 using std::advance;
 using llvm::cast;

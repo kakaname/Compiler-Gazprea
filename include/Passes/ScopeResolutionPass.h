@@ -11,6 +11,7 @@
 #include "PassManager.h"
 #include "Symbol/Symbol.h"
 #include "VisitorPass.h"
+#include "ExprTypeAnnotatorPass.h"
 
 
 using llvm::isa;
@@ -58,6 +59,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     ScopeTreeNode *CurrentScope;
     ASTPassManager *PM;
 
+    ExprTypeAnnotatorPass ExprAnnotator;
+
     void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
         assert(isa<Program>(&Root) && "ScopeResolutionPass should run on the"
                                       " entire program");
@@ -67,7 +70,15 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(&Root);
     }
 
-    void visitDeclaration(Declaration *Decl) const {
+    void visitDeclaration(Declaration *Decl) {
+        visit(Decl->getInitExpr());
+        // The type must be inferred.
+        if (!Decl->getIdentType()) {
+            ExprAnnotator.runOnAST(*PM, Decl->getInitExpr());
+            auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
+            Decl->setIdentType(ExprType);
+            Decl->getIdentifier()->setIdentType(ExprType);
+        }
         auto Ty = PM->SymTable.defineObject(
                 Decl->getIdentifier()->getName(), Decl->getIdentType());
         Decl->getIdentifier()->setReferred(Ty);
