@@ -113,6 +113,14 @@ public:
         return *I;
     }
 
+    void replaceChildWith(const TreeNode *Old, TreeNode *New) {
+        auto Loc = std::find(Children.begin(), Children.end(), Old);
+        assert(Loc != Children.end() && "Tried to replace a non existent child");
+        if (New)
+            New->setParent(this);
+        *Loc = New;
+    }
+
     virtual ~TreeNode() {};
 protected:
 

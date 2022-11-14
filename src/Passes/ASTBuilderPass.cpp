@@ -483,20 +483,20 @@ std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
-    auto CompExpr = PM->Builder.build<LogicalOp>();
+    auto CompExpr = PM->Builder.build<ComparisonOp>();
 
     // Set the operator
     if (ctx->LT())
-        CompExpr->setOp(LogicalOp::LT);
+        CompExpr->setOp(ComparisonOp::LT);
 
     if (ctx->GT())
-        CompExpr->setOp(LogicalOp::GT);
+        CompExpr->setOp(ComparisonOp::GT);
 
     if (ctx->LTEQ())
-        CompExpr->setOp(LogicalOp::LTEQ);
+        CompExpr->setOp(ComparisonOp::LTEQ);
 
     if (ctx->GTEQ())
-        CompExpr->setOp(LogicalOp::GTEQ);
+        CompExpr->setOp(ComparisonOp::GTEQ);
 
     // Set the left expression.
     CompExpr->setLeftExpr(castToNodeVisit(ctx->expr(0)));
@@ -613,13 +613,13 @@ std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
-    auto OrExpr = PM->Builder.build<BitwiseOp>();
+    auto OrExpr = PM->Builder.build<LogicalOp>();
 
     // Set operator
     if (ctx->OR())
-        OrExpr->setOp(BitwiseOp::OR);
+        OrExpr->setOp(LogicalOp::OR);
     else
-        OrExpr->setOp(BitwiseOp::XOR);
+        OrExpr->setOp(LogicalOp::XOR);
 
     // Set the left expression.
     OrExpr->setLeftExpr(castToNodeVisit(ctx->expr(0)));
@@ -678,7 +678,7 @@ std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
 
     // Set operator
     if (ctx->EQEQ())
-        Expr->setOp(LogicalOp::EQEQ);
+        Expr->setOp(LogicalOp::EQ);
     else
         Expr->setOp(LogicalOp::NEQ);
 
@@ -692,8 +692,8 @@ std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
-    auto AndExpr = PM->Builder.build<BitwiseOp>();
-    AndExpr->setOp(BitwiseOp::AND);
+    auto AndExpr = PM->Builder.build<LogicalOp>();
+    AndExpr->setOp(LogicalOp::AND);
 
     // Set the left expression.
     AndExpr->setLeftExpr(castToNodeVisit(ctx->expr(0)));
