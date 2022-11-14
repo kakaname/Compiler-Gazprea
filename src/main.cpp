@@ -78,6 +78,7 @@ int main(int argc, char **argv) {
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
+    Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());
 //  Manager.registerAnonymousPass(PrintsResults());

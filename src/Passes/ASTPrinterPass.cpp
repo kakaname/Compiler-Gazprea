@@ -28,12 +28,10 @@ void ASTPrinterPass::printSubTree(ASTNodeT *Root, const string &Prefix) {
             } // added fix
             bool PrintStrand = NumOfChildren > 1 && (Child->numOfChildren() != 0);
             std::string NewPrefix = Prefix + (PrintStrand ? "│\t" : "\t");
-//            printNodeName(Child);
             visit(Child);
             printSubTree(Child, NewPrefix);
         } else {
             std::cout << (NumOfChildren > 1 ? Prefix : "") << "└── ";
-            //printNodeName(Child);
             visit(Child);
             printSubTree(Child, Prefix + "\t");
         }
@@ -75,9 +73,6 @@ void ASTPrinterPass::visitArithmeticOp(ArithmeticOp *Op) {
             break;
         case ArithmeticOp::MOD:
             Symb = "MOD";
-            break;
-        case ArithmeticOp::DOTPROD:
-            Symb = "DOTPROD";
             break;
         case ArithmeticOp::ADD:
             Symb = "ADD";

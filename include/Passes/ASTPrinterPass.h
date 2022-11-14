@@ -176,10 +176,9 @@ public:
     }
 
 
-    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
+    void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
-        //SymTab = &PManager.getResult<SymbolTableDummyPass>();
-        this->Root = &Root;
+        this->Root = Root;
         printTree(this->Root);
     }
 };

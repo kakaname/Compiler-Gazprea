@@ -387,6 +387,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
 public:
     RetT visit(ASTNodeT *Node) {
+        assert(Node && "Tried to visit empty node");
+
         if (auto *Prog = dyn_cast<Program>(Node))
             return callVisitProgramImpl(Prog);
 
@@ -462,13 +464,11 @@ public:
         if (auto *ArgsLi = dyn_cast<ArgsList>(Node))
             return callVisitArgsListImpl(ArgsLi);
 
-        if (auto *CalleePara = dyn_cast<CalleeParameter>(Node)) {
+        if (auto *CalleePara = dyn_cast<CalleeParameter>(Node))
             return callVisitCalleeParameterImpl(CalleePara);
-        }
 
-        if (auto *ParaList = dyn_cast<ParameterList>(Node)) {
+        if (auto *ParaList = dyn_cast<ParameterList>(Node))
             return callVisitParameterListImpl(ParaList);
-        }
 
         if (auto *FunDec = dyn_cast<FunctionDecl>(Node))
             return callVisitFunctionDeclImpl(FunDec);

@@ -858,7 +858,7 @@ struct ProcedureDef: public TreeNode {
     const Type *RetTy{nullptr};
 
     static bool classof(const TreeNode *N) {
-        return N->getKind() == TreeNodeKind::N_AST_FunctionDef;
+        return N->getKind() == TreeNodeKind::N_AST_ProcedureDef;
     }
 
     void setIdent(Identifier *Ident) {
