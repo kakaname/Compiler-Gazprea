@@ -65,8 +65,8 @@ typeQualifier : VAR
 
 type
      : tupleTypeDecl                                    #tupleType
-     | ID LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
-     | ID LSQRPAREN expressionOrWildcard COMMA
+     | type LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
+     | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
@@ -79,7 +79,7 @@ expressionOrWildcard: (MUL | expr);
 
 tupleTypeDecl
     : TUPLE LPAREN tupleMemberType COMMA tupleMemberType
-    (COMMA tupleMemberType)*;
+    (COMMA tupleMemberType)* RPAREN;
 
 tupleMemberType
     : type (ID)?;
