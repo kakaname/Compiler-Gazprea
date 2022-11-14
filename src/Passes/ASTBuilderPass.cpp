@@ -595,9 +595,6 @@ std::any ASTBuilderPass::visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotPr
     if (ctx->MOD())
         Expr->setOp(ArithmeticOp::MOD);
 
-    if (ctx->DOTPROD())
-        Expr->setOp(ArithmeticOp::DOTPROD);
-
     // Set left expression
     Expr->setLeftExpr(castToNodeVisit(ctx->expr(0)));
 

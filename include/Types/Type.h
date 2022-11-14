@@ -5,6 +5,7 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
+
 class TypeRegistry;
 
 class Type {
@@ -42,12 +43,20 @@ public:
         return T_Int == Kind || T_Real == Kind;
     }
 
-    bool isValidForLogicalOps() const {
-        return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
+    bool isValidForComparisonOp() const {
+        return T_Real == Kind || T_Int == Kind;
     }
 
     bool isValidForUnaryNot() const {
         return T_Bool == Kind;
+    }
+
+    bool isValidForUnaryAddOrSub() const {
+        return T_Real == Kind || T_Int == Kind;
+    }
+
+    bool isValidForEq() const {
+        return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
     }
 
     bool isInputTy() const {
