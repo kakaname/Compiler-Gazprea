@@ -80,10 +80,15 @@ int main(int argc, char **argv) {
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
-//  Manager.registerPass(SetsCustomResult());
+//Manager.registerPass(SetsCustomResult());
 //  Manager.registerAnonymousPass(PrintsResults());
 //  Manager.registerPass(GetsResultInvalidated());
 //  Manager.registerAnonymousPass(InvalidatesResults());
+//  Manager.registerPass(SetsResultInvalidated());
+
+    Manager.registerPass(ASTPrinterPass());
+
+
     Manager.runAllPasses();
     return 0;
 

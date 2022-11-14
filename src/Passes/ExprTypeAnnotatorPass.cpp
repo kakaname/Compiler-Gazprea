@@ -19,7 +19,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     assert(LeftType->isValidForComparisonOp() && "Left type does not "
                                                  "support comparison ops");
     assert(RightType->isValidForComparisonOp() && "Right type does not "
-                                                 "support comparison ops");
+                                                  "support comparison ops");
 
     if (isa<IntegerTy>(LeftType) && isa<RealTy>(RightType)) {
         auto Cast = wrapWithCastToReal(LeftExpr);
