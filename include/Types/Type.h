@@ -29,17 +29,33 @@ public:
         return IsConstTy;
     }
 
-    bool isScalarTy() {
+    bool isScalarTy() const {
         return T_Bool == Kind || T_Char == Kind ||
         T_Int == Kind || T_Real == Kind;
     }
 
-    bool isInputTy() {
+    bool isSameTypeAs(const Type *T) const {
+        return  T->getKind() == Kind;
+    }
+
+    bool isValidForArithOps() const {
+        return T_Int == Kind || T_Real == Kind;
+    }
+
+    bool isValidForLogicalOps() const {
+        return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
+    }
+
+    bool isValidForUnaryNot() const {
+        return T_Bool == Kind;
+    }
+
+    bool isInputTy() const {
         return T_Bool == Kind || T_Char == Kind ||
                T_Int == Kind || T_Real == Kind;
     }
 
-    bool isOutputTy() {
+    bool isOutputTy() const {
         return T_Identity == Kind || T_Null == Kind ||
         T_Bool == Kind || T_Char == Kind ||
         T_Int == Kind || T_Real == Kind ||

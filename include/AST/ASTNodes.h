@@ -143,18 +143,18 @@ struct Block: public TreeNode {
     Block() : TreeNode(TreeNodeKind::N_AST_Block) {}
 };
 
-struct LogicalOp: public TreeNode {
+struct ComparisonOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
     static constexpr int RightExprIdx = 1;
 
     enum OpKind {
-        LT = 0, GT, LTEQ, GTEQ, EQEQ, NEQ
+        LT = 0, GT, LTEQ, GTEQ,
     };
 
     OpKind Op;
 
     static bool classof(const TreeNode *N) {
-        return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
+        return N->getKind() == TreeNodeKind::N_AST_ComparisonOp;
     }
 
     void setOp(OpKind OpKind) {
@@ -181,7 +181,7 @@ struct LogicalOp: public TreeNode {
         return getChildAt(RightExprIdx);
     }
 
-    LogicalOp() : TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
+    ComparisonOp() : TreeNode(TreeNodeKind::N_AST_ComparisonOp) {}
 };
 
 struct ArithmeticOp: public TreeNode {
@@ -537,18 +537,18 @@ struct TypeCast: public TreeNode {
     TypeCast(): TreeNode(TreeNodeKind::N_AST_TypeCast) {}
 };
 
-struct BitwiseOp: public TreeNode {
+struct LogicalOp: public TreeNode {
     static constexpr int LeftExprIdx = 0;
     static constexpr int RightExprIdx = 1;
 
     enum OpKind {
-        AND = 0, OR, XOR
+        AND = 0, OR, XOR, EQ, NEQ
     };
 
     OpKind Op;
 
     static bool classof(const TreeNode *N) {
-        return N->getKind() == TreeNodeKind::N_AST_BitwiseOp;
+        return N->getKind() == TreeNodeKind::N_AST_LogicalOp;
     }
 
     void setOp(OpKind OpKind) {
@@ -575,7 +575,7 @@ struct BitwiseOp: public TreeNode {
         return getChildAt(RightExprIdx);
     }
 
-    BitwiseOp(): TreeNode(TreeNodeKind::N_AST_BitwiseOp) {}
+    LogicalOp(): TreeNode(TreeNodeKind::N_AST_LogicalOp) {}
 };
 
 struct UnaryOp: public TreeNode {

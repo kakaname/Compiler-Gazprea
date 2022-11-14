@@ -48,7 +48,7 @@
 //
 //}
 //
-//llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
+//llvm::Value *CodeGenPass::visitLogicalOp(ComparisonOp *Op) {
 //    Value *LeftOperand = visit(Op->getLeftExpr());
 //    Value *RightOperand = visit(Op->getRightExpr());
 //
@@ -60,22 +60,22 @@
 //
 //    llvm::CmpInst::Predicate Pred;
 //    switch (Op->getOpKind()) {
-//        case LogicalOp::EQEQ:
+//        case ComparisonOp::EQEQ:
 //            Pred = llvm::CmpInst::Predicate::ICMP_EQ;
 //            break;
-//        case LogicalOp::NEQ:
+//        case ComparisonOp::NEQ:
 //            Pred = llvm::CmpInst::Predicate::ICMP_NE;
 //            break;
-//        case LogicalOp::GT:
+//        case ComparisonOp::GT:
 //            Pred = llvm::CmpInst::Predicate::ICMP_SGT;
 //            break;
-//        case LogicalOp::LT:
+//        case ComparisonOp::LT:
 //            Pred = llvm::CmpInst::Predicate::ICMP_SLT;
 //            break;
-//        case LogicalOp::LTEQ:
+//        case ComparisonOp::LTEQ:
 //            Pred = llvm::CmpInst::Predicate::ICMP_SLE;
 //            break;
-//        case LogicalOp::GTEQ:
+//        case ComparisonOp::GTEQ:
 //            Pred = llvm::CmpInst::Predicate::ICMP_SGE;
 //            break;
 //    }
@@ -250,7 +250,7 @@
 //
 //}
 //
-//llvm::Value *CodeGenPass::visitBitwiseOp(BitwiseOp *Op) {
+//llvm::Value *CodeGenPass::visitBitwiseOp(LogicalOp *Op) {
 //    Value *LeftOperand = visit(Op->getLeftExpr());
 //    Value *RightOperand = visit(Op->getRightExpr());
 //
@@ -262,11 +262,11 @@
 //
 //    llvm::CmpInst::Predicate Pred;
 //    switch (Op->getOpKind()) {
-//        case BitwiseOp::AND:
+//        case LogicalOp::AND:
 //            return IR.CreateAnd(LeftOperand, RightOperand);
-//        case BitwiseOp::OR:
+//        case LogicalOp::OR:
 //            return IR.CreateOr(LeftOperand, RightOperand);
-//        case BitwiseOp::XOR:
+//        case LogicalOp::XOR:
 //            return IR.CreateXor(LeftOperand, RightOperand);
 //        default:
 //            assert(false && "Unknown bitwise operation");

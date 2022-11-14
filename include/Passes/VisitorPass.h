@@ -37,13 +37,12 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitBlock(Block *Blk) {
-        for (auto *child : *Blk) {
-            visit(child);
-        }
+        for (auto *Child : *Blk)
+            visit(Child);
         return RetT();
     }
 
-    RetT visitLogicalOp(LogicalOp *Op) {
+    RetT visitComparisonOp(ComparisonOp *Op) {
         visit(Op->getLeftExpr());
         visit(Op->getRightExpr());
         return RetT();
@@ -74,7 +73,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     // ignored for part1
     RetT visitDomainLoop(DomainLoop *Loop) {
-        return RetT();
+        throw std::runtime_error("Unimplemented");
     }
 
     RetT visitIntLiteral(IntLiteral *IntLit) {
@@ -102,9 +101,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitTupleLiteral(TupleLiteral *TupleLit) {
-        for (auto *child : *TupleLit) {
+        for (auto *child : *TupleLit)
             visit(child);
-        }
         return RetT();
     }
 
@@ -131,8 +129,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         visit(Cast->getExpr());
         return RetT();
     }
-    
-    RetT visitBitwiseOp(BitwiseOp *Op) {
+
+    RetT visitLogicalOp(LogicalOp *Op) {
         visit(Op->getLeftExpr());
         visit(Op->getRightExpr());
         return RetT();
@@ -144,9 +142,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitArgsList(ArgsList *List) {
-        for (auto *child : *List) {
+        for (auto *child : *List)
             visit(child);
-        }
         return RetT();
     }
 
@@ -170,6 +167,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitFunctionDef(FunctionDef *FuncDef) {
         visit(FuncDef->getIdentifier());
+        visit(FuncDef->getParamList());
         visit(FuncDef->getBlock());
         return RetT();
     }
@@ -191,6 +189,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
         visit(ProcedureDef->getIdentifier());
+        visit(ProcedureDef->getParamList());
         visit(ProcedureDef->getBlock());
         return RetT();
     }
@@ -202,8 +201,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitReturn(Return *Return) {
-        visit(Return->getReturnExpr());
-        return RetT();
+        return visit(Return->getReturnExpr());
     }
 
     RetT visitBreak(Break *Break) {
@@ -215,18 +213,15 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitOutStream(OutStream *OutStream) {
-        visit(OutStream->getOutStreamExpr());
-        return RetT();
+        return visit(OutStream->getOutStreamExpr());
     }
 
     RetT visitInStream(InStream *InStream) {
-        visit(InStream->getIdentifier());
-        return RetT();
+        return visit(InStream->getIdentifier());
     }
 
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
-        visit(ExplicitCast->getExpr());
-        return RetT();
+        return visit(ExplicitCast->getExpr());
     }
 
 
@@ -250,8 +245,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitBlock(Block);
     }
 
-    RetT callVisitLogicalOpImpl(LogicalOp *LogicOp) {
-        return static_cast<DerivedT*>(this)->visitLogicalOp(LogicOp);
+    RetT callVisitComparisonOpImpl(ComparisonOp *CompareOp) {
+        return static_cast<DerivedT*>(this)->visitComparisonOp(CompareOp);
     }
 
     RetT callVisitArithmeticOpImpl(ArithmeticOp *ArithOp) {
@@ -318,9 +313,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitTypeCast(T);
     }
 
-
-    RetT callVisitBitwiseOpImpl(BitwiseOp *O) {
-        return static_cast<DerivedT*>(this)->visitBitwiseOp(O);
+    RetT callVisitLogicalOpImpl(LogicalOp *LogicalOp) {
+        return static_cast<DerivedT*>(this)->visitLogicalOp(LogicalOp);
     }
 
     RetT callVisitUnaryOpImpl(UnaryOp *O) {
@@ -408,8 +402,8 @@ public:
         if (auto *Blk = dyn_cast<Block>(Node))
             return callVisitBlockImpl(Blk);
 
-        if (auto *LogicOp = dyn_cast<LogicalOp>(Node))
-            return callVisitLogicalOpImpl(LogicOp);
+        if (auto *CompOp = dyn_cast<ComparisonOp>(Node))
+            return callVisitComparisonOpImpl(CompOp);
 
         if (auto *ArithOp = dyn_cast<ArithmeticOp>(Node))
             return callVisitArithmeticOpImpl(ArithOp);
@@ -459,8 +453,8 @@ public:
         if (auto *TypeC = dyn_cast<TypeCast>(Node))
             return callVisitTypeCastImpl(TypeC);
 
-        if (auto *BitOp = dyn_cast<BitwiseOp>(Node))
-            return callVisitBitwiseOpImpl(BitOp);
+        if (auto *LogicOp = dyn_cast<LogicalOp>(Node))
+            return callVisitLogicalOpImpl(LogicOp);
 
         if (auto *UOp = dyn_cast<UnaryOp>(Node))
             return callVisitUnaryOpImpl(UOp);
@@ -494,6 +488,9 @@ public:
 
         if (auto *ProcedDef = dyn_cast<ProcedureDef>(Node))
             return callVisitProcedureDefImpl(ProcedDef);
+
+        if (auto *ParamList = dyn_cast<ParameterList>(Node))
+            return callVisitParameterListImpl(ParamList);
 
         if (auto *ProcedCall = dyn_cast<ProcedureCall>(Node))
             return callVisitProcedureCallImpl(ProcedCall);
