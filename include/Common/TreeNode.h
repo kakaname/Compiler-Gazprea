@@ -106,12 +106,15 @@ public:
         TreeNodeKind::N_AST_InfiniteLoop == Kind;
     }
 
-
     TreeNode *getChildAt(size_t Pos) {
         assert(Pos < Children.size());
         auto I = Children.begin();
         advance(I, Pos);
         return *I;
+    }
+
+    size_t numOfChildren() {
+        return Children.size();
     }
 
     virtual ~TreeNode() {};
