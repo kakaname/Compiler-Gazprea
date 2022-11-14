@@ -107,8 +107,6 @@ public:
         std::cout << "TypeCast" << "\n";
     }
 
-    void visitBitwiseOp(BitwiseOp *Op);
-
     void visitUnaryOp(UnaryOp *Op);
 
     void visitArgsList(ArgsList *List) {

@@ -4,13 +4,6 @@
 
 #include "Passes/ExprTypeAnnotatorPass.h"
 
-const Type* ExprTypeAnnotatorPass::visitOutStream(OutStream *OutStream) {
-
-}
-
-const Type* ExprTypeAnnotatorPass::visitInStream(InStream *InStream) {
-
-}
 
 void ExprTypeAnnotatorPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PM = &Manager;
@@ -130,4 +123,16 @@ TypeCast *ExprTypeAnnotatorPass::wrapWithCastToReal(ASTNodeT *Expr) const {
     Cast->setTargetType(TargetType);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, TargetType);
     return Cast;
+}
+
+const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
+    auto ChildType = visit(Op->getExpr());
+    if (Op->getOpKind() == UnaryOp::NOT)
+        assert(ChildType->isValidForUnaryNot() && "Type does not support not");
+    else
+        assert(ChildType->isValidForUnaryAddOrSub() && "Type does not "
+                                                       "support unary add or sub");
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
+    return PM->TypeReg.getBooleanTy();
 }

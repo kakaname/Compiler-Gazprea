@@ -19,9 +19,6 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitLogicalOp(LogicalOp *Op);
     const Type *visitUnaryOp(UnaryOp *Op);
 
-    const Type *visitOutStream(OutStream *OutStream);
-    const Type *visitInStream(InStream *InStream);
-
     TypeCast *wrapWithCastToReal(ASTNodeT *Expr) const;
 
     const Type *visitIdentifier(Identifier *Ident) const;
