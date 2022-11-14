@@ -4,6 +4,8 @@
 
 #include "Passes/ExprTypeAnnotatorPass.h"
 
+/*
+
 const Type* ExprTypeAnnotatorPass::visitOutStream(OutStream *OutStream) {
 
 }
@@ -77,3 +79,4 @@ const Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Ident, Ident->getIdentType());
     return Ident->getIdentType();
 }
+*/

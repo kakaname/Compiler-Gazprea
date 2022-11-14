@@ -11,6 +11,7 @@
 #include "PassManager.h"
 #include "ScopeResolutionPass.h"
 
+/*
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
 
@@ -29,3 +30,4 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
     ASTPassManager *PM;
 };
+ */

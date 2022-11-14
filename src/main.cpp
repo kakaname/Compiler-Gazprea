@@ -15,6 +15,7 @@
 #include "ErrorHandling/exceptions.h"
 
 #include "Symbol/SymbolTable.h"
+#include "Passes/ASTPrinterPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -78,10 +79,15 @@ int main(int argc, char **argv) {
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
 //    Manager.registerPass(SetsInt());
-//  Manager.registerPass(SetsCustomResult());
+//Manager.registerPass(SetsCustomResult());
 //  Manager.registerAnonymousPass(PrintsResults());
 //  Manager.registerPass(GetsResultInvalidated());
 //  Manager.registerAnonymousPass(InvalidatesResults());
+//  Manager.registerPass(SetsResultInvalidated());
+
+    Manager.registerPass(ASTPrinterPass());
+
+
     Manager.runAllPasses();
     return 0;
 
