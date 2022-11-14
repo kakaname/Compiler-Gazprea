@@ -4,11 +4,9 @@
 
 #include "Passes/ASTBuilderPass.h"
 #include "llvm/Support/Casting.h"
-#include "Types/ScalarTypes.h"
 #include "Types/CompositeTypes.h"
 #include "Types/Type.h"
 #include "Passes/ScopeResolutionPass.h"
-#include <memory>
 
 using llvm::cast;
 using llvm::isa;
