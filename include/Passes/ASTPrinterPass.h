@@ -58,6 +58,10 @@ public:
         std::cout << "ConditionalLoop" << "\n";
     }
 
+    void visitNoOp(NoOp *Op) {
+        std::cout << "NoOp" << '\n';
+    }
+
     // ignored for part1
     void visitDomainLoop(DomainLoop *Loop) {
         std::cout << "DomainLoop" << "\n";

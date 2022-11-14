@@ -192,7 +192,7 @@ std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     auto BaseType = castToTypeVisit(ctx->type());
     auto NewType = PM->SymTable.defineTypeSymbol(ctx->ID()->getText(), BaseType);
     GlobalScope.declareInScope(ctx->ID()->getText(), NewType);
-    return nullptr;
+    return cast<ASTNodeT>(PM->Builder.build<NoOp>());
 }
 
 
@@ -536,8 +536,6 @@ std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *c
 std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->getText());
-
-    // std::any shenanigans.
     return cast<ASTNodeT>(Ident);
 }
 

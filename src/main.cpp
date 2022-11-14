@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 //  Manager.registerAnonymousPass(InvalidatesResults());
 //  Manager.registerPass(SetsResultInvalidated());
 
-    Manager.registerPass(ASTPrinterPass());
+//    Manager.registerPass(ASTPrinterPass());
 
 
     Manager.runAllPasses();
