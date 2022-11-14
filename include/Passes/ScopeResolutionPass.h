@@ -11,7 +11,7 @@
 #include "PassManager.h"
 #include "Symbol/Symbol.h"
 #include "VisitorPass.h"
-#include "ExprTypeAnnotatorPass.h"
+#include "Passes/ExprTypeAnnotatorPass.h"
 
 
 using llvm::isa;
