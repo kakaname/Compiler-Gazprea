@@ -12,8 +12,8 @@ struct LoopCheckPass : VisitorPass<LoopCheckPass, void> {
 
     void visitInfiniteLoop(InfiniteLoop *Loop);
     void visitConditionalLoop(ConditionalLoop *Loop);
-    void visitBreak(Break *Break);
-    void visitContinue(Continue *Continue);
+    static void visitBreak(Break *Break);
+    static void visitContinue(Continue *Continue);
     void runOnAST(ASTPassManager &PManager, ASTNodeT &Root);
 
     ASTPassManager *PM;

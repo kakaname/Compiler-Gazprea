@@ -35,6 +35,7 @@ class TypeRegistry {
     using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
     using TupleTypeId = ConstTypeIdPair<vector<const Type*>>;
     using FunctionTypeId = pair<vector<const Type*>, const Type*>;
+    using ProcedureTypeId = pair<vector<const Type*>, const Type*>;
 
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
@@ -42,6 +43,7 @@ class TypeRegistry {
     using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
     using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
+    using ProcudureTypeContainer = map<ProcedureTypeId , unique_ptr<ProcedureTy>>;
 
     NullTy NullType;
     IdentityTy IdentityType;
@@ -54,6 +56,7 @@ class TypeRegistry {
     MatrixTyContainer MatrixTypes;
     TupleTyContainer TupleTypes;
     FunctionTypeContainer FunctionTypes;
+    ProcudureTypeContainer ProcedureTypes;
 
 
 public:
@@ -139,29 +142,44 @@ public:
         return Inserted.first->second.get();
     }
 
+    const Type *getProcedureType(const ProcedureTy::ArgsTypeContainer& Args, const Type *RetTy) {
+        pair Key{Args, RetTy};
+        auto Res = ProcedureTypes.find(Key);
+        if (Res != ProcedureTypes.end())
+            return Res->second.get();
 
-    const Type *getVarTypeOf(const Type *Ty) {
+        auto NewProcType = make_unique<ProcedureTy>(ProcedureTy(Args, RetTy));
+        auto Inserted = ProcedureTypes.insert({Key, std::move(NewProcType)});
+        assert(Inserted.second && "We just checked that the type wasn't in the map");
+        return Inserted.first->second.get();
+    }
+
+
+    const Type *getConstTypeOf(const Type *Ty) {
         if (isa<NullTy>(Ty) || isa<IdentityTy>(Ty))
             assert(false && "Asking for var identity or null");
 
         if (isa<IntegerTy>(Ty))
-            return getIntegerTy(false);
+            return getIntegerTy(true);
 
         if (isa<BoolTy>(Ty))
-            return getBooleanTy(false);
+            return getBooleanTy(true);
 
         if (isa<CharTy>(Ty))
-            return getCharTy(false);
+            return getCharTy(true);
 
         if (isa<RealTy>(Ty))
-            return getRealTy(false);
+            return getRealTy(true);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+            return getVectorType(Vec->getInnerTy(), Vec->getSize(), true);
 
         if (auto *Mat = dyn_cast<MatrixTy>(Ty))
             return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
-                                 Mat->getNumOfColumns(), false);
+                                 Mat->getNumOfColumns(), true);
+
+        if (auto *Tup = dyn_cast<TupleTy>(Ty))
+            return getTupleType(Tup->getMemberTypes(), true);
 
         assert(false && "Should not be reachable.");
     }

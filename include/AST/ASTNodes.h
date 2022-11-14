@@ -189,7 +189,7 @@ struct ArithmeticOp: public TreeNode {
     static constexpr int RightExprIdx = 1;
 
     enum OpKind {
-        EXP = 0, MUL, DIV, MOD, SS, ADD, SUB
+        EXP = 0, MUL, DIV, MOD, DOTPROD, ADD, SUB
     };
 
     OpKind Op;
@@ -376,11 +376,7 @@ struct BoolLiteral: public TreeNode {
         Val = true;
     }
 
-    void setFalse() {
-        Val = false;
-    }
-
-    bool getVal() {
+    bool getVal() const {
         return Val;
     }
 
@@ -674,12 +670,12 @@ struct ParameterList: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_ParasList;
     }
 
-    void addParam(CalleeParameter *P) {
-        addChild(P);
+    void addParam(Identifier *I) {
+        addChild(I);
     }
 
-    CalleeParameter *getParamAt(long Pos) {
-        return getChildAtAs<CalleeParameter>(Pos);
+    Identifier *getParamAt(long Pos) {
+        return getChildAtAs<Identifier>(Pos);
     }
 
     ParameterList(): TreeNode(TreeNodeKind::N_AST_ParasList) {}
@@ -719,15 +715,19 @@ struct FunctionDecl: public TreeNode {
         return RetTy;
     }
 
+    const vector<const Type*> &getParamTypes() const {
+        return ParamTypes;
+    }
+
     FunctionDecl(): TreeNode(TreeNodeKind::N_AST_FunctionDecl) {};
 };
 
 struct FunctionDef: public TreeNode {
     static constexpr size_t IdentIdx = 0;
-    static constexpr size_t BlockIdx = 1;
+    static constexpr size_t ParamListIdx = 1;
+    static constexpr size_t BlockIdx = 2;
 
     const Type *RetTy{nullptr};
-    vector<Identifier*> Arguments;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDef;
@@ -757,16 +757,12 @@ struct FunctionDef: public TreeNode {
         return RetTy;
     }
 
-    void addArgument(Identifier *Arg) {
-        Arguments.emplace_back(Arg);
+    void setParamList(ParameterList *P) {
+        setChildAt(ParamListIdx, P);
     }
 
-    Identifier *getArgumentAt(int Pos) {
-        return Arguments.at(Pos);
-    }
-
-    vector<Identifier*> &getArguments() {
-        return Arguments;
+    ParameterList *getParamList() {
+        return getChildAtAs<ParameterList>(ParamListIdx);
     }
 
     FunctionDef(): TreeNode(TreeNodeKind::N_AST_FunctionDef) {};
@@ -838,6 +834,10 @@ struct ProcedureDecl: public TreeNode {
         return RetTy;
     }
 
+    void addArgumentTy(const Type *T) {
+        Arguments.emplace_back(T);
+    }
+
     vector<const Type*> &getArgumentList() {
         return Arguments;
     }
@@ -847,10 +847,10 @@ struct ProcedureDecl: public TreeNode {
 
 struct ProcedureDef: public TreeNode {
     static constexpr size_t IdentIdx = 0;
-    static constexpr size_t BlockIdx = 1;
+    static constexpr size_t ParamListIdx = 1;
+    static constexpr size_t BlockIdx = 2;
 
     const Type *RetTy{nullptr};
-    vector<Identifier*> Arguments;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDef;
@@ -880,16 +880,12 @@ struct ProcedureDef: public TreeNode {
         return RetTy;
     }
 
-    void addArgument(Identifier *Arg) {
-        Arguments.emplace_back(Arg);
+    void setParamList(ParameterList *P) {
+        setChildAt(ParamListIdx, P);
     }
 
-    Identifier *getArgumentAt(int Pos) {
-        return Arguments.at(Pos);
-    }
-
-    vector<Identifier*> &getArguments() {
-        return Arguments;
+    ParameterList *getParamList() {
+        return getChildAtAs<ParameterList>(ParamListIdx);
     }
 
     ProcedureDef(): TreeNode(TreeNodeKind::N_AST_ProcedureDef) {}
@@ -1009,7 +1005,7 @@ struct ExplicitCast: public TreeNode {
         setChildAt(ExprIdx, Expr);
     }
 
-    const Type *getTargetType() {
+    const Type *getTargetType() const {
         return TargetType;
     }
 

@@ -31,7 +31,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitDeclaration(Declaration *Decl) {
-        visit(Decl->getIdentTypeNode());
         visit(Decl->getIdentifier());
         visit(Decl->getInitExpr());
         return RetT();
@@ -63,13 +62,13 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitInfiniteLoop(InfiniteLoop *Loop) {
-        visit(Loop->getStatement());
+        visit(Loop->getBlock());
         return RetT();
     }
 
     RetT visitConditionalLoop(ConditionalLoop *Loop) {
         visit(Loop->getConditional());
-        visit(Loop->getStatement());
+        visit(Loop->getBlock());
         return RetT();
     }
 
@@ -115,33 +114,25 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
-    RetT visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl) {
-        for (auto *child : *TupleTypeDecl) {
-            visit(child);
-        }
-        return RetT();
-    }
-
     RetT visitConditional(Conditional *Cond) {
         visit(Cond->getConditional());
-        visit(Cond->getStatement());
+        visit(Cond->getBlock());
         return RetT();
     }
 
     RetT visitConditionalElse(ConditionalElse *Cond) {
         visit(Cond->getConditional());
-        visit(Cond->getStatement());
-        visit(Cond->getElseConditional());
-        visit(Cond->getElseStatement());
+        visit(Cond->getIfBlock());
+//        visit(Cond->getElseConditional());
+        visit(Cond->getElseBlock());
         return RetT();
     }
 
     RetT visitTypeCast(TypeCast *Cast) {
-        visit(Cast->getOldTypeNode());
-        visit(Cast->getNewTypeNode());
+        visit(Cast->getExpr());
         return RetT();
     }
-
+    
     RetT visitBitwiseOp(BitwiseOp *Op) {
         visit(Op->getLeftExpr());
         visit(Op->getRightExpr());
@@ -162,15 +153,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitFunctionDecl(FunctionDecl *FuncDecl) {
         visit(FuncDecl->getIdentifier());
-        visit(FuncDecl->getParasList());
-        visit(FuncDecl->getReturnsTypeNode());
         return RetT();
     }
 
     RetT visitFunctionDef(FunctionDef *FuncDef) {
         visit(FuncDef->getIdentifier());
-        visit(FuncDef->getParasList());
-        visit(FuncDef->getReturnsType());
         visit(FuncDef->getBlock());
         return RetT();
     }
@@ -183,14 +170,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProcedureDecl(ProcedureDecl *ProcedureDecl) {
         visit(ProcedureDecl->getIdentifier());
-        visit(ProcedureDecl->getParasList());
-        visit(ProcedureDecl->getReturnsType());
         return RetT();
     }
 
     RetT visitProcedureDef(ProcedureDef *ProcedureDef) {
         visit(ProcedureDef->getIdentifier());
-        visit(ProcedureDef->getParameterList());
         visit(ProcedureDef->getBlock());
         return RetT();
     }
@@ -225,7 +209,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
-        visit(ExplicitCast->getType());
         visit(ExplicitCast->getExpr());
         return RetT();
     }
@@ -305,10 +288,6 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT callVisitMemberAccessImpl(MemberAccess *MemberAccess) {
         return static_cast<DerivedT*>(this)->visitMemberAccess(MemberAccess);
-    }
-
-    RetT callVisitTupleTypeDeclImpl(TupleTypeDecl *TupleTypeDecl) {
-        return static_cast<DerivedT*>(this)->visitTupleTypeDecl(TupleTypeDecl);
     }
 
     RetT callVisitConditionalImpl(Conditional *Cond) {
@@ -441,9 +420,6 @@ public:
 
         if (auto *MemberAcc = dyn_cast<MemberAccess>(Node))
             return callVisitMemberAccessImpl(MemberAcc);
-
-        if (auto *TupleTypeDec = dyn_cast<TupleTypeDecl>(Node))
-            return callVisitTupleTypeDeclImpl(TupleTypeDec);
 
         if (auto *Cond = dyn_cast<Conditional>(Node))
             return callVisitConditionalImpl(Cond);

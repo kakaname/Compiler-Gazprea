@@ -8,6 +8,8 @@
 #include "tree/ParseTreeWalker.h"
 
 #include "Passes/PassManager.h"
+#include "Passes/ASTBuilderPass.h"
+
 #include "Common/TestPasses.h"
 #include "Types/CompositeTypes.h"
 #include "ErrorHandling/exceptions.h"
@@ -35,15 +37,15 @@ class SyntaxErrorListener: public antlr4::BaseErrorListener {
 };
 
 int main(int argc, char **argv) {
-  if (argc < 3) {
-    std::cout << "Missing required argument.\n"
-              << "Required arguments: <input file path> <output file path>\n";
-    return 1;
-  }
+//  if (argc < 3) {
+//    std::cout << "Missing required argument.\n"
+//              << "Required arguments: <input file path> <output file path>\n";
+//    return 1;
+//  }
 
   // Open the file then parse and lex it.
   antlr4::ANTLRFileStream afs;
-  afs.loadFromFile(argv[1]);
+  afs.loadFromFile("../test_gaz");
   gazprea::GazpreaLexer lexer(&afs);
   antlr4::CommonTokenStream tokens(&lexer);
   gazprea::GazpreaParser parser(&tokens);
@@ -74,13 +76,13 @@ int main(int argc, char **argv) {
 //    TreeNodeBuilder Builder;
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
-//  Manager.registerAnonymousPass(HelloWorldPass());
-//  Manager.registerPass(SetsMessage());
-//  Manager.registerPass(SetsInt());
+    Manager.registerPass(ASTBuilderPass(tree));
+//    Manager.registerPass(SetsInt());
 //  Manager.registerPass(SetsCustomResult());
 //  Manager.registerAnonymousPass(PrintsResults());
 //  Manager.registerPass(GetsResultInvalidated());
 //  Manager.registerAnonymousPass(InvalidatesResults());
-//  Manager.runAllPasses();
-  return 0;
+    Manager.runAllPasses();
+    return 0;
+
 }

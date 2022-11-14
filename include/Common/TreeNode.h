@@ -2,8 +2,6 @@
 // Created by dhanrajbir on 28/10/22.
 //
 
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "LoopDoesntUseConditionVariableInspection"
 #ifndef GAZPREABASE_TREENODE_H
 #define GAZPREABASE_TREENODE_H
 
@@ -91,7 +89,7 @@ public:
     void addChild(TreeNode *Child) {
         if (Child)
             Child->setParent(this);
-        Children.emplace_back(Child);
+        Children.push_back(Child);
     }
 
     ChildrenContainerT::iterator begin() {
@@ -102,10 +100,11 @@ public:
         return Children.end();
     }
 
-    virtual ~TreeNode() {};
-
-protected:
-    ChildrenContainerT Children;
+    bool isLoopNode() {
+        return TreeNodeKind::N_AST_DomainLoop == Kind ||
+        TreeNodeKind::N_AST_ConditionalLoop == Kind ||
+        TreeNodeKind::N_AST_InfiniteLoop == Kind;
+    }
 
     TreeNode *getChildAt(size_t Pos) {
         assert(Pos < Children.size());
@@ -114,16 +113,21 @@ protected:
         return *I;
     }
 
+    virtual ~TreeNode() {};
+protected:
+
+    ChildrenContainerT Children;
+
     template<typename T>
     T *getChildAtAs(size_t Pos) {
         return cast<T>(getChildAt(Pos));
     }
 
-    void setChildAt(long Pos, TreeNode *Child) {
+    void setChildAt(unsigned Pos, TreeNode *Child) {
         if (Child)
             Child->setParent(this);
         while (Children.size() < Pos)
-            Children.emplace_back(nullptr);
+            Children.push_back(nullptr);
         auto I = Children.begin();
         advance(I, Pos);
         Children.insert(I, Child);
@@ -137,5 +141,3 @@ private:
 
 
 #endif //GAZPREABASE_TREENODE_H
-
-#pragma clang diagnostic pop

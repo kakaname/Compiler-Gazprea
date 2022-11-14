@@ -126,6 +126,10 @@ struct TupleTy : public Type {
         return ContainedTypes.size();
     }
 
+    const vector<const Type *> &getMemberTypes() const {
+        return ContainedTypes;
+    }
+
     TupleTy(bool IsConst, MemberTyContainer ContainedTypes) :
         Type(TypeKind::T_Tuple, IsConst), ContainedTypes(std::move(ContainedTypes)) {}
 
@@ -170,7 +174,7 @@ struct ProcedureTy : public Type {
         return T->getKind() == TypeKind::T_Procedure;
     }
 
-    using ArgsTypeContainer = vector<Type*>;
+    using ArgsTypeContainer = vector<const Type*>;
 
     const Type *getArgTypeAt(size_t Pos) {
         if (Pos >= Args.size())

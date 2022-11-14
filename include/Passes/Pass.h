@@ -1,5 +1,3 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "google-explicit-constructor"
 //
 // Created by dhanrajbir on 28/10/22.
 //
@@ -29,7 +27,7 @@ class PassObject {
         virtual ~PassConceptT() = default;
         PassConceptT() = default;
         PassConceptT(PassConceptT &&) = default;
-        virtual void runOnAST(ASTPassManager &PM, ASTNodeT &Root) = 0;
+        virtual void runOnAST(ASTPassManager &PM, ASTNodeT *Root) = 0;
     };
 
     template<typename PassT>
@@ -38,7 +36,7 @@ class PassObject {
         PassModelT(PassModelT &&)  noexcept = default;
         PassT Self;
 
-        void runOnAST(ASTPassManager &PM, ASTNodeT &Root) override {
+        void runOnAST(ASTPassManager &PM, ASTNodeT *Root) override {
             Self.runOnAST(PM, Root);
         }
     };
@@ -49,7 +47,7 @@ public:
     template<typename T>
     PassObject(T &&P) : Pass(make_unique<PassModelT<T>>(PassModelT<T>(P))) {};
 
-    void runOnAST(ASTPassManager &PM, ASTNodeT &Root)  {
+    void runOnAST(ASTPassManager &PM, ASTNodeT *Root)  {
         Pass->runOnAST(PM, Root);
     }
 };
@@ -106,5 +104,3 @@ private:
 };
 
 #endif //GAZPREABASE_PASS_H
-
-#pragma clang diagnostic pop
