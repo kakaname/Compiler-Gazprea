@@ -40,27 +40,21 @@ void ASTPrinterPass::printSubTree(ASTNodeT *Root, const string &Prefix) {
     }
 }
 
-void ASTPrinterPass::visitLogicalOp(LogicalOp *Op) {
+void ASTPrinterPass::visitComparisonOp(ComparisonOp *Op) {
     string Symb;
 
     switch (Op->Op) {
-        case LogicalOp::LT:
+        case ComparisonOp::LT:
             Symb = "LT";
             break;
-        case LogicalOp::GT:
+        case ComparisonOp::GT:
             Symb = "GT";
             break;
-        case LogicalOp::LTEQ:
+        case ComparisonOp::LTEQ:
             Symb = "LTEQ";
             break;
-        case LogicalOp::GTEQ:
+        case ComparisonOp::GTEQ:
             Symb = "NE";
-            break;
-        case LogicalOp::EQEQ:
-            Symb = "EQEQ";
-            break;
-        case LogicalOp::NEQ:
-            Symb = "NEQ";
             break;
     }
 
@@ -95,18 +89,24 @@ void ASTPrinterPass::visitArithmeticOp(ArithmeticOp *Op) {
     std::cout << Symb << "\n";
 }
 
-void ASTPrinterPass::visitBitwiseOp(BitwiseOp *Op) {
+void ASTPrinterPass::visitLogicalOp(LogicalOp *Op) {
     string Symb;
 
     switch (Op->Op) {
-        case BitwiseOp::AND:
+        case LogicalOp::AND:
             Symb = "AND";
             break;
-        case BitwiseOp::OR:
+        case LogicalOp::OR:
             Symb = "OR";
             break;
-        case BitwiseOp::XOR:
+        case LogicalOp::XOR:
             Symb = "XOR";
+            break;
+        case LogicalOp::EQ:
+            Symb = "EQ";
+            break;
+        case LogicalOp::NEQ:
+            Symb = "NEQ";
             break;
     }
     std::cout << Symb << "\n";

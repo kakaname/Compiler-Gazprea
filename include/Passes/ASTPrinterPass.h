@@ -42,7 +42,7 @@ public:
         std::cout << "Block" << "\n";
     }
 
-    void visitLogicalOp(LogicalOp *Op);
+    void visitComparisonOp(ComparisonOp *Op);
 
     void visitArithmeticOp(ArithmeticOp *Op);
 
@@ -106,6 +106,8 @@ public:
     void visitTypeCast(TypeCast *Cast) {
         std::cout << "TypeCast" << "\n";
     }
+
+    void visitLogicalOp(LogicalOp *Op);
 
     void visitUnaryOp(UnaryOp *Op);
 
