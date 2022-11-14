@@ -189,7 +189,7 @@ struct ArithmeticOp: public TreeNode {
     static constexpr int RightExprIdx = 1;
 
     enum OpKind {
-        EXP = 0, MUL, DIV, MOD, DOTPROD, ADD, SUB
+        EXP = 0, MUL, DIV, MOD, ADD, SUB
     };
 
     OpKind Op;

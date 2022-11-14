@@ -9,18 +9,17 @@
 #include "Types/Type.h"
 #include "VisitorPass.h"
 #include "PassManager.h"
-#include "ScopeResolutionPass.h"
 
 /*
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
 
     const Type *visitArithmeticOp(ArithmeticOp *Op);
-    const Type *visitLogicalOp(ComparisonOp *Op);
-    const Type
+    const Type *visitComparisonOp(ComparisonOp *Op);
+    const Type *visitLogicalOp(LogicalOp *Op);
+    const Type *visitUnaryOp(UnaryOp *Op);
 
-    const Type *visitOutStream(OutStream *OutStream);
-    const Type *visitInStream(InStream *InStream);
+    TypeCast *wrapWithCastToReal(ASTNodeT *Expr) const;
 
     const Type *visitIdentifier(Identifier *Ident) const;
 
