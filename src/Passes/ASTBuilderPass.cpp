@@ -127,7 +127,7 @@ std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *c
         auto LoopBlock = PM->Builder.build<Block>();
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
-        return Loop;
+        return cast<ASTNodeT>(Loop);
     }
     Loop->setBlock(dyn_cast<Block>(LoopBody));
     return cast<ASTNodeT>(Loop);
@@ -146,7 +146,7 @@ std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
         auto LoopBlock = PM->Builder.build<Block>();
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
-        return Loop;
+        return cast<ASTNodeT>(Loop);
     }
     Loop->setBlock(dyn_cast<Block>(LoopBody));
     return cast<ASTNodeT>(Loop);
@@ -165,7 +165,7 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
         Loop->setConditionalAfter();
-        return Loop;
+        return cast<ASTNodeT>(Loop);
     }
 
     Loop->setBlock(dyn_cast<Block>(LoopBody));
