@@ -35,7 +35,9 @@ breakStmt : BREAK;
 
 continueStmt : CONTINUE;
 
-identDecl : (typeQualifier)? (type)? ID (EQ expr)? SC;
+identDecl
+    : typeQualifier (type)? ID (EQ expr)? SC
+    | (typeQualifier)? type ID (EQ expr)? SC;
 
 // we cannot assign procedureCall to an ID? I removed it.
 // Here procedureCall specifically means `call precodurename()`

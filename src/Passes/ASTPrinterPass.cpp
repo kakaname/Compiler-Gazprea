@@ -76,9 +76,6 @@ void ASTPrinterPass::visitArithmeticOp(ArithmeticOp *Op) {
         case ArithmeticOp::MOD:
             Symb = "MOD";
             break;
-        case ArithmeticOp::DOTPROD:
-            Symb = "DOTPROD";
-            break;
         case ArithmeticOp::ADD:
             Symb = "ADD";
             break;
