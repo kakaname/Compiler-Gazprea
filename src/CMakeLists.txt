@@ -7,6 +7,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/ScalarTypes.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeHelpers.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManager.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManagerResource.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/Pass.cpp"
@@ -23,7 +24,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleExplicitTypeCastPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExplicitCastCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToMemberAccessPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToLogicalPass.cpp")

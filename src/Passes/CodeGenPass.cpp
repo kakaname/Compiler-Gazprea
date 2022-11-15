@@ -30,7 +30,7 @@
 //llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 ////    Value *StoreVal = visit(Assign->getExpr());
 ////    Type *AssignType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Assign->getExpr());
-////    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getSymbolId()];
+////    Value *StoreLoc = SymbolMap[Assign->getExpr()->getSymbolId()];
 ////
 ////    // We are storing an integer. So we know the value of the expression is
 ////    // in register itself.
@@ -43,7 +43,7 @@
 ////    // We are declaring an integer.
 ////    Value *DeclValue = createAlloca(LLVMIntType);
 ////    IR.CreateStore(InitValue, DeclValue);
-////    SymbolMap[Decl->getIdentifier()->getSymbolId()] = DeclValue;
+////    SymbolMap[Decl->getExpr()->getSymbolId()] = DeclValue;
 ////    return nullptr;
 //
 //}

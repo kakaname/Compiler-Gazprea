@@ -6,8 +6,21 @@
 #define GAZPREABASE_TUPLECOMPARISONTOMEMBERACCESSPASS_H
 
 
-class TupleComparisonToMemberAccessPass {
+#include "VisitorPass.h"
+#include "PassManager.h"
+#include "Symbol/Symbol.h"
+#include "Passes/ExprTypeAnnotatorPass.h"
 
+struct TupleComparisonToMemberAccessPass: public VisitorPass<TupleComparisonToMemberAccessPass, void> {
+    ASTPassManager *PM;
+
+    void visitLogicalOp(LogicalOp *Op);
+
+    void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
+        assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");
+        PM = &PManager;
+        visit(Root);
+    }
 };
 
 

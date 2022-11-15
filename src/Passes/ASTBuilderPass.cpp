@@ -516,7 +516,7 @@ std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *c
     // Set the identifier
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID(0)->getText());
-    MemberAcc->setIdent(Ident);
+    MemberAcc->setExpr(Ident);
 
     // When the member is accessed by name.
     if (auto MemberId = ctx->ID(1)) {

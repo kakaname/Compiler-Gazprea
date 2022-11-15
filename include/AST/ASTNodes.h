@@ -426,23 +426,23 @@ struct TupleLiteral: public TreeNode {
 };
 
 struct MemberAccess: public TreeNode {
-    static constexpr size_t IdentIdx = 0;
+    static constexpr size_t ExprIdx = 0;
     static constexpr size_t MemberExprIdx = 1;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_MemberAccess;
     }
 
-    void setIdent(Identifier *Ident) {
-        setChildAt(IdentIdx, Ident);
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
     }
 
     void setMemberExpr(ASTNodeT *Expr) {
         setChildAt(MemberExprIdx, Expr);
     }
 
-    Identifier *getIdentifier() {
-        return getChildAtAs<Identifier>(IdentIdx);
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
     }
 
     ASTNodeT *getMemberExpr() {

@@ -17,7 +17,7 @@
 //    // Check if the function is branch safe
 //    bool isFunctionBranchSafe = PM->getAnnotation<FunctionFlowPass>(FuncDef->getBlock());
 //    if (!isFunctionBranchSafe)
-//        throw InvalidControlFlowError(FuncDef->getLine(), FuncDef->getIdentifier()->getName());
+//        throw InvalidControlFlowError(FuncDef->getLine(), FuncDef->getExpr()->getName());
 //
 //    // Set type of block (note that this is not the same as the function AST type)
 //    PM->setAnnotation<ExprTypeAnnotatorPass>(FuncDef->getBlock(), currFuncReturnType);

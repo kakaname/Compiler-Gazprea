@@ -5,16 +5,12 @@
 #include "ANTLRFileStream.h"
 #include "CommonTokenStream.h"
 #include "tree/ParseTree.h"
-#include "tree/ParseTreeWalker.h"
 
 #include "Passes/PassManager.h"
 #include "Passes/ASTBuilderPass.h"
-
-#include "Common/TestPasses.h"
 #include "Types/CompositeTypes.h"
 #include "ErrorHandling/exceptions.h"
 
-#include "Symbol/SymbolTable.h"
 #include "Passes/ASTPrinterPass.h"
 #include "Passes/ScopeResolutionPass.h"
 
