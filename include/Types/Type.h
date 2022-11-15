@@ -6,7 +6,13 @@
 #define GAZPREABASE_TYPE_H
 
 
+#include "llvm/Support/Casting.h"
+
+
+using llvm::cast;
+
 class TypeRegistry;
+class TupleTy;
 
 class Type {
 public:
@@ -82,7 +88,9 @@ protected:
     TypeKind Kind;
     bool IsConstTy;
 
-    Type(TypeKind Kind, bool IsConst) : Kind(Kind), IsConstTy(IsConst) {}
+    Type(TypeKind Kind, bool IsConst) : Kind(Kind), IsConstTy(IsConst) {
+        cast<TupleTy>(this);
+    }
 };
 
 
