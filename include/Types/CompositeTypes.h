@@ -182,7 +182,7 @@ struct ProcedureTy : public Type {
         return Args.at(Pos);
     }
 
-    size_t getNumOfArgs() {
+    size_t getNumOfArgs() const {
         return Args.size();
     }
 

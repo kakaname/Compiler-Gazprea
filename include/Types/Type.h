@@ -9,7 +9,16 @@
 
 using llvm::dyn_cast;
 
+#include "llvm/Support/Casting.h"
+
+class Type;
+
+bool isValidTupleCast(const Type *, const Type *);
+
+using llvm::cast;
+
 class TypeRegistry;
+class TupleTy;
 
 class Type {
 public:
