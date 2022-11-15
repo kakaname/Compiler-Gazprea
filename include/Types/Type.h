@@ -5,20 +5,14 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
-#include <llvm/Support/Casting.h>
-
-using llvm::dyn_cast;
-
 #include "llvm/Support/Casting.h"
+
+using llvm::cast;
+using llvm::dyn_cast;
 
 class Type;
 
 bool isValidTupleCast(const Type *, const Type *);
-
-using llvm::cast;
-
-class TypeRegistry;
-class TupleTy;
 
 class Type {
 public:
@@ -84,21 +78,18 @@ public:
                T_Vector == Kind || T_Matrix == Kind;
     }
 
-    bool canCastTo(const Type *T) {
+    bool canCastTo(const Type *T) const {
 
         TypeKind Ty = T->getKind();
         switch (Kind) {
             case T_Bool:
-                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
             case T_Char:
-                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
             case T_Int:
                 return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
             case T_Real:
                 return Ty == T_Int || Ty == T_Real;
             case T_Tuple:
-                if (Ty != T_Tuple)
-                    return false;
+                return isValidTupleCast(this, T);
                 
         }
 
