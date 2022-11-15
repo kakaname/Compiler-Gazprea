@@ -292,26 +292,20 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     Ident->setName(ctx->ID()->getText());
     FuncDef->setIdent(Ident);
 
-    vector<const Type*> ParamTypes;
-
     auto ParamList = PM->Builder.build<ParameterList>();
     for (auto Param : ctx->typeIdentPair()) {
-        bool IsVar = (Param->typeQualifier() && Param->typeQualifier()->VAR());
-        auto ParamType = castToTypeVisit(Param->type());
-        if (!IsVar)
-            ParamType = PM->TypeReg.getConstTypeOf(ParamType);
+        auto ParamType = PM->TypeReg.getConstTypeOf(
+                castToTypeVisit(Param->type()));
         auto ParamIdent = PM->Builder.build<Identifier>();
         ParamIdent->setIdentType(ParamType);
         ParamIdent->setName(Param->ID()->getText());
         ParamList->addParam(ParamIdent);
-        ParamTypes.emplace_back(ParamType);
     }
 
     FuncDef->setParamList(ParamList);
 
     auto FuncRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
     FuncDef->setRetTy(FuncRetTy);
-    auto FuncTy = PM->TypeReg.getFunctionType(ParamTypes, FuncRetTy);
 
     FuncDef->getIdentifier()->setIdentType(FuncRetTy);
     // If the function is in expression format, we change it to block format.
@@ -358,7 +352,6 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     Ident->setName(ctx->ID()->getText());
     ProcDef->setIdent(Ident);
 
-    // Set parameters list
     auto ParamList = PM->Builder.build<ParameterList>();
     for (auto Param : ctx->typeIdentPair()) {
         bool IsVar = (Param->typeQualifier() && Param->typeQualifier()->VAR());
@@ -371,10 +364,12 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
         ParamList->addParam(ParamIdent);
     }
 
-    ProcDef->setParamList(ParamList);\
-    auto B = ctx->block();
-    auto R = castToNodeVisit(B);
-    ProcDef->setBlock(R);
+    ProcDef->setParamList(ParamList);
+    ProcDef->setBlock(castToNodeVisit(ctx->block()));
+    if (ctx->type())
+        ProcDef->setRetTy(castToTypeVisit(ctx->type()));
+
+
     return cast<ASTNodeT>(ProcDef);
 }
 

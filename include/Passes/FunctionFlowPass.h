@@ -36,20 +36,21 @@ struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
 //    using AnnotationT = bool;
 //
 ////    using ReturnT
-//    FunctionDef* inFunction = nullptr;
-//    Type *currFuncReturnType;
-//
-//    void visitFunctionDef(FunctionDef *FuncDef);
-//    void visitBlock
+    Type *currFuncReturnType;
 
-//    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root) {
-//        PM = &PManager;
-//        visit(&Root);
-//    }
+    bool visitFunctionDef(FunctionDef *FuncDef);
+    bool visitProcedureDef(ProcedureDef *ProcDef);
+    bool visitBlock(Block *Blk);
+    bool visitConditionalElse(ConditionalElse *Cond);
+
+    void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
+        PM = &PManager;
+        visit(Root);
+    }
 
 
 
-//    ASTPassManager *PM;
-//
-//    FunctionFlowPass() : VisitorPass() {}
+    ASTPassManager *PM;
+
+    FunctionFlowPass() : VisitorPass() {}
 };

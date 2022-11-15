@@ -22,6 +22,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeDefResolutionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeBuilderPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ConvertIdentMemberAccessToIdxPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/AssignmentTypeCheckerPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"

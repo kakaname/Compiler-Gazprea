@@ -14,6 +14,7 @@ class Type;
 
 bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
+bool canPromoteTupleTo(const Type*, const Type*);
 
 class Type {
 public:
@@ -101,6 +102,17 @@ public:
                 return isValidTupleCast(this, T);
         }
         return false;
+    }
+
+    bool canPromoteTo(const Type *T) const {
+        switch (Kind) {
+            case T_Int:
+                return T->getKind() == T_Real;
+            case T_Tuple:
+                return canPromoteTupleTo(this, T);
+            default:
+                return false;
+        }
     }
 
     TypeKind getKind() const {

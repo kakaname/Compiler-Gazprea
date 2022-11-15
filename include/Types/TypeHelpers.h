@@ -41,7 +41,23 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
                 TargetTuple->getMemberTypeAt(I)))
             return false;
     return true;
+}
 
+bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
+    auto BaseTuple = cast<TupleTy>(BaseTy);
+    auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
+
+    if (!TargetTuple)
+        return false;
+
+    if (BaseTuple->getNumOfMembers() != TargetTuple->getNumOfMembers())
+        return false;
+
+    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++)
+        if (!BaseTuple->getMemberTypeAt(I)->canPromoteTo(
+                TargetTuple->getMemberTypeAt(I)))
+            return false;
+    return true;
 }
 
 #endif //GAZPREABASE_TYPEHELPERS_H

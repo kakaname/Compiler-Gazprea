@@ -143,8 +143,10 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
 
 const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
 
-    visit(MAccess->getIdentifier());
-    auto IdentType = MAccess->getIdentifier()->getIdentType();
+    visit(MAccess->getExpr());
+    auto Ident = dyn_cast<Identifier>(MAccess->getExpr());
+    assert(Ident && "Only lvalues may have their members accessed");
+    auto IdentType = Ident->getIdentType();
     
     assert(IdentType && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(IdentType);

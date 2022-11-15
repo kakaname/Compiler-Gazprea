@@ -8,7 +8,8 @@
 using llvm::isa;
 
 void ConvertIdentMemberAccessToIdxPass::visitMemberAccess(MemberAccess *Access) {
-    auto Ident = Access->getIdentifier();
+    auto Ident = dyn_cast<Identifier>(Access->getExpr());
+    assert(Ident && "Only lvalues may have their members accessed");
     auto Expr = Access->getMemberExpr();
     auto Tuple = dyn_cast<TupleTy>(Ident->getIdentType());
     assert(Tuple && "Only tuples may have their members accessed");
