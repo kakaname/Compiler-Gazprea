@@ -5,10 +5,6 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
-#include <llvm/Support/Casting.h>
-
-using llvm::dyn_cast;
-
 class TypeRegistry;
 
 class Type {
@@ -90,7 +86,6 @@ public:
             case T_Tuple:
                 if (Ty != T_Tuple)
                     return false;
-                
         }
 
     }
