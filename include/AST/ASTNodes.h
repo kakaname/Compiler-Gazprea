@@ -331,6 +331,10 @@ struct IntLiteral: public TreeNode {
         Val = std::stoi(Literal);
     }
 
+    void setIntVal(int V) {
+        Val = V;
+    }
+
     int32_t getVal() {
         return Val;
     }

@@ -292,6 +292,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     Ident->setName(ctx->ID()->getText());
     FuncDef->setIdent(Ident);
 
+    vector<const Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
     for (auto Param : ctx->typeIdentPair()) {
@@ -303,12 +304,16 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
         ParamIdent->setIdentType(ParamType);
         ParamIdent->setName(Param->ID()->getText());
         ParamList->addParam(ParamIdent);
+        ParamTypes.emplace_back(ParamType);
     }
 
     FuncDef->setParamList(ParamList);
 
-    FuncDef->setRetTy(PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
+    auto FuncRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+    FuncDef->setRetTy(FuncRetTy);
+    auto FuncTy = PM->TypeReg.getFunctionType(ParamTypes, FuncRetTy);
 
+    FuncDef->getIdentifier()->setIdentType(FuncRetTy);
     // If the function is in expression format, we change it to block format.
     if (ctx->expr()) {
         auto RetStmt = PM->Builder.build<Return>();
@@ -521,7 +526,7 @@ std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *c
     // When the member is accessed by name.
     if (auto MemberId = ctx->ID(1)) {
         auto IdentExpr = PM->Builder.build<Identifier>();
-        Ident->setName(MemberId->getText());
+        IdentExpr->setName(MemberId->getText());
         MemberAcc->setMemberExpr(IdentExpr);
     }
     // When the member is accessed by index.
@@ -739,7 +744,7 @@ std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
             Mappings.insert({Member->ID()->getText(), ++Idx});
         MemberTypes.emplace_back(castToTypeVisit(Member->type()));
     }
-    return PM->TypeReg.getTupleType(MemberTypes, false);
+    return PM->TypeReg.getTupleType(MemberTypes, Mappings, false);
 }
 
 std::any ASTBuilderPass::visitBreakStmt(GazpreaParser::BreakStmtContext *ctx) {

@@ -142,9 +142,10 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
-    visit(MAccess->getExpr());
-    visit(MAccess->getMemberExpr());
-    auto IdentType = MAccess->getExpr()->getIdentType();
+
+    visit(MAccess->getIdentifier());
+    auto IdentType = MAccess->getIdentifier()->getIdentType();
+    
     assert(IdentType && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(IdentType);
     assert(Tuple && "Only identifier that are of type tuple maybe have their members accessed");
@@ -152,7 +153,7 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     assert(MemberIdx && "Only member accesses with integer literals "
                         "should have reached this place.");
 
-    assert((int32_t) Tuple->getNumOfMembers() <= MemberIdx->getVal() && "Invalid index to access a member");
+    assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal() && "Invalid index to access a member");
     auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal());
     PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
     return ResultTy;

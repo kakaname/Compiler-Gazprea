@@ -13,6 +13,7 @@
 
 #include "Passes/ASTPrinterPass.h"
 #include "Passes/ScopeResolutionPass.h"
+#include "Passes/ConvertIdentMemberAccessToIdxPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -77,6 +78,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ScopeResolutionPass());
+    Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());
