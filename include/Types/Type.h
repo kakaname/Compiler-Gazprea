@@ -12,7 +12,8 @@ using llvm::dyn_cast;
 
 class Type;
 
-bool isValidTupleCast(const Type *, const Type *);
+bool isValidTupleCast(const Type*, const Type*);
+bool isSameTupleTypeAs(const Type*, const Type*);
 
 class Type {
 public:
@@ -42,6 +43,15 @@ public:
     }
 
     bool isSameTypeAs(const Type *T) const {
+        switch (Kind) {
+            case T_Int:
+            case T_Bool:
+            case T_Real:
+            case T_Char:
+                return T->getKind() == Kind;
+            case T_Tuple:
+                return isSameTupleTypeAs(this, T);
+        }
         return T->getKind() == Kind;
     }
 

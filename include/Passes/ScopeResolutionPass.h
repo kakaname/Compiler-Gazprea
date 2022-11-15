@@ -143,6 +143,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     void visitFunctionDef(FunctionDef *Def) {
         auto ParamList = Def->getParamList();
         auto FunctionParamScope = PM->Builder.build<ScopeTreeNode>();
+        vector<const Type *> ParamTypes;
         CurrentScope->addChild(FunctionParamScope);
         for (auto *Param : *ParamList) {
             auto ParamIdent = dyn_cast<Identifier>(Param);
@@ -151,6 +152,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             auto ParamSym = PM->SymTable.defineObject(
                     ParamIdent->getName(), ParamIdent->getIdentType());
             FunctionParamScope->declareInScope(ParamIdent->getName(), ParamSym);
+            ParamTypes.emplace_back(ParamIdent->getIdentType());
         }
         auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
         FunctionParamScope->addChild(FuncBodyScope);
@@ -158,6 +160,19 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Def->getBlock());
         CurrentScope = dyn_cast<ScopeTreeNode>(FunctionParamScope->getParent());
         assert(CurrentScope);
+
+        auto FuncName = Def->getIdentifier()->getName();
+        auto FuncTy = PM->TypeReg.getFunctionType(ParamTypes, Def->getRetTy());
+
+        auto Resolved = CurrentScope->resolve(FuncName);
+        if (Resolved) {
+            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
+            "Differing declaration and definition");
+            return;
+        }
+
+        auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
+        CurrentScope->declareInScope(FuncName, FuncSym);
     }
 
     void visitFunctionDecl(FunctionDecl *Decl) {
@@ -168,10 +183,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Decl->getIdentifier()->setIdentType(FuncTy);
         CurrentScope->declareInScope(FuncName, FuncSym);
     }
-
-//    void visitFunctionCall(FunctionCall *Call) {
-//        visit(Call->getIdentifier());
-//    }
 
     void visitMemberAccess(MemberAccess *Access) {
         visit(Access->getIdentifier());

@@ -9,20 +9,38 @@
 
 using llvm::dyn_cast;
 
-bool isValidTupleCast(const Type *BaseTy, const Type *TargetTy) {
-    auto BaseTuple = cast<TupleTy>(BaseTy);
+bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
+    auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
     if (!TargetTy)
         return false;
-    if (BaseTuple->getNumOfMembers() != TargetTuple->getNumOfMembers())
+    if (BaseTy->getNumOfMembers() != TargetTuple->getNumOfMembers())
         return false;
 
-    auto IsValid = true;
-    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++)
-        IsValid = IsValid && BaseTuple->getMemberTypeAt(I)->canCastTo(
-                TargetTuple->getMemberTypeAt(I));
-    return IsValid;
+    for (int I = 0; I < BaseTy->getNumOfMembers(); I++)
+        if (!BaseTy->getMemberTypeAt(I)->canCastTo(
+                TargetTuple->getMemberTypeAt(I)))
+            return false;
+    return true;
+}
+
+bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
+    auto BaseTy = cast<TupleTy>(BaseType);
+    auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
+
+    if (!TargetTy)
+        return false;
+
+    if (BaseTy->getNumOfMembers() != TargetTuple->getNumOfMembers())
+        return false;
+
+    for (int I = 0; I < BaseTy->getNumOfMembers(); I++)
+        if (!BaseTy->getMemberTypeAt(I)->isSameTypeAs(
+                TargetTuple->getMemberTypeAt(I)))
+            return false;
+    return true;
+
 }
 
 #endif //GAZPREABASE_TYPEHELPERS_H
