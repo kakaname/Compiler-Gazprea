@@ -89,7 +89,6 @@ public:
     }
 
     bool canCastTo(const Type *T) const {
-
         TypeKind Ty = T->getKind();
         switch (Kind) {
             case T_Bool:
@@ -101,6 +100,7 @@ public:
             case T_Tuple:
                 return isValidTupleCast(this, T);
         }
+        return false;
     }
 
     TypeKind getKind() const {

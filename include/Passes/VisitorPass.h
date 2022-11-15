@@ -111,7 +111,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitMemberAccess(MemberAccess *MemberAcc) {
-        visit(MemberAcc->getIdentifier());
+        visit(MemberAcc->getExpr());
         visit(MemberAcc->getMemberExpr());
         return RetT();
     }

@@ -25,7 +25,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleExplicitTypeCastPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExplicitCastCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToMemberAccessPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToLogicalPass.cpp")

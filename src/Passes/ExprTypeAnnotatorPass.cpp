@@ -142,8 +142,10 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
+
     visit(MAccess->getIdentifier());
     auto IdentType = MAccess->getIdentifier()->getIdentType();
+    
     assert(IdentType && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(IdentType);
     assert(Tuple && "Only identifier that are of type tuple maybe have their members accessed");
