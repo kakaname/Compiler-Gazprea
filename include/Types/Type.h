@@ -5,6 +5,9 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
+#include <llvm/Support/Casting.h>
+
+using llvm::dyn_cast;
 
 #include "llvm/Support/Casting.h"
 
@@ -41,11 +44,11 @@ public:
 
     bool isScalarTy() const {
         return T_Bool == Kind || T_Char == Kind ||
-        T_Int == Kind || T_Real == Kind;
+               T_Int == Kind || T_Real == Kind;
     }
 
     bool isSameTypeAs(const Type *T) const {
-        return  T->getKind() == Kind;
+        return T->getKind() == Kind;
     }
 
     bool isValidForArithOps() const {
@@ -75,10 +78,30 @@ public:
 
     bool isOutputTy() const {
         return T_Identity == Kind || T_Null == Kind ||
-        T_Bool == Kind || T_Char == Kind ||
-        T_Int == Kind || T_Real == Kind ||
-        T_Interval == Kind || T_String == Kind ||
-        T_Vector == Kind || T_Matrix == Kind;
+               T_Bool == Kind || T_Char == Kind ||
+               T_Int == Kind || T_Real == Kind ||
+               T_Interval == Kind || T_String == Kind ||
+               T_Vector == Kind || T_Matrix == Kind;
+    }
+
+    bool canCastTo(const Type *T) {
+
+        TypeKind Ty = T->getKind();
+        switch (Kind) {
+            case T_Bool:
+                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
+            case T_Char:
+                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
+            case T_Int:
+                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
+            case T_Real:
+                return Ty == T_Int || Ty == T_Real;
+            case T_Tuple:
+                if (Ty != T_Tuple)
+                    return false;
+                
+        }
+
     }
 
     TypeKind getKind() const {

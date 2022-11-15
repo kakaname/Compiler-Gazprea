@@ -8,7 +8,6 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/CompositeTypes.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeRegistry.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Types/TypeHelpers.cpp"
-
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManager.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/PassManagerResource.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/Pass.cpp"
@@ -19,15 +18,16 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ScopeResolutionPass.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeDefResolutionPass.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeBuilderPass.cpp"
-
-		"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
-
-		"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
-)
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ScopeResolutionPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeDefResolutionPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TypeBuilderPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleExplicitTypeCastPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToMemberAccessPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToLogicalPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
