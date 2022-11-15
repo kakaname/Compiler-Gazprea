@@ -90,9 +90,7 @@ public:
                 return Ty == T_Int || Ty == T_Real;
             case T_Tuple:
                 return isValidTupleCast(this, T);
-                
         }
-
     }
 
     TypeKind getKind() const {

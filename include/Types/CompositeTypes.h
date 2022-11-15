@@ -109,6 +109,7 @@ private:
 struct TupleTy : public Type {
 
     using MemberTyContainer = vector<const Type*>;
+    using MappingsContainer = map<string, int>;
 
     static bool classof(const Type *T) {
         return T->getKind() == TypeKind::T_Tuple;
@@ -130,11 +131,24 @@ struct TupleTy : public Type {
         return ContainedTypes;
     }
 
-    TupleTy(bool IsConst, MemberTyContainer ContainedTypes) :
-        Type(TypeKind::T_Tuple, IsConst), ContainedTypes(std::move(ContainedTypes)) {}
+    int getMemberIdx(const string &Name) const {
+        auto Res = Mappings.find(Name);
+        if (Res == Mappings.end())
+            return 0;
+        return Res->second;
+    }
+
+    const MappingsContainer &getMappings() const {
+        return Mappings;
+    }
+
+    TupleTy(bool IsConst, MemberTyContainer ContainedTypes, MappingsContainer Mappings) :
+        Type(TypeKind::T_Tuple, IsConst), ContainedTypes(std::move(ContainedTypes)),
+        Mappings(std::move(Mappings)) {}
 
 private:
     MemberTyContainer ContainedTypes;
+    MappingsContainer Mappings;
 };
 
 

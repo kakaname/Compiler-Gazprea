@@ -10,6 +10,7 @@
 #include <vector>
 #include <array>
 #include <cassert>
+#include <string>
 
 #include "llvm/Support/Casting.h"
 #include "Types/Type.h"
@@ -21,6 +22,7 @@ using std::make_unique;
 using std::pair;
 using std::vector;
 using std::array;
+using std::string;
 
 using llvm::dyn_cast;
 using llvm::isa;
@@ -33,7 +35,7 @@ class TypeRegistry {
 
     using VectorTyId = ConstTypeIdPair<pair<const Type*, int>>;
     using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
-    using TupleTypeId = ConstTypeIdPair<vector<const Type*>>;
+    using TupleTypeId = ConstTypeIdPair<pair<vector<const Type*>, map<string, int>>>;
     using FunctionTypeId = pair<vector<const Type*>, const Type*>;
     using ProcedureTypeId = pair<vector<const Type*>, const Type*>;
 
@@ -117,14 +119,15 @@ public:
     }
 
     const Type *getTupleType(const TupleTy::MemberTyContainer &ContainedTypes,
+                             const map<string, int>& Mappings,
                              bool IsConst = true) {
-        TupleTypeId Key{IsConst,  ContainedTypes};
+        TupleTypeId Key{IsConst,  pair{ContainedTypes, Mappings}};
         auto Res = TupleTypes.find(Key);
         if (Res != TupleTypes.end())
             return Res->second.get();
 
         auto NewTupleTy = make_unique<TupleTy>(TupleTy(
-                IsConst, ContainedTypes));
+                IsConst, ContainedTypes, Mappings));
         auto Inserted = TupleTypes.insert({Key, std::move(NewTupleTy)});
         assert(Inserted.second && "We just checked that the type wasn't in the map");
         return Inserted.first->second.get();
@@ -179,7 +182,7 @@ public:
                                  Mat->getNumOfColumns(), true);
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty))
-            return getTupleType(Tup->getMemberTypes(), true);
+            return getTupleType(Tup->getMemberTypes(), Tup->getMappings(), true);
 
         assert(false && "Should not be reachable.");
     }

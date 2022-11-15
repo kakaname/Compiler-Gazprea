@@ -165,7 +165,16 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         auto FuncTy = PM->TypeReg.getFunctionType(
                 Decl->getParamTypes(), Decl->getRetType());
         auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
+        Decl->getIdentifier()->setIdentType(FuncTy);
         CurrentScope->declareInScope(FuncName, FuncSym);
+    }
+
+//    void visitFunctionCall(FunctionCall *Call) {
+//        visit(Call->getIdentifier());
+//    }
+
+    void visitMemberAccess(MemberAccess *Access) {
+        visit(Access->getIdentifier());
     }
 };
 
