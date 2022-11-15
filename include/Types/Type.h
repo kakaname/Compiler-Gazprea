@@ -8,6 +8,9 @@
 
 #include "llvm/Support/Casting.h"
 
+class Type;
+
+bool isValidTupleCast(const Type *, const Type *);
 
 using llvm::cast;
 
@@ -88,9 +91,7 @@ protected:
     TypeKind Kind;
     bool IsConstTy;
 
-    Type(TypeKind Kind, bool IsConst) : Kind(Kind), IsConstTy(IsConst) {
-        cast<TupleTy>(this);
-    }
+    Type(TypeKind Kind, bool IsConst) : Kind(Kind), IsConstTy(IsConst) {}
 };
 
 
