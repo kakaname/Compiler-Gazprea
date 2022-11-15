@@ -16,6 +16,7 @@
 
 #include "Symbol/SymbolTable.h"
 #include "Passes/ASTPrinterPass.h"
+#include "Passes/ScopeResolutionPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -79,6 +80,8 @@ int main(int argc, char **argv) {
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
+    Manager.registerPass(ScopeResolutionPass());
+    Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());
 //  Manager.registerAnonymousPass(PrintsResults());
@@ -86,7 +89,7 @@ int main(int argc, char **argv) {
 //  Manager.registerAnonymousPass(InvalidatesResults());
 //  Manager.registerPass(SetsResultInvalidated());
 
-    Manager.registerPass(ASTPrinterPass());
+//    Manager.registerPass(ASTPrinterPass());
 
 
     Manager.runAllPasses();

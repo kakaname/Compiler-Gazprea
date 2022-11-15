@@ -22,6 +22,7 @@ public:
 
     enum TreeNodeKind {
         N_AST_Program,
+        N_AST_NoOp,
         N_AST_Identifier,
         N_AST_Assignment,
         N_AST_CalleeParameter,
@@ -141,11 +142,11 @@ protected:
     void setChildAt(unsigned Pos, TreeNode *Child) {
         if (Child)
             Child->setParent(this);
-        while (Children.size() < Pos)
+        while (Children.size() < Pos + 1)
             Children.push_back(nullptr);
         auto I = Children.begin();
         advance(I, Pos);
-        Children.insert(I, Child);
+        *I = Child;
     }
 
 private:

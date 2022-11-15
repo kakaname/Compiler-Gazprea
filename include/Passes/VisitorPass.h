@@ -20,6 +20,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitNoOp(NoOp *Op) {
+        return RetT();
+    }
+
     RetT visitIdentifier(Identifier *Ident) {
         return RetT();
     }
@@ -229,6 +233,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
 
+    RetT callVisitNoOpImpl(NoOp *NOp) {
+        return static_cast<DerivedT*>(this)->visitNoOp(NOp);
+    }
+
     RetT callVisitIdentifierImpl(Identifier *Ident) {
         return static_cast<DerivedT*>(this)->visitIdentifier(Ident);
     }
@@ -391,6 +399,9 @@ public:
 
         if (auto *Prog = dyn_cast<Program>(Node))
             return callVisitProgramImpl(Prog);
+
+        if (auto NOp = dyn_cast<NoOp>(Node))
+            return callVisitNoOpImpl(NOp);
 
         if (auto *Ident = dyn_cast<Identifier>(Node))
             return callVisitIdentifierImpl(Ident);

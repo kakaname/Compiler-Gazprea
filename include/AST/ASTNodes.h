@@ -26,6 +26,14 @@ struct Program: public TreeNode {
     Program() : TreeNode(TreeNodeKind::N_AST_Program) {}
 };
 
+struct NoOp: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_NoOp;
+    }
+
+    NoOp(): TreeNode(TreeNodeKind::N_AST_NoOp) {}
+};
+
 struct Identifier: public TreeNode {
     string IdentName;
     const Type *IdentType;

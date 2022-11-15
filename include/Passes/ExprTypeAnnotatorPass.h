@@ -19,10 +19,17 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitComparisonOp(ComparisonOp *Op);
     const Type *visitLogicalOp(LogicalOp *Op);
     const Type *visitUnaryOp(UnaryOp *Op);
+    const Type *visitIdentifier(Identifier *Ident) const;
+    const Type *visitMemberAccess(MemberAccess *MAccess);
+    const Type *visitFunctionCall(FunctionCall *Call);
+    const Type *visitIntLiteral(IntLiteral *Int);
+    const Type *visitRealLiteral(RealLiteral *Real);
+
+
 
     TypeCast *wrapWithCastToReal(ASTNodeT *Expr) const;
 
-    const Type *visitIdentifier(Identifier *Ident) const;
+
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
