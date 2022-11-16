@@ -225,9 +225,14 @@ const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = Call->getIdentifier()->getIdentType();
     assert(IdentTy && "Ident type not set for function call");
-    auto FuncTy = dyn_cast<FunctionTy>(IdentTy);
-    assert(FuncTy && "Only functions may be called");
-    auto RetTy = FuncTy->getRetType();
+    assert(IdentTy->isCallable() && "Tried call an non-callable type.");
+    if (auto FuncTy = dyn_cast<FunctionTy>(IdentTy)) {
+        auto RetTy = FuncTy->getRetType();
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
+        return RetTy;
+    };
+    auto ProcTy = cast<ProcedureTy>(IdentTy);
+    auto RetTy = ProcTy->getRetTy();
     PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
     return RetTy;
 }

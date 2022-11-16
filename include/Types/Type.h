@@ -90,6 +90,10 @@ public:
                T_Int == Kind || T_Real == Kind;
     }
 
+    bool isCallable() const {
+        return T_Function == Kind || T_Procedure == Kind;
+    }
+
     bool isOutputTy() const {
         return T_Identity == Kind || T_Null == Kind ||
                T_Bool == Kind || T_Char == Kind ||

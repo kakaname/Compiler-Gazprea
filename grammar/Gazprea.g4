@@ -102,7 +102,7 @@ functionDeclr
 
 functionDefinition
     : FUNCTION funcName=ID LPAREN
-      (typeIdentPair (COMMA typeIdentPair)*)?
+      (functionParameter (COMMA functionParameter)*)?
       RPAREN RETURNS type (block | EQ expr SC);
 
 procedureDeclr
