@@ -64,7 +64,7 @@ class ResultObject {
     struct ResultModelT : ResultConceptT {
         ResultModelT(R Res) : Self(std::forward<R>(Res)) {}
         ResultModelT() = delete;
-        ResultModelT(ResultModelT &&)  noexcept = default;
+        ResultModelT(ResultModelT &&)  = default;
         R &getSelf() {
             return Self;
         }
