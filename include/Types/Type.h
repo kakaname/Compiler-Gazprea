@@ -5,6 +5,7 @@
 #ifndef GAZPREABASE_TYPE_H
 #define GAZPREABASE_TYPE_H
 
+#include <string>
 #include "llvm/Support/Casting.h"
 
 using llvm::cast;
@@ -16,6 +17,7 @@ bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
+std::string getTupleTypeName(const Type *Ty);
 
 class Type {
 public:
@@ -130,6 +132,25 @@ public:
 
     TypeKind getKind() const {
         return Kind;
+    }
+
+    std::string getTypeName() const {
+        std::string TypeName;
+        if (isConst())
+            TypeName += "const ";
+        switch (Kind) {
+            case T_Bool:
+                return TypeName + "bool";
+            case T_Char:
+                return TypeName + "char";
+            case T_Int:
+                return TypeName + "int";
+            case T_Real:
+                return TypeName + "real";
+            case T_Tuple:
+                return TypeName + getTupleTypeName(this);
+        }
+        assert(false);
     }
 
     Type() = delete;

@@ -67,4 +67,17 @@ bool doesTupleSupportEq(const Type *Tup) {
     return std::all_of(Members.begin(), Members.end(), Pred);
 }
 
+std::string getTupleTypeName(const Type *Ty) {
+    auto TupleType = cast<TupleTy>(Ty);
+    std::string TypeName = "tuple(";
+    size_t NumOfMembers = TupleType->getNumOfMembers();
+    for (size_t I = 0; I < NumOfMembers; I++) {
+        if (I > 0)
+            TypeName += ", ";
+        TypeName += TupleType->getMemberTypeAt(I)->getTypeName();
+    }
+    TypeName += ")";
+    return TypeName;
+}
+
 #endif //GAZPREABASE_TYPEHELPERS_H

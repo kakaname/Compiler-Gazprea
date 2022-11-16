@@ -157,6 +157,31 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
             return PM->TypeReg.getBooleanTy();
         }
 
+        //Check tuple promotion
+        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
+            assert((LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
+                    || RightType->canPromoteTo(LeftType)) && "Cannot compare incompatible tuple types");
+            if (LeftType->canPromoteTo(RightType)) {
+                auto Cast = PM->Builder.build<TypeCast>();
+                auto TupleType = cast<TupleTy>(RightType);
+
+                Cast->setExpr(LeftExpr);
+                Cast->setTargetType(TupleType);
+                Op->setLeftExpr(Cast);
+                LeftType = Cast->getTargetType();
+            }
+
+            if (RightType->canPromoteTo(LeftType)) {
+                auto Cast = PM->Builder.build<TypeCast>();
+                auto TupleType = cast<TupleTy>(LeftType);
+
+                Cast->setExpr(RightExpr);
+                Cast->setTargetType(TupleType);
+                Op->setRightExpr(Cast);
+                RightType = Cast->getTargetType();
+            }
+        }
+
         assert(LeftType->isSameTypeAs(RightType) && "Cannot compare incompatible types");
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
