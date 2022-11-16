@@ -16,6 +16,8 @@
 #include "Passes/ConvertIdentMemberAccessToIdxPass.h"
 #include "Passes/AssignmentTypeCheckerPass.h"
 #include "Passes/CallableArgumentTypeCheckingPass.h"
+#include "Passes/FunctionFlowPass.h"
+#include "Passes/TupleCompToMemberCompPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -92,6 +94,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
+    Manager.registerPass(FunctionFlowPass());
+    Manager.registerPass(TupleCompToMemberCompPass());
     Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());
