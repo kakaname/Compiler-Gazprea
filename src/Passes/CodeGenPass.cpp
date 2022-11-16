@@ -128,20 +128,54 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     assert( RightType == LeftType && "Operation between different types should not"
                                      " have reached the code gen");
 
-    switch (Op->getOpKind()) {
-        case ArithmeticOp::ADD:
-            return IR.CreateAdd(LeftOperand, RightOperand);
-        case ArithmeticOp::SUB:
-            return IR.CreateSub(LeftOperand, RightOperand);
-        case ArithmeticOp::MUL:
-            return IR.CreateMul(LeftOperand, RightOperand);
-        case ArithmeticOp::DIV:
-            return IR.CreateSDiv(LeftOperand, RightOperand);
-        case ArithmeticOp::EXP:
-            return IR.CreateCall(llvm::Intrinsic::getDeclaration(&Mod, llvm::Intrinsic::powi), {LeftOperand, RightOperand});
-        case ArithmeticOp::MOD:
-            return IR.CreateSRem(LeftOperand, RightOperand);
+    const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
+    if (ResultType->getKind() != Type::TypeKind::T_Real) {
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                return IR.CreateAdd(LeftOperand, RightOperand);
+            case ArithmeticOp::SUB:
+                return IR.CreateSub(LeftOperand, RightOperand);
+            case ArithmeticOp::MUL:
+                return IR.CreateMul(LeftOperand, RightOperand);
+            case ArithmeticOp::DIV:
+                return IR.CreateSDiv(LeftOperand, RightOperand);
+            case ArithmeticOp::MOD:
+                return IR.CreateSRem(LeftOperand, RightOperand);
+            case ArithmeticOp::EXP:
+                return IR.CreateCall(
+                        llvm::Intrinsic::getDeclaration(
+                                &Mod,
+                                llvm::Intrinsic::powi,
+                                {getLLVMType(LeftType), getLLVMType(RightType)}),
+                        {LeftOperand, RightOperand});
         }
+    } else {
+        // Metadata for rounding
+        llvm::MDNode *FPMetadata = llvm::MDNode::get(
+                GlobalCtx,
+                {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmTowardZero)),
+                llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict))}
+        );
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                return IR.CreateFAdd(LeftOperand, RightOperand, "fadd", FPMetadata);
+            case ArithmeticOp::SUB:
+                return IR.CreateFSub(LeftOperand, RightOperand, "fsub", FPMetadata);
+            case ArithmeticOp::MUL:
+                return IR.CreateFMul(LeftOperand, RightOperand, "fmul", FPMetadata);
+            case ArithmeticOp::DIV:
+                return IR.CreateFDiv(LeftOperand, RightOperand, "fdiv", FPMetadata);
+            case ArithmeticOp::MOD:
+                return IR.CreateFRem(LeftOperand, RightOperand, "frem", FPMetadata);
+            case ArithmeticOp::EXP:
+                return IR.CreateCall(
+                        llvm::Intrinsic::getDeclaration(
+                                &Mod,
+                                llvm::Intrinsic::pow,
+                                {getLLVMType(LeftType), getLLVMType(RightType)}),
+                        {LeftOperand, RightOperand});
+        }
+    }
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
