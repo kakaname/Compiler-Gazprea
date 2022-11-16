@@ -28,11 +28,10 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/SymbolTable.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExplicitCastCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPassWithTypes.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPassWithTypes.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleCompToMemberCompPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToLogicalPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CallableArgumentTypeCheckingPass.cpp"
-)
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/NullIdentityTypeCastPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
