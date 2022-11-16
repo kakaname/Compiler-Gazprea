@@ -120,7 +120,7 @@ std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditional
         ElseBodyBlock->addChild(ElseBody);
         IfElseStat->setElseBlock(ElseBodyBlock);
     } else
-        IfElseStat->setIfBlock(cast<Block>(ElseBody));
+        IfElseStat->setElseBlock(cast<Block>(ElseBody));
 
     return cast<ASTNodeT>(IfElseStat);
 }

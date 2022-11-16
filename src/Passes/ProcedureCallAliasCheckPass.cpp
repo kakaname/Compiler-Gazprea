@@ -9,7 +9,7 @@ void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
     // We don't care about function calls.
     if (!ProcTy)
         return;
-    
+
     // TODO: Ask Deric about aliasing due to tuple vars and then complete this.
     auto Args = Call->getArgsList();
     for (auto I = 0; I < Args->numOfChildren(); I++) {

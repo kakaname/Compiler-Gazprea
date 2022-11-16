@@ -11,6 +11,7 @@
 #include "Types/Type.h"
 #include "VisitorPass.h"
 #include "PassManager.h"
+#include "ConvertIdentMemberAccessToIdxPass.h"
 
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
@@ -38,7 +39,8 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
-    explicit ExprTypeAnnotatorPass() {}
+    explicit ExprTypeAnnotatorPass() = default;
 
-    ASTPassManager *PM;
+    ASTPassManager *PM{};
+    ConvertIdentMemberAccessToIdxPass IdxPass{};
 };

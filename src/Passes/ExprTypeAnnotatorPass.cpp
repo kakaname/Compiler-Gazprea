@@ -216,15 +216,11 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
-
-    visit(MAccess->getExpr());
-    auto Ident = dyn_cast<Identifier>(MAccess->getExpr());
-    assert(Ident && "Only lvalues may have their members accessed");
-    auto IdentType = Ident->getIdentType();
-    
-    assert(IdentType && "Type not assigned to identifier.");
-    auto Tuple = dyn_cast<TupleTy>(IdentType);
-    assert(Tuple && "Only identifier that are of type tuple maybe have their members accessed");
+    IdxPass.runOnAST(*PM, MAccess);
+    auto BaseTy = visit(MAccess->getExpr());
+    assert(BaseTy && "Type not assigned to identifier.");
+    auto Tuple = dyn_cast<TupleTy>(BaseTy);
+    assert(Tuple && "Only expressions that are of type tuple maybe have their members accessed");
     auto MemberIdx = dyn_cast<IntLiteral>(MAccess->getMemberExpr());
     assert(MemberIdx && "Only member accesses with integer literals "
                         "should have reached this place.");

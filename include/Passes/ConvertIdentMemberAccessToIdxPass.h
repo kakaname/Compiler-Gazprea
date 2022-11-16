@@ -12,7 +12,6 @@ struct ConvertIdentMemberAccessToIdxPass : VisitorPass<ConvertIdentMemberAccessT
     void visitMemberAccess(MemberAccess *Access);
 
     void runOnAST(ASTPassManager &M, ASTNodeT *Root) {
-        assert(llvm::isa<Program>(Root) && "This pass must be run on the entire program");
         PM = &M;
         visit(Root);
     }

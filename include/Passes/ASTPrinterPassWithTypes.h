@@ -27,8 +27,9 @@ public:
     }
 
     void visitIdentifier(Identifier *Ident) {
-        std::cout << "Name: " << Ident->getName();
-        std::cout << ", Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Ident)->getTypeName();
+        std::cout << Ident->getName();
+        std::cout << ", Ty: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Ident)->getTypeName();
+        std::cout << ", Sym: " << Ident->getReferred();
         std::cout << ')' << "\n";
     }
 
@@ -37,7 +38,9 @@ public:
     }
 
     void visitDeclaration(Declaration *Decl) {
-        std:: cout << "Decl(Name:" << Decl->getIdentifier()->getName() << ')' << "\n";
+        std:: cout << "Decl(" << Decl->getIdentifier()->getName();
+        std::cout << ", Sym:" << Decl->getIdentifier()->getReferred();
+        std::cout << ')' << "\n";
     }
 
     void visitBlock(Block *Blk) {
