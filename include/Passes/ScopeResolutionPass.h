@@ -122,63 +122,79 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     void visitProcedureDef(ProcedureDef *Def) {
         auto ParamList = Def->getParamList();
-        auto FunctionParamScope = PM->Builder.build<ScopeTreeNode>();
-        vector<const Type *> ParamTypes;
-        CurrentScope->addChild(FunctionParamScope);
+
+        // Add a scope for the parameters of the function.
+        auto ProcParamScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(ProcParamScope);
+
+        // Iterate over the identifiers that are the function parameters
+        // and add them to the scope.
         for (auto *Param : *ParamList) {
             auto ParamIdent = dyn_cast<Identifier>(Param);
             assert(ParamIdent);
-            assert(ParamIdent->getIdentType());
-            auto ParamSym = PM->SymTable.defineObject(
-                    ParamIdent->getName(), ParamIdent->getIdentType());
-            FunctionParamScope->declareInScope(ParamIdent->getName(), ParamSym);
-            ParamTypes.emplace_back(ParamIdent->getIdentType());
+            auto ParamName = ParamIdent->getName();
+            auto ParamType = ParamIdent->getIdentType();
+            assert(ParamType);
+
+            // Declare it in scope.
+            auto ParamSym = PM->SymTable.defineObject(ParamName, ParamType);
+            ProcParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
+        // Add another scope for the function body.
         auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
-        FunctionParamScope->addChild(FuncBodyScope);
+        ProcParamScope->addChild(FuncBodyScope);
         CurrentScope = FuncBodyScope;
         visit(Def->getBlock());
-        CurrentScope = dyn_cast<ScopeTreeNode>(FunctionParamScope->getParent());
+
+        // Go back to the original scope.
+        CurrentScope = dyn_cast<ScopeTreeNode>(ProcParamScope->getParent());
         assert(CurrentScope);
 
-        auto FuncName = Def->getIdentifier()->getName();
-        auto FuncTy = PM->TypeReg.getProcedureType(ParamTypes, Def->getRetTy());
-
-        auto Resolved = CurrentScope->resolve(FuncName);
+        auto ProcName = Def->getIdentifier()->getName();
+        auto ProcTy = Def->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(ProcName);
         if (Resolved) {
-            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
+            assert(Resolved->getSymbolType()->isSameTypeAs(ProcTy) &&
                    "Differing declaration and definition");
             return;
         }
 
-        auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
-        CurrentScope->declareInScope(FuncName, FuncSym);
+        auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
+        CurrentScope->declareInScope(ProcName, ProcSym);
     }
 
     void visitFunctionDef(FunctionDef *Def) {
         auto ParamList = Def->getParamList();
-        auto FunctionParamScope = PM->Builder.build<ScopeTreeNode>();
-        vector<const Type *> ParamTypes;
-        CurrentScope->addChild(FunctionParamScope);
+
+        // Add a scope for the parameters of the function.
+        auto FuncParamScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(FuncParamScope);
+
+        // Iterate over the identifiers that are the function parameters
+        // and add them to the scope.
         for (auto *Param : *ParamList) {
             auto ParamIdent = dyn_cast<Identifier>(Param);
             assert(ParamIdent);
-            assert(ParamIdent->getIdentType());
-            auto ParamSym = PM->SymTable.defineObject(
-                    ParamIdent->getName(), ParamIdent->getIdentType());
-            FunctionParamScope->declareInScope(ParamIdent->getName(), ParamSym);
-            ParamTypes.emplace_back(ParamIdent->getIdentType());
+            auto ParamName = ParamIdent->getName();
+            auto ParamType = ParamIdent->getIdentType();
+            assert(ParamType);
+
+            // Declare it in scope.
+            auto ParamSym = PM->SymTable.defineObject(ParamName, ParamType);
+            FuncParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
+        // Add another scope for the function body.
         auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
-        FunctionParamScope->addChild(FuncBodyScope);
+        FuncParamScope->addChild(FuncBodyScope);
         CurrentScope = FuncBodyScope;
         visit(Def->getBlock());
-        CurrentScope = dyn_cast<ScopeTreeNode>(FunctionParamScope->getParent());
+
+        // Go back to the original scope.
+        CurrentScope = dyn_cast<ScopeTreeNode>(FuncParamScope->getParent());
         assert(CurrentScope);
 
         auto FuncName = Def->getIdentifier()->getName();
-        auto FuncTy = PM->TypeReg.getFunctionType(ParamTypes, Def->getRetTy());
-
+        auto FuncTy = Def->getIdentifier()->getIdentType();
         auto Resolved = CurrentScope->resolve(FuncName);
         if (Resolved) {
             assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
@@ -192,11 +208,16 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     void visitFunctionDecl(FunctionDecl *Decl) {
         auto FuncName = Decl->getIdentifier()->getName();
-        auto FuncTy = PM->TypeReg.getFunctionType(
-                Decl->getParamTypes(), Decl->getRetType());
+        auto FuncTy = Decl->getIdentifier()->getIdentType();
         auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
-        Decl->getIdentifier()->setIdentType(FuncTy);
         CurrentScope->declareInScope(FuncName, FuncSym);
+    }
+
+    void visitProcedureDecl(ProcedureDecl *Decl) {
+        auto ProcName = Decl->getIdentifier()->getName();
+        auto ProcTy = Decl->getIdentifier()->getIdentType();
+        auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
+        CurrentScope->declareInScope(ProcName, ProcSym);
     }
 
     void visitMemberAccess(MemberAccess *Access) {

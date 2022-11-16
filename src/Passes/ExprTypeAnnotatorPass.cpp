@@ -192,6 +192,17 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     return ResultTy;
 }
 
+const Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
+    vector<const Type*> ChildTypes;
+    for (auto *ChildExpr : *TupLit) {
+        auto ChildTy = visit(ChildExpr);
+        ChildTypes.emplace_back(ChildTy);
+    }
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, map<string, int>());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(TupLit, TupleTy);
+    return TupleTy;
+}
+
 const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = Call->getIdentifier()->getIdentType();
@@ -211,4 +222,26 @@ const Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) {
 const Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Real, PM->TypeReg.getRealTy());
     return PM->TypeReg.getRealTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
+    visit(Cast->getExpr());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Cast->getTargetType());
+    return Cast->getTargetType();
+}
+
+const Type *ExprTypeAnnotatorPass::visitNullLiteral(NullLiteral *Null) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Null, PM->TypeReg.getNullTy());
+    return PM->TypeReg.getNullTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(ID, PM->TypeReg.getIdentityTy());
+    return PM->TypeReg.getIdentityTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
+    visit(Cast->getExpr());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Cast->getTargetType());
+    return Cast->getTargetType();
 }

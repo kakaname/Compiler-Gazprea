@@ -11,6 +11,7 @@
 
 struct AssignmentTypeCheckerPass : public VisitorPass<AssignmentTypeCheckerPass, void> {
     void visitAssignment(Assignment *Assign);
+    void visitDeclaration(Declaration *Decl);
 
 
     void runOnAST(ASTPassManager &M, ASTNodeT *Root) {

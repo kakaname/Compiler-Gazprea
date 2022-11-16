@@ -15,6 +15,7 @@ class Type;
 bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
+bool doesTupleSupportEq(const Type*);
 
 class Type {
 public:
@@ -73,6 +74,14 @@ public:
     }
 
     bool isValidForEq() const {
+        switch (Kind) {
+            case T_Real:
+            case T_Int:
+            case T_Bool:
+                return true;
+            case T_Tuple:
+                return doesTupleSupportEq(this);
+        }
         return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
     }
 
@@ -107,7 +116,7 @@ public:
     bool canPromoteTo(const Type *T) const {
         switch (Kind) {
             case T_Int:
-                return T->getKind() == T_Real;
+                return T->getKind() == T_Real || T->getKind() == T_Int;
             case T_Tuple:
                 return canPromoteTupleTo(this, T);
             default:
