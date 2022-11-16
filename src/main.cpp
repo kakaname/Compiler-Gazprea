@@ -20,6 +20,7 @@
 #include "Passes/TupleCompToMemberCompPass.h"
 #include "Passes/ASTPrinterPassWithTypes.h"
 #include "Passes/ReturnValuePromotionPass.h"
+#include "Passes/CodeGenPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -112,6 +113,10 @@ int main(int argc, char **argv) {
 
 
     Manager.runAllPasses();
+
+    auto CG = CodeGenPass(argv[2]);
+    auto *Root = Manager.getRoot();
+    CG.runOnAST(Manager, Root);
     return 0;
 
 }

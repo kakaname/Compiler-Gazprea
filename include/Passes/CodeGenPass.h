@@ -7,6 +7,7 @@
 
 #include <map>
 #include <vector>
+#include <stack>
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
@@ -16,107 +17,87 @@
 #include "Passes/PassManager.h"
 #include "Passes/VisitorPass.h"
 #include "Passes/ExprTypeAnnotatorPass.h"
+#include "Symbol/Symbol.h"
 
 
 struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
-//    using AnnotationT = llvm::Value*;
-//
-//    llvm::LLVMContext GlobalCtx;
-//    llvm::IRBuilder<> IR;
-//    llvm::Module Mod;
-//
-//    ASTPassManager *PM;
+    using AnnotationT = llvm::Value*;
+
+    ASTPassManager *PM{};
+
+    llvm::LLVMContext GlobalCtx;
+    llvm::IRBuilder<> IR;
+    llvm::Module Mod;
+
+    llvm::Type *LLVMIntTy;
+    llvm::Type *LLVMBoolTy;
+    llvm::Type *LLVMCharTy;
+    llvm::Type *LLVMRealTy;
+
+    llvm::Function *CurrentFunction{};
+    llvm::Function *GlobalFunction{};
+    llvm::Function *MainFunction{};
 
     // Use to keep track of which llvm values represents which symbols in the
-//    // program.
-//    map<unsigned, llvm::Value*> SymbolMap;
-//
-//    // The file to dump the outputs to.
-//    const char *OutputFile;
-//
-//    explicit CodeGenPass(const char *OutFile) : VisitorPass(), GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile) {}
-//
-//    void runOnAST(ASTPassManager &Manager, ASTNodeT &Root);
-//
-//    llvm::Value *visitProgram(Program *Prog);
-//
-//    llvm::Value *visitIdentifier(Identifier *Ident);
-//
-//    llvm::Value *visitAssignment(Assignment *Assign);
-//
-//    llvm::Value *visitDeclaration(Declaration *Decl);
-//
-//    llvm::Value *visitBlock(Block *Blk) {};
-//
-//    llvm::Value *visitLogicalOp(LogicalOp *Op);
-//
-//    llvm::Value *visitArithmeticOp(ArithmeticOp *Op);
-//
-//    llvm::Value *visitIndex(Index *Idx);
-//
-//    llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
-//
-//    llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
-//
-//    // ignored for part1
-//    llvm::Value *visitDomainLoop(DomainLoop *Loop);
-//
-//    llvm::Value *visitIntLiteral(IntLiteral *IntLit);
-//
-//    llvm::Value *visitNullLiteral(NullLiteral *NullLit);
-//
-//    llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
-//
-//    llvm::Value *visitRealLiteral(RealLiteral *RealLit);
-//
-//    llvm::Value *visitBoolLiteral(BoolLiteral *BoolLit);
-//
-//    llvm::Value *visitCharLiteral(CharLiteral *CharLit);
-//
-//    llvm::Value *visitTupleLiteral(TupleLiteral *TupleLit);
-//
-//    llvm::Value *visitMemberAccess(MemberAccess *MemberAcc);
-//
-//    llvm::Value *visitTupleTypeDecl(TupleTypeDecl *TupleTypeDecl);
-//
-//    llvm::Value *visitConditional(Conditional *Cond);
-//
-//    llvm::Value *visitConditionalElse(ConditionalElse *Cond);
-//
-//    llvm::Value *visitTypeCast(TypeCast *Cast);
-//
-//    llvm::Value *visitBitwiseOp(BitwiseOp *Op);
-//
-//    llvm::Value *visitUnaryOp(UnaryOp *Op);
-//
-//    llvm::Value *visitArgsList(ArgsList *List);
+    // program.
+    map<const Symbol*, llvm::Value*> SymbolMap;
 
-//    llvm::Value *visitParasList(ParasList *List);
+    // Used to keep track of which loop we are currently in for breaks/continues
+    std::stack<llvm::BasicBlock*> LoopEndBlocks;
+    std::stack<llvm::BasicBlock*> LoopBeginBlocks;
 
-//    llvm::Value *visitFunctionDecl(FunctionDecl *FuncDecl);
-//
-//    llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
-//
-//    llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
-//
-//    llvm::Value *visitProcedureDecl(ProcedureDecl *ProcedureDecl);
-//
-//    llvm::Value *visitProcedureDef(ProcedureDef *ProcedureDef);
-//
-//    llvm::Value *visitProcedureCall(ProcedureCall *ProcedureCall);
-//
-//    llvm::Value *visitReturn(Return *Return);
-//
-//    llvm::Value *visitBreak(Break *Break);
-//
-//    llvm::Value *visitContinue(Continue *Continue);
-//
-//    llvm::Value *visitOutStream(OutStream *OutStream);
-//
-//    llvm::Value *visitInStream(InStream *InStream);
-//
-//    llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
+    // The file to dump the outputs to.
+    const char *OutputFile;
 
+    explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
+        LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
+        LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)) {};
+
+    void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
+
+    llvm::Value *visitProgram(Program *P);
+
+    llvm::Value *visitIdentifier(Identifier *Ident);
+    llvm::Value *visitAssignment(Assignment *Assign);
+    llvm::Value *visitDeclaration(Declaration *Decl);
+    llvm::Value *visitComparisonOp(ComparisonOp *Op);
+
+    llvm::Value *visitBlock(Block *Blk) {};
+    llvm::Value *visitLogicalOp(LogicalOp *Op);
+    llvm::Value *visitArithmeticOp(ArithmeticOp *Op);
+    llvm::Value *visitIndex(Index *Idx);
+    llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
+    llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
+
+    // ignored for part1
+    llvm::Value *visitDomainLoop(DomainLoop *Loop);
+    llvm::Value *visitIntLiteral(IntLiteral *IntLit);
+    llvm::Value *visitNullLiteral(NullLiteral *NullLit);
+    llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
+    llvm::Value *visitRealLiteral(RealLiteral *RealLit);
+    llvm::Value *visitBoolLiteral(BoolLiteral *BoolLit);
+    llvm::Value *visitCharLiteral(CharLiteral *CharLit);
+    llvm::Value *visitTupleLiteral(TupleLiteral *TupleLit);
+    llvm::Value *visitMemberAccess(MemberAccess *MemberAcc);
+    llvm::Value *visitConditional(Conditional *Cond);
+    llvm::Value *visitConditionalElse(ConditionalElse *Cond);
+    llvm::Value *visitTypeCast(TypeCast *Cast);
+    llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
+    llvm::Value *visitUnaryOp(UnaryOp *Op);
+    llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
+    llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
+    llvm::Value *visitProcedureDef(ProcedureDef *ProcedureDef);
+    llvm::Value *visitProcedureCall(ProcedureCall *ProcedureCall);
+    llvm::Value *visitReturn(Return *Return);
+    llvm::Value *visitBreak(Break *Break);
+    llvm::Value *visitContinue(Continue *Continue);
+    llvm::Value *visitOutStream(OutStream *OutStream);
+    llvm::Value *visitInStream(InStream *InStream);
+
+    llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
+    llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
+    llvm::Type *getLLVMType(const Type *Ty);
 };
 
 
