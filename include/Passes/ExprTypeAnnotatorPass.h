@@ -22,8 +22,8 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitIdentifier(Identifier *Ident) const;
     const Type *visitMemberAccess(MemberAccess *MAccess);
     const Type *visitFunctionCall(FunctionCall *Call);
-    const Type *visitIntLiteral(IntLiteral *Int);
-    const Type *visitRealLiteral(RealLiteral *Real);
+    const Type *visitIntLiteral(IntLiteral *Int) const;
+    const Type *visitRealLiteral(RealLiteral *Real) const ;
     const Type *visitTupleLiteral(TupleLiteral *TupLit);
     const Type *visitTypeCast(TypeCast *Cast);
     const Type *visitExplicitCast(ExplicitCast *Cast);
@@ -32,8 +32,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
 
 
-    TypeCast *wrapWithCastToReal(ASTNodeT *Expr) const;
-
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);

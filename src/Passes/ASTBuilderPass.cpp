@@ -305,7 +305,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     vector<const Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
-    for (auto Param : ctx->typeIdentPair()) {
+    for (auto Param : ctx->functionParameter()) {
         auto ParamType = PM->TypeReg.getConstTypeOf(
                 castToTypeVisit(Param->type()));
         auto ParamIdent = PM->Builder.build<Identifier>();
