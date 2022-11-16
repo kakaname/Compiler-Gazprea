@@ -5,8 +5,9 @@
 #ifndef GAZPREABASE_TYPEHELPERS_H
 #define GAZPREABASE_TYPEHELPERS_H
 
-#include "CompositeTypes.h"
+#include <algorithm>
 
+#include "CompositeTypes.h"
 
 using llvm::dyn_cast;
 
@@ -58,6 +59,12 @@ bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
                 TargetTuple->getMemberTypeAt(I)))
             return false;
     return true;
+}
+
+bool doesTupleSupportEq(const Type *Tup) {
+    auto Members = cast<TupleTy>(Tup)->getMemberTypes();
+    auto Pred = [&](const Type* T) { return T->isValidForEq();};
+    return std::all_of(Members.begin(), Members.end(), Pred);
 }
 
 #endif //GAZPREABASE_TYPEHELPERS_H

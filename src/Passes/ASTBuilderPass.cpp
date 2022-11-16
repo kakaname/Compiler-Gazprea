@@ -53,10 +53,17 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 
     // If there is an init expression, we set it. Else we insert an initialization
     // with null.
-    if (ctx->expr())
-        Decl->setInitExpr(castToNodeVisit(ctx->expr()));
-    else
+    if (!ctx->expr()) {
         Decl->setInitExpr(PM->Builder.build<NullLiteral>());
+        assert(Decl->getIdentType() && "Must specify a type if leaving ident"
+                                       " uninitialized");
+        auto Null = PM->Builder.build<NullLiteral>();
+        auto Cast = PM->Builder.build<TypeCast>();
+        Cast->setTargetType(Decl->getIdentType());
+        Cast->setExpr(Null);
+        Decl->setInitExpr(Cast);
+    } else
+        Decl->setInitExpr(castToNodeVisit(ctx->expr()));
 
     return cast<ASTNodeT>(Decl);
 }
@@ -279,8 +286,10 @@ std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext 
         FuncDecl->addParam(PM->TypeReg.getConstTypeOf(ParamTy));
     }
 
-    FuncDecl->setRetTy(PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
-
+    auto FuncRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+    FuncDecl->setRetTy(FuncRetTy);
+    auto FuncType = PM->TypeReg.getFunctionType(FuncDecl->getParamTypes(), FuncRetTy);
+    Ident->setIdentType(FuncType);
     return cast<ASTNodeT>(FuncDecl);
 }
 
@@ -292,6 +301,9 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     Ident->setName(ctx->ID()->getText());
     FuncDef->setIdent(Ident);
 
+
+    vector<const Type*> ParamTypes;
+
     auto ParamList = PM->Builder.build<ParameterList>();
     for (auto Param : ctx->typeIdentPair()) {
         auto ParamType = PM->TypeReg.getConstTypeOf(
@@ -300,6 +312,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
         ParamIdent->setIdentType(ParamType);
         ParamIdent->setName(Param->ID()->getText());
         ParamList->addParam(ParamIdent);
+        ParamTypes.emplace_back(ParamType);
     }
 
     FuncDef->setParamList(ParamList);
@@ -307,7 +320,9 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     auto FuncRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
     FuncDef->setRetTy(FuncRetTy);
 
-    FuncDef->getIdentifier()->setIdentType(FuncRetTy);
+    auto FuncTy = PM->TypeReg.getFunctionType(ParamTypes, FuncRetTy);
+    FuncDef->getIdentifier()->setIdentType(FuncTy);
+
     // If the function is in expression format, we change it to block format.
     if (ctx->expr()) {
         auto RetStmt = PM->Builder.build<Return>();
@@ -352,6 +367,8 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     Ident->setName(ctx->ID()->getText());
     ProcDef->setIdent(Ident);
 
+    vector<const Type*> ParamTypes;
+
     auto ParamList = PM->Builder.build<ParameterList>();
     for (auto Param : ctx->typeIdentPair()) {
         bool IsVar = (Param->typeQualifier() && Param->typeQualifier()->VAR());
@@ -362,6 +379,7 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
         ParamIdent->setName(Param->ID()->getText());
         ParamIdent->setIdentType(ParamType);
         ParamList->addParam(ParamIdent);
+        ParamTypes.emplace_back(ParamType);
     }
 
     ProcDef->setParamList(ParamList);
@@ -369,6 +387,8 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     if (ctx->type())
         ProcDef->setRetTy(castToTypeVisit(ctx->type()));
 
+    auto ProcTy = PM->TypeReg.getProcedureType(ParamTypes, ProcDef->getRetTy());
+    ProcDef->getIdentifier()->setIdentType(ProcTy);
 
     return cast<ASTNodeT>(ProcDef);
 }

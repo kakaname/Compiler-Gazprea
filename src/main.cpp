@@ -14,6 +14,7 @@
 #include "Passes/ASTPrinterPass.h"
 #include "Passes/ScopeResolutionPass.h"
 #include "Passes/ConvertIdentMemberAccessToIdxPass.h"
+#include "Passes/AssignmentTypeCheckerPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -75,11 +76,20 @@ int main(int argc, char **argv) {
 //    TreeNodeBuilder Builder;
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
+
+
+    auto IntTy = Manager.TypeReg.getIntegerTy();
+    auto RealTy = Manager.TypeReg.getRealTy();
+    auto RealTuple = Manager.TypeReg.getTupleType({RealTy}, std::map<string, int>());
+    auto IntTuple = Manager.TypeReg.getTupleType({IntTy}, std::map<string, int>());
+    assert(IntTuple->canPromoteTo(RealTuple));
+
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerAnonymousPass(ASTPrinterPass());
 //    Manager.registerPass(SetsInt());
 //Manager.registerPass(SetsCustomResult());
