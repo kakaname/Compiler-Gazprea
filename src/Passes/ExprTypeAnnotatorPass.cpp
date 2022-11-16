@@ -107,6 +107,37 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
             RightType = Cast->getTargetType();
         }
 
+        //Check tuple promotion
+        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
+            assert((LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
+                    || RightType->canPromoteTo(LeftType)) && "Cannot compare incompatible tuple types");
+            if (LeftType->canPromoteTo(RightType)) {
+                auto Cast = PM->Builder.build<TypeCast>();
+                auto OldTupleType = dyn_cast<TupleTy>(RightType);
+                auto TargetType = PM->TypeReg.getTupleType(OldTupleType->getMemberTypes(),
+                                                           OldTupleType->getMappings(),
+                                                           OldTupleType->isConst());
+
+                Cast->setExpr(LeftExpr);
+                Cast->setTargetType(TargetType);
+                Op->setLeftExpr(Cast);
+                LeftType = Cast->getTargetType();
+            }
+
+            if (RightType->canPromoteTo(LeftType)) {
+                auto Cast = PM->Builder.build<TypeCast>();
+                auto OldTupleType = dyn_cast<TupleTy>(LeftType);
+                auto TargetType = PM->TypeReg.getTupleType(OldTupleType->getMemberTypes(),
+                                                           OldTupleType->getMappings(),
+                                                           OldTupleType->isConst());
+
+                Cast->setExpr(RightExpr);
+                Cast->setTargetType(TargetType);
+                Op->setRightExpr(Cast);
+                RightType = Cast->getTargetType();
+            }
+        }
+
         assert(LeftType->isSameTypeAs(RightType) && "Cannot compare incompatible types");
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
