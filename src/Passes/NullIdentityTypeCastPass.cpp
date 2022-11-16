@@ -14,10 +14,10 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
             auto TupleLit = PM->Builder.build<TupleLiteral>();
 
             auto TupleType = cast<TupleTy>(Cast->getTargetType());
-            int NumOfMembers = TupleType->getNumOfMembers();
+            size_t NumOfMembers = TupleType->getNumOfMembers();
             for (size_t I = 0; I < NumOfMembers; I++) {
                 auto MemberType = TupleType->getMemberTypeAt(I);
-                TupleLit->setExprAtPos(getScalarLiteral(MemberType->getKind(), IsNull));
+                TupleLit->setExprAtPos(getScalarLiteral(MemberType->getKind(), IsNull), I);
             }
             Cast->setExpr(TupleLit);
         }
