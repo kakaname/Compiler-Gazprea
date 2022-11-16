@@ -7,6 +7,7 @@
 
 #include "VisitorPass.h"
 #include "PassManager.h"
+#include "ExprTypeAnnotatorPass.h"
 
 struct SimplifyTupleCasting : VisitorPass<SimplifyTupleCasting, void> {
     void visitTypeCast(TypeCast *Cast);
@@ -19,6 +20,7 @@ struct SimplifyTupleCasting : VisitorPass<SimplifyTupleCasting, void> {
     void runOnAST(ASTPassManager &P, ASTNodeT *Root) {
         PM = &P;
         visit(Root);
+//        PM->invalidateResult<ExprTypeAnnotatorPass>();
     }
 
     ASTPassManager *PM;

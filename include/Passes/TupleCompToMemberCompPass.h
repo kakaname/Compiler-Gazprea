@@ -24,7 +24,6 @@ struct TupleCompToMemberCompPass: public VisitorPass<TupleCompToMemberCompPass, 
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");
         PM = &PManager;
         visit(Root);
-        PM->invalidateResult<ExprTypeAnnotatorPass>();
     }
 };
 

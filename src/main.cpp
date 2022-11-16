@@ -100,8 +100,11 @@ int main(int argc, char **argv) {
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
-//    Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ASTPrinterPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
 

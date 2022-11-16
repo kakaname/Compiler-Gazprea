@@ -4,7 +4,6 @@
 
 
 #include "Passes/SimplifyTupleCasting.h"
-#include "Passes/ExprTypeAnnotatorPass.h"
 
 void SimplifyTupleCasting::visitTypeCast(TypeCast *Cast) {
     visit(Cast->getExpr());
@@ -19,7 +18,7 @@ void SimplifyTupleCasting::visitTypeCast(TypeCast *Cast) {
         auto Casted = wrapWithCastTo(MemExpr, MemCastTarget);
         Literal->addChild(Casted);
     }
-
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Literal, TargetTy);
     Cast->getParent()->replaceChildWith(Cast, Literal);
 }
 
@@ -36,7 +35,7 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
         auto Casted = wrapWithCastTo(MemExpr, MemCastTarget);
         Literal->addChild(Casted);
     }
-
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Literal, TargetTy);
     Cast->getParent()->replaceChildWith(Cast, Literal);
 }
 
