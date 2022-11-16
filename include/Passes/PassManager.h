@@ -140,6 +140,9 @@ public:
         assert(Res != Annotations.end() && "Attempt to access annotations from"
                                            " the PassManager before it is set.");
 
+        if (!ValidResults.count(PassT::ID()))
+            runPass<PassT>();
+
         ResultObject *Annotation = Res->second.get();
         return Annotation->template getConcreteResult<typename PassT::AnnotationT>();
     }
@@ -193,7 +196,7 @@ public:
         auto Res = IdToIdxMap.find(PassT::ID());
         assert(Res != IdToIdxMap.end() && "Passes must be registered before "
                                           "being run.");
-        Passes[Res->second].runOnAST(*this, *Root);
+        Passes[Res->second].runOnAST(*this, Root);
     }
 
     void runAllPasses() {

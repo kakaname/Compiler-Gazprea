@@ -159,13 +159,13 @@ struct FunctionTy : public Type {
 
     using ArgsTypeContainer = vector<const Type*>;
 
-    const Type *getArgTypeAt(size_t Pos) {
+    const Type *getArgTypeAt(size_t Pos) const {
         if (Pos >= Args.size())
             return nullptr;
         return Args.at(Pos);
     }
 
-    size_t getNumOfArgs() {
+    size_t getNumOfArgs() const {
         return Args.size();
     }
 
@@ -190,11 +190,15 @@ struct ProcedureTy : public Type {
 
     using ArgsTypeContainer = vector<const Type*>;
 
-    const Type *getArgTypeAt(size_t Pos) {
+    const Type *getArgTypeAt(size_t Pos) const {
         if (Pos >= Args.size())
             return nullptr;
         return Args.at(Pos);
     }
+
+    const Type *getRetTy() const {
+        return RetTy;
+    };
 
     size_t getNumOfArgs() const {
         return Args.size();
@@ -202,11 +206,12 @@ struct ProcedureTy : public Type {
 
     ProcedureTy() = delete;
 
-    explicit ProcedureTy(ArgsTypeContainer Args, const Type* ReturnTy):
-            Type(TypeKind::T_Function, true), Args(std::move(Args)) {}
+    explicit ProcedureTy(ArgsTypeContainer Args, const Type* RetTy):
+            Type(TypeKind::T_Procedure, true), Args(std::move(Args)), RetTy(RetTy) {}
 
 private:
     ArgsTypeContainer Args;
+    const Type *RetTy;
 };
 
 #endif //GAZPREABASE_COMPOSITETYPES_H
