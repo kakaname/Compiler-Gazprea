@@ -62,7 +62,7 @@ output : expr PUT STDOUT SC;
 
 input : ID IN STDIN SC;
 
-return : RETURN expr SC;
+return : RETURN (expr)? SC;
 
 typeQualifier : VAR
               | CONST;

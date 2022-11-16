@@ -19,6 +19,7 @@
 #include "Passes/EnsureReturnPass.h"
 #include "Passes/TupleCompToMemberCompPass.h"
 #include "Passes/ASTPrinterPassWithTypes.h"
+#include "Passes/ReturnValuePromotionPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -96,6 +97,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
+    Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(TupleCompToMemberCompPass());
 //    Manager.registerAnonymousPass(ASTPrinterPass());

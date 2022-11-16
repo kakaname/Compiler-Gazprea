@@ -30,7 +30,9 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPassWithTypes.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleCompToMemberCompPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ReturnValuePromotionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CallableArgumentTypeCheckingPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallAliasCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/NullIdentityTypeCastPass.cpp")
 
 # Build our executable from the source files.

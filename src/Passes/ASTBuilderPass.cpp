@@ -221,13 +221,15 @@ std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
-    auto ReturnStatement = PM->Builder.build<Return>();
+    auto RetStmt = PM->Builder.build<Return>();
 
     // Set the returned expression
-    auto ReturnExpr = castToNodeVisit(ctx->expr());
-    ReturnStatement->setReturnExpr(ReturnExpr);
+    if (!ctx->expr())
+        RetStmt->setReturnExpr(PM->Builder.build<NoOp>());
+    else
+        RetStmt->setReturnExpr(castToNodeVisit(ctx->expr()));
 
-    return cast<ASTNodeT>(ReturnStatement);
+    return cast<ASTNodeT>(RetStmt);
 }
 
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {

@@ -249,7 +249,7 @@ const Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
 
 const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
-    auto IdentTy = Call->getIdentifier()->getIdentType();
+    auto IdentTy = visit(Call->getIdentifier());
     assert(IdentTy && "Ident type not set for function call");
     assert(IdentTy->isCallable() && "Tried call an non-callable type.");
     if (auto FuncTy = dyn_cast<FunctionTy>(IdentTy)) {
