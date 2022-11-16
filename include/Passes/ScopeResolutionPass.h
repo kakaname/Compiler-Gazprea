@@ -76,6 +76,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (!Decl->getIdentType()) {
             ExprAnnotator.runOnAST(*PM, Decl->getInitExpr());
             auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
+            assert(ExprType && "Cannot infer declaration type");
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }
@@ -138,6 +139,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
             // Declare it in scope.
             auto ParamSym = PM->SymTable.defineObject(ParamName, ParamType);
+            ParamIdent->setReferred(ParamSym);
             ProcParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
         // Add another scope for the function body.
@@ -181,6 +183,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
             // Declare it in scope.
             auto ParamSym = PM->SymTable.defineObject(ParamName, ParamType);
+            ParamIdent->setReferred(ParamSym);
             FuncParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
         // Add another scope for the function body.

@@ -21,6 +21,7 @@
 #include "Passes/ASTPrinterPassWithTypes.h"
 #include "Passes/ReturnValuePromotionPass.h"
 #include "Passes/CodeGenPass.h"
+#include "Passes/SimplifyTupleCasting.h"
 
 #include <iostream>
 #include <fstream>
@@ -100,17 +101,13 @@ int main(int argc, char **argv) {
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(SimplifyTupleCasting());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
-//    Manager.registerAnonymousPass(ASTPrinterPass());
-//    Manager.registerPass(SetsInt());
-//Manager.registerPass(SetsCustomResult());
-//  Manager.registerAnonymousPass(PrintsResults());
-//  Manager.registerPass(GetsResultInvalidated());
-//  Manager.registerAnonymousPass(InvalidatesResults());
-//  Manager.registerPass(SetsResultInvalidated());
-
-//    Manager.registerPass(ASTPrinterPass());
-
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 

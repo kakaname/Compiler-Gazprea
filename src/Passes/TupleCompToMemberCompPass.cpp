@@ -38,17 +38,18 @@ void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
     AndOp->setLeftExpr(EqualOps[0]);
 
     LogicalOp *First = AndOp;
-    for (size_t I = 0; I < EqualOps.size() - 1; ++I) {
+    for (size_t I = 1; I < EqualOps.size(); ++I) {
+
+        // If we are on the last one, we don't add another and.
+        if (I == EqualOps.size()-1) {
+            First->setRightExpr(EqualOps[I]);
+            break;
+        }
         auto Second = PM->Builder.build<LogicalOp>();
         Second->setOp(LogicalOp::AND);
         Second->setLeftExpr(EqualOps[I]);
         First->setRightExpr(Second);
         First = Second;
-
-        if (I < EqualOps.size() - 2)
-            continue;
-
-        Second->setRightExpr(EqualOps[I + 1]);
     }
 
     Op->getParent()->replaceChildWith(Op, AndOp);

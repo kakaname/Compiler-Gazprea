@@ -4,14 +4,14 @@
 
 #include "Passes/ConvertIdentMemberAccessToIdxPass.h"
 #include "Types/CompositeTypes.h"
+#include "Passes/ExprTypeAnnotatorPass.h"
 
 using llvm::isa;
 
 void ConvertIdentMemberAccessToIdxPass::visitMemberAccess(MemberAccess *Access) {
-    auto Ident = dyn_cast<Identifier>(Access->getExpr());
-    assert(Ident && "Only lvalues may have their members accessed");
     auto Expr = Access->getMemberExpr();
-    auto Tuple = dyn_cast<TupleTy>(Ident->getIdentType());
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Access->getExpr());
+    auto Tuple = dyn_cast<TupleTy>(ExprTy);
     assert(Tuple && "Only tuples may have their members accessed");
 
     if (auto IntLit = dyn_cast<IntLiteral>(Expr)) {

@@ -33,6 +33,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ReturnValuePromotionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CallableArgumentTypeCheckingPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallAliasCheckPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/SimplifyTupleCasting.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/NullIdentityTypeCastPass.cpp")
 
 # Build our executable from the source files.

@@ -83,7 +83,7 @@ class ASTPassManager {
     ResultMapT Results;
     ResourceMapT Resources;
     PassIDToIdxMapT IdToIdxMap;
-    set<const PassId *> ValidResults;
+    set<const PassId *> InvalidResults;
 
     vector<PassObject> Passes;
 
@@ -107,7 +107,7 @@ public:
                                        "PassManager before it is set.");
 
         // If the result has been invalidated, we run the pass again.
-        if (!ValidResults.count(PassT::ID()))
+        if (InvalidResults.count(PassT::ID()))
             runPass<PassT>();
 
         // We just ran the pass, therefore the result should be here.
@@ -118,7 +118,7 @@ public:
     template<typename PassT>
     void invalidateResult() {
         // We just remove it from the set of valid results.
-        ValidResults.erase(PassT::ID());
+        InvalidResults.insert(PassT::ID());
     }
 
     template<typename PassT>
@@ -127,7 +127,7 @@ public:
         static_assert(!std::is_reference_v<decltype(Result)>);
 
         // If a result is set explicitly then it must be valid.
-        ValidResults.insert(PassT::ID());
+        InvalidResults.erase(PassT::ID());
         Results.insert({PassT::ID(),
                         make_unique<ResultObject>(std::move(Result))});
     }
@@ -140,7 +140,7 @@ public:
         assert(Res != Annotations.end() && "Attempt to access annotations from"
                                            " the PassManager before it is set.");
 
-        if (!ValidResults.count(PassT::ID()))
+        if (InvalidResults.count(PassT::ID()))
             runPass<PassT>();
 
         ResultObject *Annotation = Res->second.get();
@@ -197,6 +197,7 @@ public:
         assert(Res != IdToIdxMap.end() && "Passes must be registered before "
                                           "being run.");
         Passes[Res->second].runOnAST(*this, Root);
+        InvalidResults.erase(PassT::ID());
     }
 
     void runAllPasses() {
