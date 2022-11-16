@@ -55,8 +55,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
-    llvm::Value *visitProgram(Program *P);
-
     llvm::Value *visitIdentifier(Identifier *Ident);
     llvm::Value *visitAssignment(Assignment *Assign);
     llvm::Value *visitDeclaration(Declaration *Decl);
