@@ -1,0 +1,21 @@
+procedure main() returns integer {
+  // tests for real input
+  var real x;
+  x <- std_input;
+  x -> std_output;
+  x <- std_input;
+  x -> std_output;
+  x <- std_input;
+  x -> std_output;
+ // negatives 
+  x <- std_input;
+  x -> std_output;
+  x <- std_input;
+  x -> std_output;
+  x <- std_input;
+  x -> std_output;
+  
+
+  /* must have a return */
+  return 0;
+}

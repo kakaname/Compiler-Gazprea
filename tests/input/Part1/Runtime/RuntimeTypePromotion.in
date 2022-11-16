@@ -1,0 +1,9 @@
+procedure main() returns integer {
+  // very basic procedure tests
+  
+    var integer x = 5;
+    x <- std_input;
+    x -> std_output
+  /* must have a return */
+  return 0;
+}
