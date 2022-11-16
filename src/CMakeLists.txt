@@ -29,7 +29,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExplicitCastCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleNotEqualTransformationPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/TupleComparisonToMemberAccessPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPassWithTypes.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPassWithTypes.cpp" Passes/NullIdentityTypeCastPass.cpp ../include/Passes/NullIdentityTypeCastPass.h)
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
