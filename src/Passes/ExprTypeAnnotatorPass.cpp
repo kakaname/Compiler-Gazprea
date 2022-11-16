@@ -113,26 +113,20 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
                     || RightType->canPromoteTo(LeftType)) && "Cannot compare incompatible tuple types");
             if (LeftType->canPromoteTo(RightType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
-                auto OldTupleType = dyn_cast<TupleTy>(RightType);
-                auto TargetType = PM->TypeReg.getTupleType(OldTupleType->getMemberTypes(),
-                                                           OldTupleType->getMappings(),
-                                                           OldTupleType->isConst());
+                auto TupleType = cast<TupleTy>(RightType);
 
                 Cast->setExpr(LeftExpr);
-                Cast->setTargetType(TargetType);
+                Cast->setTargetType(TupleType);
                 Op->setLeftExpr(Cast);
                 LeftType = Cast->getTargetType();
             }
 
             if (RightType->canPromoteTo(LeftType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
-                auto OldTupleType = dyn_cast<TupleTy>(LeftType);
-                auto TargetType = PM->TypeReg.getTupleType(OldTupleType->getMemberTypes(),
-                                                           OldTupleType->getMappings(),
-                                                           OldTupleType->isConst());
+                auto TupleType = cast<TupleTy>(LeftType);
 
                 Cast->setExpr(RightExpr);
-                Cast->setTargetType(TargetType);
+                Cast->setTargetType(TupleType);
                 Op->setRightExpr(Cast);
                 RightType = Cast->getTargetType();
             }
