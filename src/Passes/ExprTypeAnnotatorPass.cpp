@@ -229,8 +229,9 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     assert(MemberIdx && "Only member accesses with integer literals "
                         "should have reached this place.");
 
-    assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal() && "Invalid index to access a member");
-    auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal());
+    assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal()
+                && "Invalid index to access a member");
+    auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal() - 1);
     PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
     return ResultTy;
 }
@@ -292,4 +293,9 @@ const Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
     visit(Cast->getExpr());
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Cast->getTargetType());
     return Cast->getTargetType();
+}
+
+const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Bool, PM->TypeReg.getBooleanTy());
+    return PM->TypeReg.getBooleanTy();
 }

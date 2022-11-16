@@ -61,7 +61,7 @@ public:
     }
 
     void visitNoOp(NoOp *Op) {
-        std::cout << "NoOp(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Op)->getTypeName() << ")" << '\n';
+        std::cout << "NoOp\n";
     }
 
     // ignored for part1

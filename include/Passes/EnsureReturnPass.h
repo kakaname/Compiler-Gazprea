@@ -30,7 +30,7 @@
 #include "Passes/VisitorPass.h"
 #include "ErrorHandling/exceptions.h"
 
-struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
+struct EnsureReturnPass : public VisitorPass<EnsureReturnPass, bool> {
 //    // The annotation determines if a branch is safe or not
 //    // could be substituted with return type
 //    using AnnotationT = bool;
@@ -52,5 +52,5 @@ struct FunctionFlowPass : public VisitorPass<FunctionFlowPass, bool> {
 
     ASTPassManager *PM;
 
-    FunctionFlowPass() : VisitorPass() {}
+    EnsureReturnPass() : VisitorPass() {}
 };

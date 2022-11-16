@@ -14,7 +14,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTBuilderPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExprTypeAnnotatorPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/FunctionFlowPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureReturnPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"

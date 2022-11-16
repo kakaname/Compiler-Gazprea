@@ -11,13 +11,17 @@
 using llvm::cast;
 using llvm::dyn_cast;
 
+using std::string;
+
 class Type;
 
 bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
-std::string getTupleTypeName(const Type *Ty);
+string getTupleTypeName(const Type *Ty);
+string getFunctionTypeName(const Type *Ty);
+string getProcedureTypeName(const Type *Ty);
 
 class Type {
 public:
@@ -149,6 +153,10 @@ public:
                 return TypeName + "real";
             case T_Tuple:
                 return TypeName + getTupleTypeName(this);
+            case T_Function:
+                return getFunctionTypeName(this);
+            case T_Procedure:
+                return getProcedureTypeName(this);
         }
         assert(false);
     }

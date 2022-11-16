@@ -753,11 +753,12 @@ std::any ASTBuilderPass::visitDotReal(GazpreaParser::DotRealContext *ctx) {
 std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
     vector<const Type*> MemberTypes;
     map<string, int> Mappings;
-    int Idx = 0;
+    int Idx = 1;
     for (auto *Member : ctx->tupleTypeDecl()->tupleMemberType()) {
         if (Member->ID())
-            Mappings.insert({Member->ID()->getText(), ++Idx});
+            Mappings.insert({Member->ID()->getText(), Idx});
         MemberTypes.emplace_back(castToTypeVisit(Member->type()));
+        ++Idx;
     }
     return PM->TypeReg.getTupleType(MemberTypes, Mappings, false);
 }

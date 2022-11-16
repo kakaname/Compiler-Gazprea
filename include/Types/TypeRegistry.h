@@ -181,8 +181,12 @@ public:
             return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), true);
 
-        if (auto *Tup = dyn_cast<TupleTy>(Ty))
-            return getTupleType(Tup->getMemberTypes(), Tup->getMappings(), true);
+        if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
+            vector<const Type*> ConstMems;
+            for (auto *MemberTy : Tup->getMemberTypes())
+                ConstMems.emplace_back(getConstTypeOf(MemberTy));
+            return getTupleType(ConstMems, Tup->getMappings(), true);
+        }
 
         assert(false && "Should not be reachable.");
     }

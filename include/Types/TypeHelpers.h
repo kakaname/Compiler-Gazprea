@@ -80,4 +80,35 @@ std::string getTupleTypeName(const Type *Ty) {
     return TypeName;
 }
 
+string getFunctionTypeName(const Type *Ty) {
+    auto FuncTy = cast<FunctionTy>(Ty);
+    std::string TypeName = "function(";
+    size_t NumOfMembers = FuncTy->getNumOfArgs();
+    for (size_t I = 0; I < NumOfMembers; I++) {
+        if (I > 0)
+            TypeName += ", ";
+        TypeName += FuncTy->getArgTypeAt(I)->getTypeName();
+    }
+    TypeName += ") -> ";
+    TypeName += FuncTy->getRetType()->getTypeName();
+    return TypeName;
+};
+
+string getProcedureTypeName(const Type *Ty) {
+    auto ProcTy = cast<ProcedureTy>(Ty);
+    std::string TypeName = "procedure(";
+    size_t NumOfMembers = ProcTy->getNumOfArgs();
+    for (size_t I = 0; I < NumOfMembers; I++) {
+        if (I > 0)
+            TypeName += ", ";
+        TypeName += ProcTy->getArgTypeAt(I)->getTypeName();
+    }
+    TypeName += ") -> ";
+    if (ProcTy->getRetTy())
+        TypeName += ProcTy->getRetTy()->getTypeName();
+    else
+        TypeName += "noreturn";
+    return TypeName;
+};
+
 #endif //GAZPREABASE_TYPEHELPERS_H
