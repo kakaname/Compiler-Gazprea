@@ -487,5 +487,21 @@ public:
     explicit ContinueOutsideLoopError(TreeNode *node) : CompilerError(
             "Continue Outside Loop", node,
             "Continue statement must be inside a loop"
+            ) {}
+};
+
+class StreamInFuncError : public CompilerError {
+public:
+    explicit StreamInFuncError(TreeNode *node) : CompilerError(
+            "I/O Stream inside function", node,
+            "All Stream statements must be inside procedures"
+            ) {}
+};
+
+class FuncCallGlobalError : public CompilerError{
+public:
+    explicit FuncCallGlobalError(TreeNode *node) : CompilerError(
+        "Function call from global scope", node,
+        "Cannot call function from global declaration"
     ) {}
 };
