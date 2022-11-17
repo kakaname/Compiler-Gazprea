@@ -832,7 +832,7 @@ struct ProcedureDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
 
     const Type *RetTy;
-    vector<const Type*> Arguments;
+    vector<const Type*> ParamTypes;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ProcedureDecl;
@@ -854,12 +854,12 @@ struct ProcedureDecl: public TreeNode {
         return RetTy;
     }
 
-    void addArgumentTy(const Type *T) {
-        Arguments.emplace_back(T);
+    void addParamTy(const Type *T) {
+        ParamTypes.emplace_back(T);
     }
 
-    vector<const Type*> &getArgumentList() {
-        return Arguments;
+    vector<const Type*> &getParamTypes() {
+        return ParamTypes;
     }
 
     ProcedureDecl(): TreeNode(TreeNodeKind::N_AST_ProcedureDecl) {}

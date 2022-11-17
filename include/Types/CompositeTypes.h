@@ -157,16 +157,20 @@ struct FunctionTy : public Type {
         return T->getKind() == TypeKind::T_Function;
     }
 
-    using ArgsTypeContainer = vector<const Type*>;
+    using ParamTypeContainer = vector<const Type*>;
 
-    const Type *getArgTypeAt(size_t Pos) const {
-        if (Pos >= Args.size())
+    const Type *getParamTypeAt(size_t Pos) const {
+        if (Pos >= Params.size())
             return nullptr;
-        return Args.at(Pos);
+        return Params.at(Pos);
+    }
+
+    const ParamTypeContainer &getParamTypes() const {
+        return Params;
     }
 
     size_t getNumOfArgs() const {
-        return Args.size();
+        return Params.size();
     }
 
     const Type *getRetType() const {
@@ -175,11 +179,11 @@ struct FunctionTy : public Type {
 
     FunctionTy() = delete;
 
-    explicit FunctionTy(ArgsTypeContainer Args, const Type *RetTy) :
-        Type(TypeKind::T_Function, true), Args(std::move(Args)), RetTy(RetTy) {}
+    explicit FunctionTy(ParamTypeContainer Args, const Type *RetTy) :
+            Type(TypeKind::T_Function, true), Params(std::move(Args)), RetTy(RetTy) {}
 
 private:
-    ArgsTypeContainer Args;
+    ParamTypeContainer Params;
     const Type *RetTy;
 };
 
@@ -190,10 +194,14 @@ struct ProcedureTy : public Type {
 
     using ArgsTypeContainer = vector<const Type*>;
 
-    const Type *getArgTypeAt(size_t Pos) const {
+    const Type *getParamTypeAt(size_t Pos) const {
         if (Pos >= Args.size())
             return nullptr;
         return Args.at(Pos);
+    }
+
+    const ArgsTypeContainer &getParamTypes() const {
+        return Args;
     }
 
     const Type *getRetTy() const {

@@ -135,7 +135,7 @@ public:
         return Inserted.first->second.get();
     }
 
-    const Type *getFunctionType(const FunctionTy::ArgsTypeContainer& Args, const Type *RetTy) {
+    const Type *getFunctionType(const FunctionTy::ParamTypeContainer& Args, const Type *RetTy) {
         pair Key{Args, RetTy};
         auto Res = FunctionTypes.find(Key);
         if (Res != FunctionTypes.end())

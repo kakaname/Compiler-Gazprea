@@ -15,7 +15,7 @@ void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
     auto Args = Call->getArgsList();
     for (auto I = 0; I < Args->numOfChildren(); I++) {
         // Don't need to check const args.
-        if (ProcTy->getArgTypeAt(I)->isConst())
+        if (ProcTy->getParamTypeAt(I)->isConst())
             continue;
 
         auto ArgExpr = Call->getArgsList()->getExprAtPos(I);

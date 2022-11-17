@@ -19,6 +19,10 @@ bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
+bool isSameFuncAs(const Type*, const Type*);
+bool isSameProcAs(const Type*, const Type*);
+
+
 string getTupleTypeName(const Type *Ty);
 string getFunctionTypeName(const Type *Ty);
 string getProcedureTypeName(const Type *Ty);
@@ -59,6 +63,10 @@ public:
                 return T->getKind() == Kind;
             case T_Tuple:
                 return isSameTupleTypeAs(this, T);
+            case T_Function:
+                return isSameFuncAs(this, T);
+            case T_Procedure:
+                return isSameProcAs(this, T);
         }
         return T->getKind() == Kind;
     }

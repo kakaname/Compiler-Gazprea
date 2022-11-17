@@ -94,6 +94,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         auto Resolved = CurrentScope->resolve(Ident->getName());
         if (!Resolved)
             throw std::runtime_error("Symbol for identifier " + Ident->getName() + " not found");
+        assert(Resolved->getSymbolType() && "Null symbol type?");
         Ident->setIdentType(Resolved->getSymbolType());
         Ident->setReferred(Resolved);
     }

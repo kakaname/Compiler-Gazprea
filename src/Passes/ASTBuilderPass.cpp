@@ -248,7 +248,7 @@ std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     Input->setIdentifier(Ident);
-    
+
     return cast<ASTNodeT>(Input);
 }
 
@@ -384,11 +384,16 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
         auto ParamTy = castToTypeVisit(Param->type());
         if (!IsVar)
             ParamTy = PM->TypeReg.getConstTypeOf(ParamTy);
-        ProcDecl->addArgumentTy(ParamTy);
+        ProcDecl->addParamTy(ParamTy);
     }
 
+    const Type *ProcRetTy{nullptr};
     if (ctx->type())
-        ProcDecl->setRetTy(PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
+        ProcRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+
+    ProcDecl->setRetTy(ProcRetTy);
+    auto ProcType = PM->TypeReg.getProcedureType(ProcDecl->getParamTypes(), ProcRetTy);
+    Ident->setIdentType(ProcType);
 
     return cast<ASTNodeT>(ProcDecl);
 }
@@ -419,7 +424,8 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     ProcDef->setParamList(ParamList);
     ProcDef->setBlock(castToNodeVisit(ctx->block()));
     if (ctx->type())
-        ProcDef->setRetTy(castToTypeVisit(ctx->type()));
+        ProcDef->setRetTy(
+                PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
 
     auto ProcTy = PM->TypeReg.getProcedureType(ParamTypes, ProcDef->getRetTy());
     ProcDef->getIdentifier()->setIdentType(ProcTy);

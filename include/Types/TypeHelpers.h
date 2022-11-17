@@ -87,7 +87,7 @@ string getFunctionTypeName(const Type *Ty) {
     for (size_t I = 0; I < NumOfMembers; I++) {
         if (I > 0)
             TypeName += ", ";
-        TypeName += FuncTy->getArgTypeAt(I)->getTypeName();
+        TypeName += FuncTy->getParamTypeAt(I)->getTypeName();
     }
     TypeName += ") -> ";
     TypeName += FuncTy->getRetType()->getTypeName();
@@ -101,7 +101,7 @@ string getProcedureTypeName(const Type *Ty) {
     for (size_t I = 0; I < NumOfMembers; I++) {
         if (I > 0)
             TypeName += ", ";
-        TypeName += ProcTy->getArgTypeAt(I)->getTypeName();
+        TypeName += ProcTy->getParamTypeAt(I)->getTypeName();
     }
     TypeName += ") -> ";
     if (ProcTy->getRetTy())
@@ -109,6 +109,46 @@ string getProcedureTypeName(const Type *Ty) {
     else
         TypeName += "noreturn";
     return TypeName;
+};
+
+
+bool isSameFuncAs(const Type* Base, const Type* Other) {
+    auto FuncTy = cast<FunctionTy>(Base);
+    auto OtherFunc = dyn_cast<FunctionTy>(Other);
+
+    if (!OtherFunc)
+        return false;
+    if (FuncTy->getNumOfArgs() != OtherFunc->getNumOfArgs())
+        return false;
+
+    for (auto I = 0; I < FuncTy->getNumOfArgs(); I++)
+        if (!FuncTy->getParamTypeAt(I)->isSameTypeAs(
+                OtherFunc->getParamTypeAt(I)))
+            return false;
+
+    return OtherFunc->getRetType()->isSameTypeAs(FuncTy->getRetType());
+};
+bool isSameProcAs(const Type *Base, const Type *Other) {
+    auto ProcTy = cast<ProcedureTy>(Base);
+    auto OtherProc = dyn_cast<ProcedureTy>(Other);
+
+    if (!OtherProc)
+        return false;
+    if (ProcTy->getNumOfArgs() != OtherProc->getNumOfArgs())
+        return false;
+
+    for (auto I = 0; I < ProcTy->getNumOfArgs(); I++)
+        if (!ProcTy->getParamTypeAt(I)->isSameTypeAs(
+                OtherProc->getParamTypeAt(I)))
+            return false;
+
+    if (!ProcTy->getRetTy())
+        return !OtherProc->getRetTy();
+
+    if (!OtherProc->getRetTy())
+        return false;
+
+    return ProcTy->getRetTy()->isSameTypeAs(OtherProc->getRetTy());
 };
 
 #endif //GAZPREABASE_TYPEHELPERS_H
