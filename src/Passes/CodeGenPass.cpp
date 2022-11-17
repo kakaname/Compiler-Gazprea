@@ -386,6 +386,7 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Bool:
             return IR.CreateICmpNE(Val, llvm::Constant::getNullValue(getLLVMType(SrcTy)));
         case Type::TypeKind::T_Char:
+            // TODO fix char
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Int:
                     return IR.CreateTrunc(Val, LLVMCharTy);
@@ -397,7 +398,6 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Int:
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Char:
-                    return IR.CreateSExt(Val, LLVMIntTy);
                 case Type::TypeKind::T_Bool:
                     return IR.CreateZExt(Val, LLVMIntTy);
                 case Type::TypeKind::T_Real:
@@ -408,8 +408,8 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Real:
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Int:
-                case Type::TypeKind::T_Char:
                     return IR.CreateSIToFP(Val, LLVMRealTy);
+                case Type::TypeKind::T_Char:
                 case Type::TypeKind::T_Bool:
                     return IR.CreateUIToFP(Val, LLVMRealTy);
                 default:
