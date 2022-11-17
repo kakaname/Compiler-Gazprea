@@ -34,3 +34,23 @@ void ConvertIdentMemberAccessToIdxPass::visitMemberAccess(MemberAccess *Access) 
     NewExpr->setIntVal(ResolvedIdx);
     Access->setMemberExpr(NewExpr);
 }
+
+void ConvertIdentMemberAccessToIdxPass::visitMemberReference(MemberReference *Ref) {
+    auto Expr = Ref->getMemberExpr();
+    auto IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIdentifier());
+    auto Tuple = dyn_cast<TupleTy>(IdentTy);
+    assert(Tuple && "Only tuples may have their members accessed");
+
+    if (auto IntLit = dyn_cast<IntLiteral>(Expr)) {
+        assert(IntLit->getVal() <= Tuple->getNumOfMembers() && IntLit->getVal() > 0);
+        return;
+    }
+
+    auto MemberName = dyn_cast<Identifier>(Expr);
+    assert(MemberName && "Invalid expression used to access member");
+    auto ResolvedIdx = Tuple->getMemberIdx(MemberName->getName());
+    assert(ResolvedIdx && "Member not found in tuple!");
+    auto NewExpr = PM->Builder.build<IntLiteral>();
+    NewExpr->setIntVal(ResolvedIdx);
+    Ref->setMemberExpr(NewExpr);
+}

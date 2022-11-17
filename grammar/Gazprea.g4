@@ -43,7 +43,14 @@ identDecl
 
 // we cannot assign procedureCall to an ID? I removed it.
 // Here procedureCall specifically means `call precodurename()`
-assignment : (index| memAccess | ID) EQ expr SC;
+assignment : lvalue EQ expr SC;
+
+lvalue
+    : expr LSQRPAREN expr RSQRPAREN     # indexLValue
+    | ID PERIOD (ID | INTLITERAL)       # memAccessLValue
+    | ID COMMA ID (COMMA ID)*           # tupleUnpackLValue
+    | ID                                # identLValue
+    ;
 
 index : expr LSQRPAREN expr RSQRPAREN;
 memAccess: ID PERIOD (ID | INTLITERAL);
@@ -63,7 +70,7 @@ typeDef : TYPEDEF type ID SC;
 
 output : expr PUT STDOUT SC;
 
-input : ID IN STDIN SC;
+input : lvalue IN STDIN SC;
 
 return : RETURN (expr)? SC;
 

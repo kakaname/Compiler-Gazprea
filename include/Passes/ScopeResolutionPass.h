@@ -99,6 +99,15 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Ident->setReferred(Resolved);
     }
 
+    void visitMemberReference(MemberReference *Ref) const {
+        auto IdentName = Ref->getIdentifier()->getName();
+        auto Resolved = CurrentScope->resolve(IdentName);
+        if (!Resolved)
+            throw std::runtime_error("Symbol for identifier " + IdentName + " not found");
+        Ref->getIdentifier()->setIdentType(Resolved->getSymbolType());
+        Ref->getIdentifier()->setReferred(Resolved);
+    }
+
     void visitConditionalLoop(ConditionalLoop *Loop) {
         auto NewScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(NewScope);
@@ -199,25 +208,43 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (Resolved) {
             assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
             "Differing declaration and definition");
+            Def->getIdentifier()->setReferred(Resolved);
             return;
         }
 
         auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
         CurrentScope->declareInScope(FuncName, FuncSym);
+        Def->getIdentifier()->setReferred(FuncSym);
     }
 
     void visitFunctionDecl(FunctionDecl *Decl) {
         auto FuncName = Decl->getIdentifier()->getName();
         auto FuncTy = Decl->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(FuncName);
+        if (Resolved) {
+            assert(FuncTy->isSameTypeAs(Resolved->getSymbolType())
+                && "Differing forward declarations for the same function.");
+            Decl->getIdentifier()->setReferred(Resolved);
+            return;
+        }
         auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
         CurrentScope->declareInScope(FuncName, FuncSym);
+        Decl->getIdentifier()->setReferred(FuncSym);
     }
 
     void visitProcedureDecl(ProcedureDecl *Decl) {
         auto ProcName = Decl->getIdentifier()->getName();
         auto ProcTy = Decl->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(ProcName);
+        if (Resolved) {
+            assert(ProcTy->isSameTypeAs(Resolved->getSymbolType())
+                   && "Differing forward declarations for the same function.");
+            Decl->getIdentifier()->setReferred(Resolved);
+            return;
+        }
         auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
         CurrentScope->declareInScope(ProcName, ProcSym);
+        Decl->getIdentifier()->setReferred(ProcSym);
     }
 
     void visitMemberAccess(MemberAccess *Access) {

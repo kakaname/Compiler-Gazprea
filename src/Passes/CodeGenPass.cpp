@@ -111,13 +111,12 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     return IR.CreateLoad(SymbolMap[Ident->getReferred()]);
 }
 
-
-
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     Value *StoreVal = visit(Assign->getExpr());
-    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
+    // TODO: FIX ME.
+//    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
     // All assignments, including tuple assignments, are lowered to store assignments
-    IR.CreateStore(StoreVal, StoreLoc);
+//    IR.CreateStore(StoreVal, StoreLoc);
     return nullptr;
 }
 
@@ -128,7 +127,6 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     IR.CreateStore(InitValue, DeclValue);
     SymbolMap[Decl->getIdentifier()->getReferred()] = DeclValue;
     return nullptr;
-
 }
 
 llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
@@ -168,8 +166,8 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
-    const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
-    if (ResultType->getKind() != Type::TypeKind::T_Real) {
+    auto ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
+    if (isa<IntegerTy>(ResultType)) {
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
                 return IR.CreateAdd(LeftOperand, RightOperand);
@@ -189,32 +187,31 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                                 {getLLVMType(LeftType), getLLVMType(RightType)}),
                         {LeftOperand, RightOperand});
         }
-    } else {
-        // Metadata for rounding
-        llvm::MDNode *FPMetadata = llvm::MDNode::get(
-                GlobalCtx,
-                {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmTowardZero)),
-                llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict))}
-        );
-        switch (Op->getOpKind()) {
-            case ArithmeticOp::ADD:
-                return IR.CreateFAdd(LeftOperand, RightOperand, "fadd", FPMetadata);
-            case ArithmeticOp::SUB:
-                return IR.CreateFSub(LeftOperand, RightOperand, "fsub", FPMetadata);
-            case ArithmeticOp::MUL:
-                return IR.CreateFMul(LeftOperand, RightOperand, "fmul", FPMetadata);
-            case ArithmeticOp::DIV:
-                return IR.CreateFDiv(LeftOperand, RightOperand, "fdiv", FPMetadata);
-            case ArithmeticOp::MOD:
-                return IR.CreateFRem(LeftOperand, RightOperand, "frem", FPMetadata);
-            case ArithmeticOp::EXP:
-                return IR.CreateCall(
-                        llvm::Intrinsic::getDeclaration(
-                                &Mod,
-                                llvm::Intrinsic::pow,
-                                {getLLVMType(LeftType), getLLVMType(RightType)}),
-                        {LeftOperand, RightOperand});
-        }
+    }
+    // Metadata for rounding
+    llvm::MDNode *FPMetadata = llvm::MDNode::get(
+            GlobalCtx,
+            {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmTowardZero)),
+            llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict))}
+    );
+    switch (Op->getOpKind()) {
+        case ArithmeticOp::ADD:
+            return IR.CreateFAdd(LeftOperand, RightOperand, "fadd", FPMetadata);
+        case ArithmeticOp::SUB:
+            return IR.CreateFSub(LeftOperand, RightOperand, "fsub", FPMetadata);
+        case ArithmeticOp::MUL:
+            return IR.CreateFMul(LeftOperand, RightOperand, "fmul", FPMetadata);
+        case ArithmeticOp::DIV:
+            return IR.CreateFDiv(LeftOperand, RightOperand, "fdiv", FPMetadata);
+        case ArithmeticOp::MOD:
+            return IR.CreateFRem(LeftOperand, RightOperand, "frem", FPMetadata);
+        case ArithmeticOp::EXP:
+            return IR.CreateCall(
+                    llvm::Intrinsic::getDeclaration(
+                            &Mod,
+                            llvm::Intrinsic::pow,
+                            {getLLVMType(LeftType), getLLVMType(RightType)}),
+                    {LeftOperand, RightOperand});
     }
 }
 
@@ -296,6 +293,8 @@ llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
     CurrentFunction->getBasicBlockList().push_back(LoopEnd);
     IR.SetInsertPoint(LoopEnd);
 
+    LoopBeginBlocks.pop();
+    LoopEndBlocks.pop();
     return nullptr;
 }
 
@@ -309,43 +308,18 @@ llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
 }
 
 llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral *NullLit) {
-    const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(NullLit);
-    switch (ExprTy->getKind()) {
-        case Type::TypeKind::T_Int:
-            return IR.getInt32(0);
-        case Type::TypeKind::T_Char:
-            return IR.getInt8(0);
-        case Type::TypeKind::T_Bool:
-            return IR.getInt1(false);
-        case Type::TypeKind::T_Real:
-            return llvm::ConstantFP::get(LLVMRealTy, llvm::APFloat(0.0));
-        default:
-            assert(false && "Invalid type for null literal");
-    }
-
+    assert(false && "Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral *IdentityLit) {
-    const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(IdentityLit);
-    switch (ExprTy->getKind()) {
-        case Type::TypeKind::T_Int:
-            return IR.getInt32(1);
-        case Type::TypeKind::T_Char:
-            return IR.getInt8(1);
-        case Type::TypeKind::T_Bool:
-            return IR.getInt1(true);
-        case Type::TypeKind::T_Real:
-            return llvm::ConstantFP::get(LLVMRealTy, llvm::APFloat(1.0));
-        default:
-            assert(false && "Invalid type for identity literal");
-    }
+    assert(false && "Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitRealLiteral(RealLiteral *RealLit) {
     // TODO verify precision of float
-    float val = RealLit->getVal();
-    llvm::APFloat apf(val);
-    return llvm::ConstantFP::get(GlobalCtx, apf);
+    float Val = RealLit->getVal();
+    llvm::APFloat APF(Val);
+    return llvm::ConstantFP::get(GlobalCtx, APF);
 }
 
 llvm::Value *CodeGenPass::visitBoolLiteral(BoolLiteral *BoolLit) {
@@ -357,17 +331,25 @@ llvm::Value *CodeGenPass::visitCharLiteral(CharLiteral *CharLit) {
 }
 
 llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
-    // TODO
+    auto TupLoc = createAlloca(
+            PM->getAnnotation<ExprTypeAnnotatorPass>(TupleLit));
+    int CurrIdx = 0;
+    for (auto Child : *TupleLit) {
+        auto MemberVal = visit(Child);
+        auto MemLoc = IR.CreateGEP(
+                TupLoc, {IR.getInt32(0), IR.getInt32(CurrIdx++)});
+        IR.CreateStore(MemberVal, MemLoc);
+    }
+    return IR.CreateLoad(TupLoc);
 }
 
 llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // All member expressions should be converted to a tuple access by an index
     // at this point
     int MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
-    llvm::Value *Expr = visit(MemberAcc->getExpr());
-    llvm::Value *MemberPtr = IR.CreateStructGEP(Expr, MemberIdx);
+    auto Expr = visit(MemberAcc->getExpr());
+    auto MemberPtr = IR.CreateExtractElement(Expr, MemberIdx-1);
     return IR.CreateLoad(MemberPtr);
-
 }
 
 llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
@@ -718,9 +700,9 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
-    const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getIdentifier());
+    const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
     assert(IdentTy->isInputTy() && "Invalid input stream type");
-    Value *StoreLoc = SymbolMap[InStream->getIdentifier()->getReferred()];
+    Value *StoreLoc = nullptr;/* SymbolMap[InStream->getIdentifier()->getReferred()]; */
 
     switch (IdentTy->getKind()) {
         case Type::TypeKind::T_Char:
