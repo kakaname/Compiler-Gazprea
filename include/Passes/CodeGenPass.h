@@ -33,10 +33,18 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *LLVMBoolTy;
     llvm::Type *LLVMCharTy;
     llvm::Type *LLVMRealTy;
+    llvm::Type *LLVMVoidTy;
+    llvm::Type *LLVMPtrTy;
 
     llvm::Function *CurrentFunction{};
     llvm::Function *GlobalFunction{};
     llvm::Function *MainFunction{};
+
+    // Runtime functions
+    llvm::FunctionCallee PrintInt;
+    llvm::FunctionCallee PrintReal;
+    llvm::FunctionCallee PrintChar;
+    llvm::FunctionCallee PrintBool;
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
@@ -51,7 +59,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
 
     explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
         LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
-        LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)) {};
+        LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
+        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt32PtrTy(GlobalCtx)) {};
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 

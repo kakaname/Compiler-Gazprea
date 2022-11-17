@@ -11,6 +11,8 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     assert(isa<Program>(Root) && "CodeGenPass should run on the entire program");
     PM = &Manager;
 
+    // Set Runtime Functions
+
     llvm::FunctionType *ft = llvm::FunctionType::get(
             LLVMIntTy, false
     );
@@ -21,6 +23,15 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     // Set the current function to the global function (for global variables)
     CurrentFunction = GlobalFunction;
+
+    PrintInt = Mod.getOrInsertFunction("rt_print_int",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMIntTy}, false));
+    PrintReal = Mod.getOrInsertFunction("rt_print_real",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMRealTy}, false));
+    PrintChar = Mod.getOrInsertFunction("rt_print_char",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMCharTy}, false));
+    PrintBool = Mod.getOrInsertFunction("rt_print_bool",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
 
     IR.SetInsertPoint(Entry);
     visit(Root);
@@ -654,24 +665,26 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 
 }
 
-llvm::Value *CodeGenPass::visitOutStream(OutStream *OutStream) {
-//    Value *ValToOut = visit(Stream->getOutStreamExpr());
-//    Type ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Stream->getOutStreamExpr());
-//    // TODO depends on the TypeRegistry Implementation
-//    if (ValType == CharType) {
-//        // TODO enforce ValToOut = 0/1 for null and identity
-//        IR.CreateCall(PrintCharFunc, {ValToOut});
-//    } else if (ValType == IntegerType) {
-//        IR.CreateCall(PrintIntFunc, {ValToOut});
-//    } else if (ValType == RealType) {
-//        IR.CreateCall(PrintRealFunc, {ValToOut});
-//    } else if (ValType == BoolType) {
-//        IR.CreateCall(PrintBoolFunc, {ValToOut});
-//    } else {
-//        // should not reach here ever
-//        assert(false && "Cannot output non-output type");
-//    }
-//    return nullptr;
+llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
+    Value *ValToOut = visit(Stream->getOutStreamExpr());
+    const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
+    switch (ValType->getKind()) {
+        case Type::TypeKind::T_Char:
+            IR.CreateCall(PrintChar, {ValToOut});
+            break;
+        case Type::TypeKind::T_Int:
+            IR.CreateCall(PrintInt, {ValToOut});
+            break;
+        case Type::TypeKind::T_Bool:
+            IR.CreateCall(PrintBool, {ValToOut});
+            break;
+        case Type::TypeKind::T_Real:
+            IR.CreateCall(PrintReal, {ValToOut});
+            break;
+        default:
+            assert(false && "Invalid type for outstream");
+    }
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
