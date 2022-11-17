@@ -336,6 +336,7 @@ const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
 const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
     return PM->TypeReg.getCharTy();
+}
 
 const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     auto BaseTy = visit(Ref->getIdentifier());

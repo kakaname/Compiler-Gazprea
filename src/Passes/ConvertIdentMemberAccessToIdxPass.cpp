@@ -43,20 +43,20 @@ void ConvertIdentMemberAccessToIdxPass::visitMemberReference(MemberReference *Re
 
     if (auto IntLit = dyn_cast<IntLiteral>(Expr)) {
         if(!(IntLit->getVal() <= Tuple->getNumOfMembers() && IntLit->getVal() > 0))
-            throw OutOfRangeError(Access, IntLit->getVal(), Tuple->getNumOfMembers(), Tuple->getTypeName());
+            throw OutOfRangeError(Ref, IntLit->getVal(), Tuple->getNumOfMembers(), Tuple->getTypeName());
         return;
     }
 
     auto MemberName = dyn_cast<Identifier>(Expr);
     if (!MemberName)
-        throw TupleExpressionError(Access);
+        throw TupleExpressionError(Ref);
 
     auto ResolvedIdx = Tuple->getMemberIdx(MemberName->getName());
     if (!ResolvedIdx)
-        throw TupleAccessError(Access, Tuple->getTypeName(), MemberName->getName());
+        throw TupleAccessError(Ref, Tuple->getTypeName(), MemberName->getName());
 
     auto NewExpr = PM->Builder.build<IntLiteral>();
-    NewExpr->copyCtx(Access);
+    NewExpr->copyCtx(Ref);
     NewExpr->setIntVal(ResolvedIdx);
     Ref->setMemberExpr(NewExpr);
 }
