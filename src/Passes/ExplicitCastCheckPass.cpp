@@ -10,5 +10,6 @@ void ExplicitCastCheckPass::visitExplicitCast(ExplicitCast *ExplicitCast) {
     auto ExprType = dyn_cast<TupleTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast->getExpr()));
     auto TargetType = dyn_cast<TupleTy>(ExplicitCast->TargetType);
 
-    assert(ExprType->canCastTo(TargetType) && "Explicit Type Casting was invalid");
+    if (!ExprType->canCastTo(TargetType))
+        throw CastError(ExplicitCast, ExprType->getTypeName(), TargetType->getTypeName());
 }

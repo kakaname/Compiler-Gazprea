@@ -6,6 +6,7 @@
 #define GAZPREABASE_TREENODE_H
 
 #include "llvm/Support/Casting.h"
+#include "GazpreaLexer.h"
 
 #include <vector>
 #include <list>
@@ -81,7 +82,7 @@ public:
 
     TreeNode() = delete;
 
-    explicit TreeNode(TreeNodeKind Kind) : Kind(Kind), Parent(nullptr) {}
+    explicit TreeNode(TreeNodeKind Kind) : Kind(Kind), Parent(nullptr), Ctx(nullptr) {}
 
     void setParent(TreeNode *P) {
         Parent = P;
@@ -89,6 +90,19 @@ public:
 
     TreeNode *getParent() {
         return Parent;
+    }
+
+    void setCtx(antlr4::ParserRuleContext *ctx) {
+        Ctx = ctx;
+    }
+
+    void copyCtx(TreeNode *node) {
+        Ctx = node->Ctx;
+    }
+
+
+    size_t getLine() {
+        return Ctx->getStart()->getLine();
     }
 
     void addChild(TreeNode *Child) {
@@ -154,6 +168,7 @@ protected:
 private:
     TreeNodeKind Kind;
     TreeNode *Parent;
+    antlr4::ParserRuleContext *Ctx;
 };
 
 

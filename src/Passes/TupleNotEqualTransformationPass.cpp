@@ -16,6 +16,7 @@ void TupleNotEqualTransformationPass::visitLogicalOp(LogicalOp *Op) {
     }
     // change (tuple != tuple) to not(tuple == tuple)
     auto NotOp = PM->Builder.build<UnaryOp>();
+    NotOp->copyCtx(Op);
     NotOp->setOp(UnaryOp::NOT);
 
     Op->setOp(LogicalOp::EQ);
