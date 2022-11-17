@@ -20,8 +20,9 @@ void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
 
         auto ArgExpr = Call->getArgsList()->getExprAtPos(I);
         auto ArgExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(ArgExpr);
-        assert(!ArgExprTy->isConst() &&
-            "Trying to bind a const reference to a var reference");
+
+        if (ArgExprTy->isConst())
+            throw ConstantArgumentError(Call, I + 1, Call->getIdentifier()->getName());
 
         if (auto MemAccess = dyn_cast<MemberAccess>(ArgExpr)) {
             auto Ident = dyn_cast<Identifier>(MemAccess->getExpr());
@@ -30,7 +31,7 @@ void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
 
             if (UsedSymbols.count({Ident->getReferred(), 0})
                 || UsedSymbols.count({Ident->getReferred(), MemIdx->getVal()}))
-                assert(false && "Aliasing between mutable members.");
+                throw AliasError(Call);
 
 
             UsedSymbols.insert({Ident->getReferred(), MemIdx->getVal()});
@@ -40,7 +41,7 @@ void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
         if (auto Ident = dyn_cast<Identifier>(ArgExpr)) {
             pair Key = {Ident->getReferred(), 0};
             if (UsedSymbols.count(Key))
-                assert(false && "Aliasing between mutable members.");
+                throw AliasError(Call);
             UsedSymbols.insert(Key);
             continue;
         }
