@@ -94,8 +94,9 @@ int main(int argc, char **argv) {
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ScopeResolutionPass());
-    Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
@@ -111,9 +112,9 @@ int main(int argc, char **argv) {
 
     Manager.runAllPasses();
 
-    auto CG = CodeGenPass(argv[2]);
-    auto *Root = Manager.getRoot();
-    CG.runOnAST(Manager, Root);
+//    auto CG = CodeGenPass(argv[2]);
+//    auto *Root = Manager.getRoot();
+//    CG.runOnAST(Manager, Root);
     return 0;
 
 }

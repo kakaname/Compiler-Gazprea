@@ -38,19 +38,29 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 }
 
 llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
+    if (!Ty)
+        return IR.getVoidTy();
+
+    auto ConstConv = [&](llvm::Type *LLVMTy, bool IsConst) {
+        if (IsConst)
+            return LLVMTy;
+        return cast<llvm::Type>(LLVMTy->getPointerTo());
+    };
+
     switch (Ty->getKind()) {
         case Type::TypeKind::T_Bool:
-            return LLVMBoolTy;
+            return ConstConv(LLVMBoolTy, Ty->isConst());
         case Type::TypeKind::T_Int:
-            return LLVMIntTy;
+            return ConstConv(LLVMIntTy, Ty->isConst());
         case Type::TypeKind::T_Real:
-            return LLVMRealTy;
+            return ConstConv(LLVMRealTy, Ty->isConst());
         case Type::TypeKind::T_Char:
-            return LLVMCharTy;
+            return ConstConv(LLVMCharTy, Ty->isConst());
         case Type::TypeKind::T_Tuple:
-            return getLLVMTupleType(dyn_cast<TupleTy>(Ty));
+            return ConstConv(getLLVMTupleType(
+                    cast<TupleTy>(Ty)), Ty->isConst());
         default:
-            return nullptr;
+            assert(false && "Unknown type");
     }
 }
 
@@ -125,7 +135,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
 
     const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert( RightType == LeftType && "Operation between different types should not"
+    assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
     switch (Op->getOpKind()) {

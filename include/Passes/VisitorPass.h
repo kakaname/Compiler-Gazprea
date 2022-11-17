@@ -34,6 +34,18 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitMemberAssignment(MemberAssignment *Assign) {
+        visit(Assign->getExpr());
+        visit(Assign->getMemberAccess());
+        return RetT();
+    }
+
+    RetT visitIndexAssignment(IndexAssignment *Assign) {
+        visit(Assign->getExpr());
+        visit(Assign->getIndex());
+        return RetT();
+    }
+
     RetT visitDeclaration(Declaration *Decl) {
         visit(Decl->getIdentifier());
         visit(Decl->getInitExpr());
@@ -245,6 +257,14 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitAssignment(Assign);
     }
 
+    RetT callVisitMemberAssignmentImpl(MemberAssignment *Node) {
+        return static_cast<DerivedT*>(this)->visitMemberAssignment(Node);
+    }
+
+    RetT callVisitIndexAssignmentImpl(IndexAssignment *IndexAssign) {
+        return static_cast<DerivedT*>(this)->visitIndexAssignment(IndexAssign);
+    }
+
     RetT callVisitDeclarationImpl(Declaration *Decl) {
         return static_cast<DerivedT*>(this)->visitDeclaration(Decl);
     }
@@ -408,6 +428,12 @@ public:
 
         if (auto *Assign = dyn_cast<Assignment>(Node))
             return callVisitAssignmentImpl(Assign);
+
+        if (auto *MemAssign = dyn_cast<MemberAssignment>(Node))
+            return callVisitMemberAssignmentImpl(MemAssign);
+
+        if (auto *IndexAssign = dyn_cast<IndexAssignment>(Node))
+            return callVisitIndexAssignmentImpl(IndexAssign);
 
         if (auto *Decl = dyn_cast<Declaration>(Node))
             return callVisitDeclarationImpl(Decl);

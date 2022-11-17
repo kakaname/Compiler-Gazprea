@@ -9,6 +9,7 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
     auto IdentType = Assign->getIdentifier()->getIdentType();
     assert(IdentType && "Identifier must have their types assigned at this point.");
     auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+    assert(!IdentType->isConst() && "Assigning to a const types?");
 
     // If they are already the same type, we don't care.
     if (AssignedType->isSameTypeAs(IdentType))
@@ -17,11 +18,8 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
     // If not, the expression must be promotable to the ident type.
     assert(AssignedType->canPromoteTo(IdentType) && "Invalid assignment,"
                                                     "types don't match");
-    auto Cast =  PM->Builder.build<TypeCast>();
-    Cast->setTargetType(IdentType);
-    Cast->setExpr(Assign->getExpr());
+    auto Cast = wrapWithCastTo(Assign->getExpr(), IdentType);
     Assign->setExpr(Cast);
-    PM->invalidateResult<ExprTypeAnnotatorPass>();
 }
 
 void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
@@ -36,9 +34,30 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
     // If not, the expression must be promotable to the ident type.
     assert(AssignedType->canPromoteTo(IdentType) && "Invalid assignment,"
                                                     "types don't match");
-    auto Cast =  PM->Builder.build<TypeCast>();
-    Cast->setTargetType(IdentType);
-    Cast->setExpr(Decl->getInitExpr());
+    auto Cast = wrapWithCastTo(Decl->getInitExpr(), IdentType);
     Decl->setInitExpr(Cast);
-    PM->invalidateResult<ExprTypeAnnotatorPass>();
+}
+
+void AssignmentTypeCheckerPass::visitMemberAssignment(MemberAssignment *Assign) {
+    auto AssigneeTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getMemberAccess());
+    assert(!AssigneeTy->isConst() && "Assigning to a const types?");
+    auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+
+    // If they are already the same type, we don't care.
+    if (AssignedType->isSameTypeAs(AssigneeTy))
+        return;
+
+    // If not, the expression must be promotable to the ident type.
+    assert(AssignedType->canPromoteTo(AssigneeTy) && "Invalid assignment,"
+                                                    "types don't match");
+    auto Cast = wrapWithCastTo(Assign->getExpr(), AssigneeTy);
+    Assign->setExpr(Cast);
+}
+
+TypeCast *AssignmentTypeCheckerPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const {
+    auto Cast = PM->Builder.build<TypeCast>();
+    Cast->setExpr(Expr);
+    Cast->setTargetType(Target);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Target);
+    return Cast;
 }

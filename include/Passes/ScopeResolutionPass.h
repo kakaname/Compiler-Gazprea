@@ -77,6 +77,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             ExprAnnotator.runOnAST(*PM, Decl->getInitExpr());
             auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
             assert(ExprType && "Cannot infer declaration type");
+            if (!Decl->IsConst)
+                ExprType = PM->TypeReg.getVarTypeOf(ExprType);
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }

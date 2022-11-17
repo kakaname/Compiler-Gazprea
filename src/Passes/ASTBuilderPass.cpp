@@ -69,16 +69,48 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) {
-    auto Assign = PM->Builder.build<Assignment>();
-    auto Ident = PM->Builder.build<Identifier>();
-
-    Ident->setName(ctx->ID()->getText());
-    Assign->setIdentifier(Ident);
 
     auto *Expr = castToNodeVisit(ctx->expr());
-    Assign->setExpr(Expr);
 
-    return cast<ASTNodeT>(Assign);
+    // Identifier assignment.
+    if (ctx->ID()) {
+        auto Assign = PM->Builder.build<Assignment>();
+        auto Ident = PM->Builder.build<Identifier>();
+
+        Ident->setName(ctx->ID()->getText());
+        Assign->setIdentifier(Ident);
+        Assign->setExpr(Expr);
+        return cast<ASTNodeT>(Assign);
+    }
+
+    if (auto MemAccessRule = ctx->memAccess()) {
+        auto MemberAcc = PM->Builder.build<MemberAccess>();
+
+        // Set the identifier
+        auto Ident = PM->Builder.build<Identifier>();
+        Ident->setName(MemAccessRule->ID(0)->getText());
+        MemberAcc->setExpr(Ident);
+
+        // When the member is accessed by name.
+        if (auto MemberId = MemAccessRule->ID(1)) {
+            auto IdentExpr = PM->Builder.build<Identifier>();
+            IdentExpr->setName(MemberId->getText());
+            MemberAcc->setMemberExpr(IdentExpr);
+        }
+        // When the member is accessed by index.
+        if (MemAccessRule->INTLITERAL()) {
+            auto IntegerLit = PM->Builder.build<IntLiteral>();
+            IntegerLit->setVal(MemAccessRule->INTLITERAL()->getText());
+            MemberAcc->setMemberExpr(IntegerLit);
+        }
+
+        auto MemAssign = PM->Builder.build<MemberAssignment>();
+        MemAssign->setMemberAccess(MemberAcc);
+        MemAssign->setExpr(Expr);
+        return cast<ASTNodeT>(MemAssign);
+    }
+
+    assert(false && "Index assignments are unimplemented");
 }
 
 std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext *ctx) {

@@ -100,6 +100,9 @@ struct Assignment: public TreeNode {
     Assignment() : TreeNode(TreeNodeKind::N_AST_Assignment) {};
 };
 
+
+
+
 struct Declaration: public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t InitExprIdx = 1;
@@ -1031,6 +1034,61 @@ struct ExplicitCast: public TreeNode {
     }
 
     ExplicitCast(): TreeNode(TreeNodeKind::N_AST_ExplicitCast) {}
+};
+
+
+struct MemberAssignment : public TreeNode {
+    static constexpr size_t MemChildIdx = 0;
+    static constexpr size_t ExprChildIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_MemberAssignment;
+    }
+
+    void setMemberAccess(MemberAccess *Member) {
+        setChildAt(MemChildIdx, Member);
+    }
+
+    MemberAccess *getMemberAccess() {
+        return getChildAtAs<MemberAccess>(MemChildIdx);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprChildIdx, Expr);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprChildIdx);
+    }
+
+    MemberAssignment() : TreeNode(TreeNodeKind::N_AST_MemberAssignment) {};
+};
+
+struct IndexAssignment : public TreeNode {
+    static constexpr size_t MemChildIdx = 0;
+    static constexpr size_t ExprChildIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_MemberAssignment;
+    }
+
+    void setIndex(IndexAssignment *Member) {
+        setChildAt(MemChildIdx, Member);
+    }
+
+    IndexAssignment *getIndex() {
+        return getChildAtAs<IndexAssignment>(MemChildIdx);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprChildIdx, Expr);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprChildIdx);
+    }
+
+    IndexAssignment() : TreeNode(TreeNodeKind::N_AST_IndexAssignment) {};
 };
 
 #endif //GAZPREABASE_ASTNODES_H
