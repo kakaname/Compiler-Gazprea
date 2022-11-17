@@ -113,7 +113,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
-    llvm::Type *getLLVMType(const Type *Ty);
+    llvm::Type *getLLVMType(const Type *Ty, bool isConstPtrCheck = true);
     llvm::Function *getMainProcProto();
 };
 

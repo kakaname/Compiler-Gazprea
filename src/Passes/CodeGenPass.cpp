@@ -65,12 +65,12 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     OS << Mod;
 }
 
-llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
+llvm::Type *CodeGenPass::getLLVMType(const Type *Ty, bool constPtrCheck) {
     if (!Ty)
         return IR.getVoidTy();
 
     auto ConstConv = [&](llvm::Type *LLVMTy, bool IsConst) {
-        if (IsConst)
+        if (IsConst || !constPtrCheck)
             return LLVMTy;
         return cast<llvm::Type>(LLVMTy->getPointerTo());
     };
@@ -107,7 +107,7 @@ llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
     llvm::IRBuilder<> Builder(GlobalCtx);
     llvm::BasicBlock *BB = &CurrentFunction->front();
     Builder.SetInsertPoint(BB);
-    return Builder.CreateAlloca(getLLVMType(Ty));
+    return Builder.CreateAlloca(getLLVMType(Ty, false));
 }
 
 llvm::Value *CodeGenPass::createStructAlloca(llvm::StructType *Ty) {
@@ -196,12 +196,14 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
+    auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
+    auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
+    auto RoundingMD = llvm::MetadataAsValue::get(GlobalCtx, RoundingMDS);
+    auto ExceptionMD = llvm::MetadataAsValue::get(GlobalCtx, ExceptionMDS);
+
     const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
     if (ResultType->getKind() != Type::TypeKind::T_Real) {
-        std::vector<llvm::Type *> ExpT = {LLVMIntTy, LLVMIntTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)};
-        llvm::Value *RMode = llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmDynamic);
-        llvm::Value *EMode = llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict);
-        std::vector<llvm::Value *> ExpV = {LeftOperand, RightOperand, RMode, EMode};
+
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
                 return IR.CreateAdd(LeftOperand, RightOperand);
@@ -214,19 +216,17 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
             case ArithmeticOp::MOD:
                 return IR.CreateSRem(LeftOperand, RightOperand);
             case ArithmeticOp::EXP:
-                return IR.CreateCall(
-                        llvm::Intrinsic::getDeclaration(
-                                &Mod,
-                                llvm::Intrinsic::experimental_constrained_powi,
-                                ExpT),
-                        ExpV);
+                LeftOperand = IR.CreateSIToFP(LeftOperand, LLVMRealTy);
+                llvm::Value *RetVal = IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_constrained_powi,
+                        {LLVMRealTy, LLVMIntTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)},
+                        {LeftOperand, RightOperand, RoundingMD, ExceptionMD}
+                );
+                return IR.CreateFPToSI(RetVal, LLVMIntTy);
+
         }
     } else {
         llvm::Intrinsic::ID IntrinsicID;
-        std::vector<llvm::Type *> ExpT = {LLVMRealTy, LLVMRealTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)};
-        llvm::Value *RMode = llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmDynamic);
-        llvm::Value *EMode = llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict);
-        std::vector<llvm::Value *> ExpV = {LeftOperand, RightOperand, RMode, EMode};
 
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
@@ -245,12 +245,11 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                 IntrinsicID = llvm::Intrinsic::experimental_constrained_frem;
                 break;
             case ArithmeticOp::EXP:
-                return IR.CreateCall(
-                        llvm::Intrinsic::getDeclaration(
-                                &Mod,
-                                llvm::Intrinsic::experimental_constrained_pow,
-                                ExpT),
-                        ExpV);
+                return IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_constrained_pow,
+                        {LLVMRealTy, LLVMRealTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)},
+                        {LeftOperand, RightOperand, RoundingMD, ExceptionMD}
+                );
 
         }
         return IR.CreateConstrainedFPBinOp(IntrinsicID, LeftOperand, RightOperand, nullptr, "", nullptr, llvm::fp::rmDynamic, llvm::fp::ebStrict);
