@@ -1,0 +1,15 @@
+procedure main() returns integer {
+
+tuple(integer a, real b) foo = (1, 2);
+tuple(real c, real) bar = foo;
+
+foo.a -> std_output; // 1
+foo.b -> std_output; // 2
+
+bar.c -> std_output; // 1
+bar.1 -> std_output; // 1
+bar.2 -> std_output; // 2
+
+  /* must have a return */
+  return 0;
+}
