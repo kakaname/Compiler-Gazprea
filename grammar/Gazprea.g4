@@ -33,9 +33,9 @@ simpleStmt : identDecl          # identDeclStmt
            | procedureCall      # procedureCallStmt
            ;
 
-break : BREAK;
+break : BREAK SC;
 
-continue : CONTINUE;
+continue : CONTINUE SC;
 
 identDecl
     : typeQualifier (type)? ID (EQ expr)? SC
@@ -63,7 +63,7 @@ typeDef : TYPEDEF type ID SC;
 
 output : expr PUT STDOUT SC;
 
-input : ID IN STDIN SC;
+input : ID GET STDIN SC;
 
 return : RETURN (expr)? SC;
 
