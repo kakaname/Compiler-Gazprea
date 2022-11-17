@@ -108,6 +108,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitInStream(InStream *InStream);
 
     llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *createStructAlloca(llvm::StructType *Ty);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
     llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);

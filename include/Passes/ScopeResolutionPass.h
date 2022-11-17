@@ -20,6 +20,7 @@ using llvm::dyn_cast;
 using std::map;
 using std::string;
 
+// TODO confirm that all children are visited
 
 struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
     static bool classof(const TreeNode *N) {
@@ -100,6 +101,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     }
 
     void visitConditionalLoop(ConditionalLoop *Loop) {
+        visit(Loop->getConditional());
         auto NewScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(NewScope);
         CurrentScope = NewScope;
@@ -108,6 +110,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     }
 
     void visitConditional(Conditional *Cond) {
+        visit(Cond->getConditional());
         auto NewScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(NewScope);
         visit(Cond->getBlock());
