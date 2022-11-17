@@ -21,6 +21,8 @@
 #include "Passes/ASTPrinterPassWithTypes.h"
 #include "Passes/ReturnValuePromotionPass.h"
 #include "Passes/CodeGenPass.h"
+#include "Passes/BadStreamPass.h"
+#include "Passes/GlobalDeclPass.h"
 #include "Passes/SimplifyTupleCasting.h"
 #include "Passes/NullIdentityTypeCastPass.h"
 #include "Passes/ExplicitCastCheckPass.h"
@@ -99,6 +101,8 @@ int main(int argc, char **argv) {
     //
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(LoopCheckPass());
+    Manager.registerPass(BadStreamPass());
+    Manager.registerPass(GlobalDeclPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
