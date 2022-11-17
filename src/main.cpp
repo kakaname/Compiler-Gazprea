@@ -88,14 +88,6 @@ int main(int argc, char **argv) {
 //    TreeNodeBuilder Builder;
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
-
-
-    auto IntTy = Manager.TypeReg.getIntegerTy();
-    auto RealTy = Manager.TypeReg.getRealTy();
-    auto RealTuple = Manager.TypeReg.getTupleType({RealTy}, std::map<string, int>());
-    auto IntTuple = Manager.TypeReg.getTupleType({IntTy}, std::map<string, int>());
-    assert(IntTuple->canPromoteTo(RealTuple));
-
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
 

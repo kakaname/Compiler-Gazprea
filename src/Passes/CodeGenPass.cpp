@@ -121,13 +121,12 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     return IR.CreateLoad(SymbolMap[Ident->getReferred()]);
 }
 
-
-
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     Value *StoreVal = visit(Assign->getExpr());
-    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
+    // TODO: FIX ME.
+//    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
     // All assignments, including tuple assignments, are lowered to store assignments
-    IR.CreateStore(StoreVal, StoreLoc);
+//    IR.CreateStore(StoreVal, StoreLoc);
     return nullptr;
 }
 
@@ -138,7 +137,6 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     IR.CreateStore(InitValue, DeclValue);
     SymbolMap[Decl->getIdentifier()->getReferred()] = DeclValue;
     return nullptr;
-
 }
 
 llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
@@ -202,8 +200,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto ExceptionMD = llvm::MetadataAsValue::get(GlobalCtx, ExceptionMDS);
 
     const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
-    if (ResultType->getKind() != Type::TypeKind::T_Real) {
-
+    if (!isa<RealTy>(ResultType)) {
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
                 return IR.CreateAdd(LeftOperand, RightOperand);
@@ -366,43 +363,18 @@ llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
 }
 
 llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral *NullLit) {
-    const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(NullLit);
-    switch (ExprTy->getKind()) {
-        case Type::TypeKind::T_Int:
-            return IR.getInt32(0);
-        case Type::TypeKind::T_Char:
-            return IR.getInt8(0);
-        case Type::TypeKind::T_Bool:
-            return IR.getInt1(false);
-        case Type::TypeKind::T_Real:
-            return llvm::ConstantFP::get(LLVMRealTy, llvm::APFloat(0.0));
-        default:
-            assert(false && "Invalid type for null literal");
-    }
-
+    assert(false && "Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral *IdentityLit) {
-    const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(IdentityLit);
-    switch (ExprTy->getKind()) {
-        case Type::TypeKind::T_Int:
-            return IR.getInt32(1);
-        case Type::TypeKind::T_Char:
-            return IR.getInt8(1);
-        case Type::TypeKind::T_Bool:
-            return IR.getInt1(true);
-        case Type::TypeKind::T_Real:
-            return llvm::ConstantFP::get(LLVMRealTy, llvm::APFloat(1.0));
-        default:
-            assert(false && "Invalid type for identity literal");
-    }
+    assert(false && "Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitRealLiteral(RealLiteral *RealLit) {
     // TODO verify precision of float
-    float val = RealLit->getVal();
-    llvm::APFloat apf(val);
-    return llvm::ConstantFP::get(GlobalCtx, apf);
+    float Val = RealLit->getVal();
+    llvm::APFloat APF(Val);
+    return llvm::ConstantFP::get(GlobalCtx, APF);
 }
 
 llvm::Value *CodeGenPass::visitBoolLiteral(BoolLiteral *BoolLit) {
@@ -414,38 +386,25 @@ llvm::Value *CodeGenPass::visitCharLiteral(CharLiteral *CharLit) {
 }
 
 llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
-    // visit children and get values of children
-    std::vector<llvm::Constant *> Values;
-    std::vector<const Type *> Types;
-    for (size_t i = 0; i < TupleLit->numOfChildren(); i++) {
-        Values.push_back(dyn_cast<llvm::Constant>(visit(TupleLit->getChildAt(i))));
-        Types.push_back(PM->getAnnotation<ExprTypeAnnotatorPass>(TupleLit->getChildAt(i)));
+    auto TupLoc = createAlloca(
+            PM->getAnnotation<ExprTypeAnnotatorPass>(TupleLit));
+    int CurrIdx = 0;
+    for (auto Child : *TupleLit) {
+        auto MemberVal = visit(Child);
+        auto MemLoc = IR.CreateGEP(
+                TupLoc, {IR.getInt32(0), IR.getInt32(CurrIdx++)});
+        IR.CreateStore(MemberVal, MemLoc);
     }
-
-    // create struct type
-    std::vector<llvm::Type *> StructTypes;
-    for (const Type *Ty : Types) {
-        StructTypes.push_back(getLLVMType(Ty));
-    }
-    llvm::StructType *StructTy = llvm::StructType::create(StructTypes, "TupleLiteral");
-
-    // create struct
-    llvm::Value *Struct = createStructAlloca(StructTy);
-    llvm::Value *StructVals = llvm::ConstantStruct::get(StructTy, Values);
-    IR.CreateStore(StructVals, Struct);
-
-    return Struct;
-
+    return IR.CreateLoad(TupLoc);
 }
 
 llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // All member expressions should be converted to a tuple access by an index
     // at this point
     int MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
-    llvm::Value *Expr = visit(MemberAcc->getExpr());
-    llvm::Value *MemberPtr = IR.CreateStructGEP(Expr, MemberIdx);
+    auto Expr = visit(MemberAcc->getExpr());
+    auto MemberPtr = IR.CreateExtractElement(Expr, MemberIdx-1);
     return IR.CreateLoad(MemberPtr);
-
 }
 
 llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
@@ -791,9 +750,9 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
-    const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getIdentifier());
+    const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
     assert(IdentTy->isInputTy() && "Invalid input stream type");
-    Value *StoreLoc = SymbolMap[InStream->getIdentifier()->getReferred()];
+    Value *StoreLoc = nullptr;/* SymbolMap[InStream->getIdentifier()->getReferred()]; */
 
     switch (IdentTy->getKind()) {
         case Type::TypeKind::T_Char:

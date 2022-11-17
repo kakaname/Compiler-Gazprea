@@ -29,21 +29,19 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitAssignment(Assignment *Assign) {
-        visit(Assign->getIdentifier());
+        visit(Assign->getAssignedTo());
         visit(Assign->getExpr());
         return RetT();
     }
 
-    RetT visitMemberAssignment(MemberAssignment *Assign) {
-        visit(Assign->getExpr());
-        visit(Assign->getMemberAccess());
+    RetT visitMemberReference(MemberReference *Ref) {
+        visit(Ref->getIdentifier());
+        visit(Ref->getMemberExpr());
         return RetT();
     }
 
-    RetT visitIndexAssignment(IndexAssignment *Assign) {
-        visit(Assign->getExpr());
-        visit(Assign->getIndex());
-        return RetT();
+    RetT visitIdentReference(IdentReference *Ref) {
+        return visit(Ref->getIdentifier());
     }
 
     RetT visitDeclaration(Declaration *Decl) {
@@ -233,7 +231,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitInStream(InStream *InStream) {
-        return visit(InStream->getIdentifier());
+        return visit(InStream->getTarget());
     }
 
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
@@ -257,12 +255,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitAssignment(Assign);
     }
 
-    RetT callVisitMemberAssignmentImpl(MemberAssignment *Node) {
-        return static_cast<DerivedT*>(this)->visitMemberAssignment(Node);
-    }
-
-    RetT callVisitIndexAssignmentImpl(IndexAssignment *IndexAssign) {
-        return static_cast<DerivedT*>(this)->visitIndexAssignment(IndexAssign);
+    RetT callVisitMemberReferenceImpl(MemberReference *Node) {
+        return static_cast<DerivedT*>(this)->visitMemberReference(Node);
     }
 
     RetT callVisitDeclarationImpl(Declaration *Decl) {
@@ -281,8 +275,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitArithmeticOp(ArithOp);
     }
 
-    RetT callVisitIndexImpl(Index *Idx) {
-        return static_cast<DerivedT*>(this)->visitIndex(Idx);
+    RetT callVisitIdentReferenceImpl(IdentReference *Ref) {
+        return static_cast<DerivedT*>(this)->visitIdentReference(Ref);
     }
 
     RetT callVisitInfiniteLoopImpl(InfiniteLoop *Loop) {
@@ -429,11 +423,11 @@ public:
         if (auto *Assign = dyn_cast<Assignment>(Node))
             return callVisitAssignmentImpl(Assign);
 
-        if (auto *MemAssign = dyn_cast<MemberAssignment>(Node))
-            return callVisitMemberAssignmentImpl(MemAssign);
+        if (auto *MemRef = dyn_cast<MemberReference>(Node))
+            return callVisitMemberReferenceImpl(MemRef);
 
-        if (auto *IndexAssign = dyn_cast<IndexAssignment>(Node))
-            return callVisitIndexAssignmentImpl(IndexAssign);
+        if (auto *IndexRef = dyn_cast<IdentReference>(Node))
+            return callVisitIdentReferenceImpl(IndexRef);
 
         if (auto *Decl = dyn_cast<Declaration>(Node))
             return callVisitDeclarationImpl(Decl);
@@ -448,7 +442,7 @@ public:
             return callVisitArithmeticOpImpl(ArithOp);
 
         if (auto *Idx = dyn_cast<Index>(Node))
-            return callVisitIndexImpl(Idx);
+            throw std::runtime_error("Unimplemented");
 
         if (auto *InfLoop = dyn_cast<InfiniteLoop>(Node))
             return callVisitInfiniteLoopImpl(InfLoop);

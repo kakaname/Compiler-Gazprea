@@ -6,8 +6,8 @@
 #include "Passes/ExprTypeAnnotatorPass.h"
 
 void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
-    auto IdentType = Assign->getIdentifier()->getIdentType();
-    assert(IdentType && "Identifier must have their types assigned at this point.");
+    auto IdentType = PM->getAnnotation<ExprTypeAnnotatorPass>(
+            Assign->getAssignedTo());
     auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
     if (IdentType->isConst())
         throw ConstantAssignmentError(Assign, IdentType->getTypeName());
@@ -41,23 +41,6 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
     Decl->setInitExpr(Cast);
 }
 
-void AssignmentTypeCheckerPass::visitMemberAssignment(MemberAssignment *Assign) {
-    auto AssigneeTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getMemberAccess());
-    if (AssigneeTy->isConst())
-        throw ConstantAssignmentError(Assign, AssigneeTy->getTypeName());
-    auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
-
-    // If they are already the same type, we don't care.
-    if (AssignedType->isSameTypeAs(AssigneeTy))
-        return;
-
-    // If not, the expression must be promotable to the ident type.
-    if (!AssignedType->canPromoteTo(AssigneeTy))
-        throw ScalarPromotionError(Assign, AssignedType->getTypeName(), AssigneeTy->getTypeName());
-
-    auto Cast = wrapWithCastTo(Assign->getExpr(), AssigneeTy);
-    Assign->setExpr(Cast);
-}
 
 TypeCast *AssignmentTypeCheckerPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const {
     auto Cast = PM->Builder.build<TypeCast>();

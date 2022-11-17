@@ -34,10 +34,6 @@ public:
         std::cout << "Assignment\n";
     }
 
-    void visitMemberAssignment(MemberAssignment *Assign) {
-        std::cout << "MemberAssignment\n" ;
-    }
-
     void visitDeclaration(Declaration *Decl) {
         std:: cout << "Decl(Name:" << Decl->getIdentifier()->getName() << ')' << "\n";
     }
@@ -81,6 +77,14 @@ public:
 
     void visitIdentityLiteral(IdentityLiteral *IdentityLit) {
         std::cout << "Identity" << "\n";
+    }
+
+    void visitIdentReference(IdentReference *Ref) {
+        std::cout << "Ident Reference\n";
+    }
+
+    void visitMemberReference(MemberReference *Ref) {
+        std::cout << "Member Reference\n";
     }
 
     void visitRealLiteral(RealLiteral *RealLit) {

@@ -142,10 +142,10 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     }
 
     if (Op->getOpKind() == LogicalOp::EQ || Op->getOpKind() == LogicalOp::NEQ) {
-        if (!LeftType->isValidForComparisonOp())
+        if (!LeftType->isValidForEq())
             throw InvalidEqualityOpError(Op, LeftType->getTypeName());
 
-        if (!RightType->isValidForComparisonOp())
+        if (!RightType->isValidForEq())
             throw InvalidEqualityOpError(Op, RightType->getTypeName());
 
         if (LeftType->isSameTypeAs(RightType)) {
@@ -336,4 +336,36 @@ const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
 const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
     return PM->TypeReg.getCharTy();
+
+const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
+    auto BaseTy = visit(Ref->getIdentifier());
+    assert(BaseTy && "Type not assigned to identifier.");
+    auto Tuple = dyn_cast<TupleTy>(BaseTy);
+    assert(Tuple && "Only expressions that are of type tuple maybe have their members accessed");
+
+    if (auto MemberIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr())) {
+        assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal()
+               && "Invalid index to access a member");
+        auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal() - 1);
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+        return ResultTy;
+    }
+
+    if (auto MemberIdent = dyn_cast<Identifier>(Ref->getMemberExpr())) {
+        auto MemIdx = Tuple->getMemberIdx(MemberIdent->getName());
+        assert(MemIdx && "Member of that name not found in the type.");
+        auto ResultTy = Tuple->getMemberTypeAt(MemIdx - 1);
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+        return ResultTy;
+    }
+
+    assert(false && "Invalid access into tuple type.");
+}
+
+const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
+    visit(Ref->getIdentifier());
+    auto IdentTy = Ref->getIdentifier()->getIdentType();
+    assert(IdentTy && "Ident type not known in ident reference");
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, IdentTy);
+    return IdentTy;
 }

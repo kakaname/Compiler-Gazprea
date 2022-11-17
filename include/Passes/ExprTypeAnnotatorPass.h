@@ -22,6 +22,8 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitUnaryOp(UnaryOp *Op);
     const Type *visitIdentifier(Identifier *Ident) const;
     const Type *visitMemberAccess(MemberAccess *MAccess);
+    const Type *visitMemberReference(MemberReference *Ref);
+    const Type *visitIdentReference(IdentReference *Ref);
     const Type *visitFunctionCall(FunctionCall *Call);
     const Type *visitIntLiteral(IntLiteral *Int) const;
     const Type *visitRealLiteral(RealLiteral *Real) const ;

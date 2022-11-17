@@ -10,10 +10,7 @@
 
 struct CallableArgumentTypeCheckingPass : VisitorPass<CallableArgumentTypeCheckingPass, void> {
     void visitFunctionCall(FunctionCall *Call);
-
-    void checkProcCall(FunctionCall *Call, const ProcedureTy *Ty);
-
-    void checkFuncCall(FunctionCall *Call, const FunctionTy *Ty);
+    void visitProcedureCall(ProcedureCall *Call);
 
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const;
