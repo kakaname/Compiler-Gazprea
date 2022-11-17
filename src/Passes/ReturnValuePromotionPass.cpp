@@ -17,8 +17,8 @@ void ReturnValuePromotionPass::visitProcedureDef(ProcedureDef *Def) {
 
 void ReturnValuePromotionPass::visitReturn(Return *Ret) {
     if (!ReturnTy) {
-        assert(isa<NoOp>(Ret->getReturnExpr())
-                && "Procedures with no return type should not return values");
+        if (!isa<NoOp>(Ret->getReturnExpr()))
+            throw NoReturnError(Ret);
         return;
     }
 
@@ -27,7 +27,9 @@ void ReturnValuePromotionPass::visitReturn(Return *Ret) {
     if (RetExprTy->isSameTypeAs(ReturnTy))
         return;
 
-    assert(RetExprTy->canPromoteTo(ReturnTy) && "Incorrect return types.");
+    if(!RetExprTy->canPromoteTo(ReturnTy))
+        throw FunctionReturnTypeError(Ret, ReturnTy->getTypeName(), RetExprTy->getTypeName());
+
     auto Cast = wrapWithCastTo(Ret->getReturnExpr(), ReturnTy);
     Ret->setReturnExpr(Cast);
 }

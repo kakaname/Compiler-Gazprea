@@ -30,7 +30,6 @@ std::any ASTBuilderPass::visitFile(GazpreaParser::FileContext *ctx) {
 
 std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     auto Decl = PM->Builder.build<Declaration>();
-
     assert((ctx->typeQualifier() || ctx->type()) && "At least one is needed");
 
     bool IsConst = (ctx->typeQualifier() && ctx->typeQualifier()->CONST());
@@ -55,8 +54,10 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     // with null.
     if (!ctx->expr()) {
         Decl->setInitExpr(PM->Builder.build<NullLiteral>());
-        assert(Decl->getIdentType() && "Must specify a type if leaving ident"
-                                       " uninitialized");
+
+        if (!Decl->getIdentType())
+            throw NullDeclarationInferenceError(Decl);
+
         auto Null = PM->Builder.build<NullLiteral>();
         auto Cast = PM->Builder.build<TypeCast>();
         Cast->setTargetType(Decl->getIdentType());
@@ -267,9 +268,11 @@ std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
     auto ResolvedSym = GlobalScope.resolve(ctx->ID()->getText());
-    assert(ResolvedSym && "Symbol not found");
+    if (!ResolvedSym)
+        throw SymbolNotFoundError(&GlobalScope, ctx->ID()->getText());
     auto TypeSym = dyn_cast<TypeSymbol>(ResolvedSym);
-    assert(TypeSym && "Symbol not a type symbol");
+    if (!TypeSym)
+        throw InvalidTypeSymbolError(&GlobalScope, ctx->ID()->getText());
     return TypeSym->getType();
 }
 

@@ -11,6 +11,7 @@
 
 #include "Common/TreeNode.h"
 #include "AST/ASTNodes.h"
+#include "ErrorHandling/exceptions.h"
 
 using std::move;
 using std::make_unique;
