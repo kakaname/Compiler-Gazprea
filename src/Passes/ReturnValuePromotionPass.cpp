@@ -36,6 +36,7 @@ void ReturnValuePromotionPass::visitReturn(Return *Ret) {
 
 TypeCast *ReturnValuePromotionPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const {
     auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
     Cast->setTargetType(Ty);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Ty);

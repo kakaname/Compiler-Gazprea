@@ -175,6 +175,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
             if (LeftType->canPromoteTo(RightType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
+                Cast->copyCtx(Op);
                 auto TupleType = cast<TupleTy>(RightType);
 
                 Cast->setExpr(LeftExpr);
@@ -185,6 +186,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
             if (RightType->canPromoteTo(LeftType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
+                Cast->copyCtx(Op);
                 auto TupleType = cast<TupleTy>(LeftType);
 
                 Cast->setExpr(RightExpr);
@@ -215,6 +217,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
 TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *TargetType) const {
     auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
     Cast->setTargetType(TargetType);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, TargetType);

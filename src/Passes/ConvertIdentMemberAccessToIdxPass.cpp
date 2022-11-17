@@ -30,6 +30,7 @@ void ConvertIdentMemberAccessToIdxPass::visitMemberAccess(MemberAccess *Access) 
         throw TupleAccessError(Access, Tuple->getTypeName(), MemberName->getName());
 
     auto NewExpr = PM->Builder.build<IntLiteral>();
+    NewExpr->copyCtx(Access);
     NewExpr->setIntVal(ResolvedIdx);
     Access->setMemberExpr(NewExpr);
 }
