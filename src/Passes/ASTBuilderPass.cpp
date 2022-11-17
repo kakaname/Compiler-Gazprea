@@ -78,7 +78,6 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) {
     auto Expr = castToNodeVisit(ctx->expr());
     auto AssignedTo = castToNodeVisit(ctx->lvalue());
-
     auto Assign = PM->Builder.build<Assignment>();
     Assign->setAssignedTo(AssignedTo);
     Assign->setExpr(Expr);
@@ -232,6 +231,7 @@ std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
 
 std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
     auto Input = PM->Builder.build<InStream>();
+    Input->setCtx(ctx);
     auto LValue = castToNodeVisit(ctx->lvalue());
     Input->setTarget(LValue);
     return cast<ASTNodeT>(Input);
@@ -256,6 +256,7 @@ std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
     auto ResolvedSym = GlobalScope.resolve(ctx->ID()->getText());
+    auto text = ctx->ID()->getText();
     if (!ResolvedSym)
         throw SymbolNotFoundError(&GlobalScope, ctx->ID()->getText());
     auto TypeSym = dyn_cast<TypeSymbol>(ResolvedSym);
@@ -721,7 +722,47 @@ std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) 
 std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
     auto CharLit = PM->Builder.build<CharLiteral>();
     CharLit->setCtx(ctx);
-    CharLit->setCharacter(ctx->CHARLITERAL()->getText());
+    std::string CharVal = ctx->CHARLITERAL()->getText();
+
+    if (CharVal.length() == 1) {
+        CharLit->setCharacter(CharVal[0]);
+    } else {
+        char Escape = CharVal[1];
+        char Val;
+        switch (Escape) {
+            case '0':
+                Val = 0x00;
+                break;
+            case 'a':
+                Val = 0x07;
+                break;
+            case 'b':
+                Val = 0x08;
+                break;
+            case 't':
+                Val = 0x09;
+                break;
+            case 'n':
+                Val = 0x0A;
+                break;
+            case 'r':
+                Val = 0x0D;
+                break;
+            case '"':
+                Val = 0x22;
+                break;
+            case '\'':
+                Val = 0x27;
+                break;
+            case '\\':
+                Val = 0x5C;
+                break;
+            default:
+                Val = Escape;
+                break;
+        }
+        CharLit->setCharacter(Val);
+    }
     return cast<ASTNodeT>(CharLit);
 }
 

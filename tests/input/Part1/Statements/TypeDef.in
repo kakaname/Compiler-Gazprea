@@ -1,0 +1,21 @@
+typedef integer itype;
+typedef character ctype;
+typedef real rtype;
+typedef boolean btype;
+
+typedef rtype yo;
+
+procedure main() returns itype {
+    yo yo = 15;
+    const ctype b = 'l';
+    var btype c = identity;
+
+    yo = yo + 1.1;
+
+    yo -> std_output;
+    b -> std_output;
+    c -> std_output;
+
+    return 0;
+
+}

@@ -1,0 +1,21 @@
+procedure main() returns integer {
+  
+  // Integer
+  var integer a = 4 - 1;
+  a -> std_output;
+  var integer b = 6 - a;
+  b -> std_output;
+  var integer c = b - a;
+  c -> std_output;
+
+  // Real
+  var real x = 4.4 - 1.1;
+  x -> std_output;
+  var real y = 6.6 - x;
+  y -> std_output;
+  var real z = y - x;
+  z -> std_output;
+
+  /* must have a return */
+  return 0;
+}

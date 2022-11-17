@@ -41,6 +41,7 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
     Decl->setInitExpr(Cast);
 }
 
+
 TypeCast *AssignmentTypeCheckerPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);

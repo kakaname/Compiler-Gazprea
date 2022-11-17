@@ -1,0 +1,11 @@
+procedure main() returns integer {
+
+    integer a = (((((((20)))))));
+    real b = (((15.2)));
+    a -> std_output;
+    b -> std_output;
+    
+  return 0;
+  
+}
+

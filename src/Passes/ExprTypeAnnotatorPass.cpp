@@ -333,6 +333,10 @@ const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
     return PM->TypeReg.getBooleanTy();
 }
 
+const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
+    return PM->TypeReg.getCharTy();
+
 const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     auto BaseTy = visit(Ref->getIdentifier());
     assert(BaseTy && "Type not assigned to identifier.");

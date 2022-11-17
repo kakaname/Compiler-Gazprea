@@ -48,7 +48,7 @@ ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type::TypeKind Kind, bool I
         case Type::T_Char:
         {
             auto CharLit = PM->Builder.build<CharLiteral>();
-            IsNull ? CharLit->setCharacter("\0") : CharLit->setCharacter("\x01");
+            IsNull ? CharLit->setCharacter(0x00) : CharLit->setCharacter(0x01);
             return CharLit;
         }
         case Type::T_Int:

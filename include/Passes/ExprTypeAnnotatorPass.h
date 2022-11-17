@@ -33,6 +33,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitNullLiteral(NullLiteral *Null);
     const Type *visitIdentityLiteral(IdentityLiteral *Identity);
     const Type *visitBoolLiteral(BoolLiteral *Bool);
+    const Type *visitCharLiteral(CharLiteral *Char);
 
 
 

@@ -17,6 +17,15 @@ void CallableArgumentTypeCheckingPass::visitFunctionCall(FunctionCall *Call) {
         auto ParamType = Ty->getParamTypeAt(I);
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
+        if (!ParamType->isConst()) {
+            if(!isa<Identifier>(Expr) && !isa<MemberAccess>(Expr))
+                throw VariableArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
+            if (ExprType->isConst())
+                throw ConstantArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
+            continue;
+        }
 
         if (ParamType->isSameTypeAs(ExprType))
             continue;
@@ -37,7 +46,6 @@ TypeCast *CallableArgumentTypeCheckingPass::wrapWithCastTo(ASTNodeT *Expr, const
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Ty);
     return Cast;
 }
-
 
 void CallableArgumentTypeCheckingPass::visitProcedureCall(ProcedureCall *Call) {
     visit(Call->getArgsList());
