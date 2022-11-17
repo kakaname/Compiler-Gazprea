@@ -142,10 +142,10 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     }
 
     if (Op->getOpKind() == LogicalOp::EQ || Op->getOpKind() == LogicalOp::NEQ) {
-        if (!LeftType->isValidForComparisonOp())
+        if (!LeftType->isValidForEq())
             throw InvalidEqualityOpError(Op, LeftType->getTypeName());
 
-        if (!RightType->isValidForComparisonOp())
+        if (!RightType->isValidForEq())
             throw InvalidEqualityOpError(Op, RightType->getTypeName());
 
         if (LeftType->isSameTypeAs(RightType)) {

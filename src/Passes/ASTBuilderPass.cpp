@@ -82,6 +82,7 @@ std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) 
     auto Assign = PM->Builder.build<Assignment>();
     Assign->setAssignedTo(AssignedTo);
     Assign->setExpr(Expr);
+    Assign->setCtx(ctx);
     return cast<ASTNodeT>(Assign);
 }
 
@@ -933,6 +934,7 @@ std::any ASTBuilderPass::visitProcedureCallStmt(GazpreaParser::ProcedureCallStmt
 
 std::any ASTBuilderPass::visitIdentLValue(GazpreaParser::IdentLValueContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     auto IdentRef = PM->Builder.build<IdentReference>();
     IdentRef->setIdentifier(Ident);
@@ -945,7 +947,7 @@ std::any ASTBuilderPass::visitIndexLValue(GazpreaParser::IndexLValueContext *ctx
 
 std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueContext *ctx) {
     auto MemberRef = PM->Builder.build<MemberReference>();
-
+    MemberRef->setCtx(ctx);
     // Set the identifier
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID(0)->getText());

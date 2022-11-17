@@ -407,7 +407,7 @@ class VariableArgumentError: public CompilerError {
 public:
     VariableArgumentError(TreeNode *node, int i, const string& name) : CompilerError(
             "Variable Argument", node,
-            "Argument " + to_string(i) + " in call to " + name + " must be a variable (l-value) type"
+            "Argument " + to_string(i) + " in call to " + name + " must be a variable (l-value) of the same type"
     ) {}
 };
 
