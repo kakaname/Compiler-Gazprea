@@ -9,7 +9,7 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
     auto IdentType = Assign->getIdentifier()->getIdentType();
     assert(IdentType && "Identifier must have their types assigned at this point.");
     auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
-    assert(!IdentType->isConst() && "Assigning to a const types?");
+    assert(!IdentType->isConst() && "Assigning to a const type?");
 
     // If they are already the same type, we don't care.
     if (AssignedType->isSameTypeAs(IdentType))

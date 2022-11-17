@@ -187,7 +187,7 @@ public:
             vector<const Type*> VarMembers;
             for (auto Mem: Tup->getMemberTypes())
                 VarMembers.emplace_back(getConstTypeOf(Mem));
-            return getTupleType(VarMembers, Tup->getMappings(), false);
+            return getTupleType(VarMembers, Tup->getMappings(), true);
         }
 
         assert(false && "Should not be reachable.");
