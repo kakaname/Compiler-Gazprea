@@ -77,6 +77,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             ExprAnnotator.runOnAST(*PM, Decl->getInitExpr());
             auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
             assert(ExprType && "Cannot infer declaration type");
+            assert(!isa<NullTy>(ExprType) && !isa<IdentityTy>(ExprType) &&
+                    "Cannot infer identity or null type." );
             if (!Decl->IsConst)
                 ExprType = PM->TypeReg.getVarTypeOf(ExprType);
             Decl->setIdentType(ExprType);
@@ -129,7 +131,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         // Add a scope for the parameters of the function.
         auto ProcParamScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(ProcParamScope);
-
+        CurrentScope = ProcParamScope;
         // Iterate over the identifiers that are the function parameters
         // and add them to the scope.
         for (auto *Param : *ParamList) {
@@ -145,14 +147,10 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             ProcParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
         // Add another scope for the function body.
-        auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
-        ProcParamScope->addChild(FuncBodyScope);
-        CurrentScope = FuncBodyScope;
         visit(Def->getBlock());
 
         // Go back to the original scope.
-        CurrentScope = dyn_cast<ScopeTreeNode>(ProcParamScope->getParent());
-        assert(CurrentScope);
+        CurrentScope = cast<ScopeTreeNode>(ProcParamScope->getParent());
 
         auto ProcName = Def->getIdentifier()->getName();
         auto ProcTy = Def->getIdentifier()->getIdentType();
@@ -173,6 +171,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         // Add a scope for the parameters of the function.
         auto FuncParamScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(FuncParamScope);
+        CurrentScope = FuncParamScope;
 
         // Iterate over the identifiers that are the function parameters
         // and add them to the scope.
@@ -188,15 +187,10 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             ParamIdent->setReferred(ParamSym);
             FuncParamScope->declareInScope(ParamIdent->getName(), ParamSym);
         }
-        // Add another scope for the function body.
-        auto FuncBodyScope = PM->Builder.build<ScopeTreeNode>();
-        FuncParamScope->addChild(FuncBodyScope);
-        CurrentScope = FuncBodyScope;
         visit(Def->getBlock());
 
         // Go back to the original scope.
-        CurrentScope = dyn_cast<ScopeTreeNode>(FuncParamScope->getParent());
-        assert(CurrentScope);
+        CurrentScope = cast<ScopeTreeNode>(FuncParamScope->getParent());
 
         auto FuncName = Def->getIdentifier()->getName();
         auto FuncTy = Def->getIdentifier()->getIdentType();
@@ -227,6 +221,15 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     void visitMemberAccess(MemberAccess *Access) {
         visit(Access->getExpr());
+    }
+
+    void visitBlock(Block *Blk) {
+        auto BlkScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(BlkScope);
+        CurrentScope = BlkScope;
+        for (auto Child : *Blk)
+            visit(Child);
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
     }
 };
 

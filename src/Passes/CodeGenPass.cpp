@@ -66,9 +66,8 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
 
 llvm::Type *CodeGenPass::getLLVMTupleType(const TupleTy *Tuple) {
     vector<llvm::Type*> TupleTypes;
-    for (const Type *SubTy : Tuple->getMemberTypes()) {
-        TupleTypes.push_back(getLLVMType(SubTy));
-    }
+    for (const Type *SubTy : Tuple->getMemberTypes())
+        TupleTypes.push_back(getLLVMType(PM->TypeReg.getConstTypeOf(SubTy)));
     return llvm::StructType::get(GlobalCtx, TupleTypes);
 }
 

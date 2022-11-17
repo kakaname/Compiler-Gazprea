@@ -29,7 +29,7 @@ void CallableArgumentTypeCheckingPass::checkProcCall(FunctionCall *Call, const P
             assert(isa<Identifier>(Expr) ||
                     isa<MemberAccess>(Expr)
                     && "Only lvalues may bind to var argument types.");
-            assert(ExprType == ParamType && "incorrect argument type.");
+            assert(!ExprType->isConst() && "incorrect argument type.");
             continue;
         }
 

@@ -125,6 +125,9 @@ public:
 
     bool canPromoteTo(const Type *T) const {
         switch (Kind) {
+            case T_Null:
+            case T_Identity:
+                return true;
             case T_Int:
                 return T->getKind() == T_Real || T->getKind() == T_Int;
             case T_Tuple:
@@ -143,6 +146,10 @@ public:
         if (isConst())
             TypeName += "const ";
         switch (Kind) {
+            case T_Identity:
+                return TypeName + "identity";
+            case T_Null:
+                return TypeName + "null";
             case T_Bool:
                 return TypeName + "bool";
             case T_Char:

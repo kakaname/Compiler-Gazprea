@@ -22,6 +22,7 @@
 #include "Passes/ReturnValuePromotionPass.h"
 #include "Passes/CodeGenPass.h"
 #include "Passes/SimplifyTupleCasting.h"
+#include "Passes/NullIdentityTypeCastPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -106,6 +107,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ASTPrinterPass());
     Manager.registerPass(ASTPrinterPassWithTypes());

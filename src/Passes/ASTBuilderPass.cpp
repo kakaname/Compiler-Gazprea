@@ -595,7 +595,7 @@ std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) 
 }
 
 std::any ASTBuilderPass::visitNullLiteral(GazpreaParser::NullLiteralContext *ctx) {
-    return PM->Builder.build<NullLiteral>();
+    return cast<ASTNodeT>(PM->Builder.build<NullLiteral>());
 }
 
 std::any ASTBuilderPass::visitAddSubExpr(GazpreaParser::AddSubExprContext *ctx) {
