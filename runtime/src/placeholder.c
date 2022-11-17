@@ -5,11 +5,11 @@
 #include "errors.h"
 
 struct stream_store {
-    char stream_state;
+    size_t stream_state;
     size_t front; // Front of queue
     size_t back;  // Back of queue
     size_t curr;  // Current position when "peeking"
-    int eof;
+    size_t eof;
     char buffer[1025];
 };
 

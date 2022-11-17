@@ -32,6 +32,23 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMCharTy}, false));
     PrintBool = Mod.getOrInsertFunction("rt_print_bool",
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
+    ScanInt = Mod.getOrInsertFunction("rt_scan_int",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanReal = Mod.getOrInsertFunction("rt_scan_real",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanChar = Mod.getOrInsertFunction("rt_scan_char",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    // Create the buffer pointer
+    llvm::StructType *BufferTy = llvm::StructType::create(GlobalCtx);
+    BufferTy->setBody({
+        LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, llvm::ArrayType::get(LLVMCharTy, 1025)
+    });
+
+    // get pointer to the first element of the buffer
+    BufferPtr = IR.CreateAlloca(BufferTy, nullptr, "buffer");
+    BufferPtr = IR.CreateStructGEP(BufferTy, BufferPtr, 0, "buffer_ptr_ptr");
 
     IR.SetInsertPoint(Entry);
     visit(Root);
@@ -668,6 +685,7 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     Value *ValToOut = visit(Stream->getOutStreamExpr());
     const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
+    assert(ValType->isOutputTy() && "Invalid output stream type");
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
             IR.CreateCall(PrintChar, {ValToOut});
@@ -689,19 +707,25 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getIdentifier());
+    assert(IdentTy->isInputTy() && "Invalid input stream type");
     Value *StoreLoc = SymbolMap[InStream->getIdentifier()->getReferred()];
 
-//    if (IdentTy == CharType) {
-//        IR.CreateCall(ReadCharFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == IntegerType) {
-//        IR.CreateCall(ReadIntFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == RealType) {
-//        IR.CreateCall(ReadRealFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == BoolType) {
-//        IR.CreateCall(ReadBoolFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else {
-//        // should not reach here ever
-//        assert(false && "Cannot input non-input type");
-//    }
+    switch (IdentTy->getKind()) {
+        case Type::TypeKind::T_Char:
+            IR.CreateCall(ScanChar, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Int:
+            IR.CreateCall(ScanInt, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Bool:
+            IR.CreateCall(ScanBool, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Real:
+            IR.CreateCall(ScanReal, {StoreLoc, BufferPtr});
+            break;
+        default:
+            assert(false && "Invalid type for outstream");
+    }
     return nullptr;
+
 }

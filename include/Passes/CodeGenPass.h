@@ -45,6 +45,13 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee PrintReal;
     llvm::FunctionCallee PrintChar;
     llvm::FunctionCallee PrintBool;
+    llvm::FunctionCallee ScanInt;
+    llvm::FunctionCallee ScanReal;
+    llvm::FunctionCallee ScanChar;
+    llvm::FunctionCallee ScanBool;
+
+    // Runtime buffer location
+    llvm::Value *BufferPtr;
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
