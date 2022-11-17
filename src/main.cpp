@@ -23,6 +23,10 @@
 #include "Passes/CodeGenPass.h"
 #include "Passes/SimplifyTupleCasting.h"
 #include "Passes/NullIdentityTypeCastPass.h"
+#include "Passes/ExplicitCastCheckPass.h"
+#include "Passes/LoopCheckPass.h"
+#include "Passes/ProcedureCallAliasCheckPass.h"
+#include "Passes/TupleNotEqualTransformationPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -94,17 +98,27 @@ int main(int argc, char **argv) {
 
     Manager.registerPass(ASTBuilderPass(tree));
     Manager.registerAnonymousPass(ASTPrinterPass());
+
+
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+
+    //
+    Manager.registerPass(ExplicitCastCheckPass());
+    Manager.registerPass(LoopCheckPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
+    Manager.registerPass(ProcedureCallAliasCheckPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
+
+    //
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
     Manager.registerPass(ExprTypeAnnotatorPass());

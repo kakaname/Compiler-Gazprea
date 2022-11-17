@@ -10,11 +10,12 @@
 struct LoopCheckPass : VisitorPass<LoopCheckPass, void> {
     using AnnotationT = TreeNode*;
 
-    void visitInfiniteLoop(InfiniteLoop *Loop);
-    void visitConditionalLoop(ConditionalLoop *Loop);
     static void visitBreak(Break *Break);
     static void visitContinue(Continue *Continue);
-    void runOnAST(ASTPassManager &PManager, ASTNodeT &Root);
+    void runOnAST(ASTPassManager &P, ASTNodeT *Root) {
+        PM = &P;
+        visit(Root);
+    };
 
     ASTPassManager *PM;
 

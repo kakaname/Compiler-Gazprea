@@ -231,7 +231,7 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     if (auto MemberIdent = dyn_cast<Identifier>(MAccess->getMemberExpr())) {
         auto MemIdx = Tuple->getMemberIdx(MemberIdent->getName());
         assert(MemIdx && "Member of that name not found in the type.");
-        auto ResultTy = Tuple->getMemberTypeAt(MemIdx);
+        auto ResultTy = Tuple->getMemberTypeAt(MemIdx - 1);
         PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
         return ResultTy;
     }
@@ -278,7 +278,8 @@ const Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
 
 const Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
     visit(Cast->getExpr());
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Cast->getTargetType());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(
+            Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
     return Cast->getTargetType();
 }
 
@@ -294,7 +295,8 @@ const Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
 
 const Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
     visit(Cast->getExpr());
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Cast->getTargetType());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(
+            Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
     return Cast->getTargetType();
 }
 
