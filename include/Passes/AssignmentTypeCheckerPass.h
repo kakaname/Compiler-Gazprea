@@ -12,7 +12,9 @@
 struct AssignmentTypeCheckerPass : public VisitorPass<AssignmentTypeCheckerPass, void> {
     void visitAssignment(Assignment *Assign);
     void visitDeclaration(Declaration *Decl);
+    void visitMemberAssignment(MemberAssignment *Assign);
 
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
     void runOnAST(ASTPassManager &M, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "This pass must be run on the root");

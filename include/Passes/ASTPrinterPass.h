@@ -31,7 +31,11 @@ public:
     }
 
     void visitAssignment(Assignment *Assign) {
-        std::cout << "Assignment" << "\n";
+        std::cout << "Assignment\n";
+    }
+
+    void visitMemberAssignment(MemberAssignment *Assign) {
+        std::cout << "MemberAssignment\n" ;
     }
 
     void visitDeclaration(Declaration *Decl) {

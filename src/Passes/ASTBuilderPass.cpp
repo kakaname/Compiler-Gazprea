@@ -69,16 +69,48 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) {
-    auto Assign = PM->Builder.build<Assignment>();
-    auto Ident = PM->Builder.build<Identifier>();
-
-    Ident->setName(ctx->ID()->getText());
-    Assign->setIdentifier(Ident);
 
     auto *Expr = castToNodeVisit(ctx->expr());
-    Assign->setExpr(Expr);
 
-    return cast<ASTNodeT>(Assign);
+    // Identifier assignment.
+    if (ctx->ID()) {
+        auto Assign = PM->Builder.build<Assignment>();
+        auto Ident = PM->Builder.build<Identifier>();
+
+        Ident->setName(ctx->ID()->getText());
+        Assign->setIdentifier(Ident);
+        Assign->setExpr(Expr);
+        return cast<ASTNodeT>(Assign);
+    }
+
+    if (auto MemAccessRule = ctx->memAccess()) {
+        auto MemberAcc = PM->Builder.build<MemberAccess>();
+
+        // Set the identifier
+        auto Ident = PM->Builder.build<Identifier>();
+        Ident->setName(MemAccessRule->ID(0)->getText());
+        MemberAcc->setExpr(Ident);
+
+        // When the member is accessed by name.
+        if (auto MemberId = MemAccessRule->ID(1)) {
+            auto IdentExpr = PM->Builder.build<Identifier>();
+            IdentExpr->setName(MemberId->getText());
+            MemberAcc->setMemberExpr(IdentExpr);
+        }
+        // When the member is accessed by index.
+        if (MemAccessRule->INTLITERAL()) {
+            auto IntegerLit = PM->Builder.build<IntLiteral>();
+            IntegerLit->setVal(MemAccessRule->INTLITERAL()->getText());
+            MemberAcc->setMemberExpr(IntegerLit);
+        }
+
+        auto MemAssign = PM->Builder.build<MemberAssignment>();
+        MemAssign->setMemberAccess(MemberAcc);
+        MemAssign->setExpr(Expr);
+        return cast<ASTNodeT>(MemAssign);
+    }
+
+    assert(false && "Index assignments are unimplemented");
 }
 
 std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext *ctx) {
@@ -216,7 +248,7 @@ std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setName(ctx->ID()->getText());
     Input->setIdentifier(Ident);
-    
+
     return cast<ASTNodeT>(Input);
 }
 
@@ -352,11 +384,16 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
         auto ParamTy = castToTypeVisit(Param->type());
         if (!IsVar)
             ParamTy = PM->TypeReg.getConstTypeOf(ParamTy);
-        ProcDecl->addArgumentTy(ParamTy);
+        ProcDecl->addParamTy(ParamTy);
     }
 
+    const Type *ProcRetTy{nullptr};
     if (ctx->type())
-        ProcDecl->setRetTy(PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
+        ProcRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+
+    ProcDecl->setRetTy(ProcRetTy);
+    auto ProcType = PM->TypeReg.getProcedureType(ProcDecl->getParamTypes(), ProcRetTy);
+    Ident->setIdentType(ProcType);
 
     return cast<ASTNodeT>(ProcDecl);
 }
@@ -387,7 +424,8 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     ProcDef->setParamList(ParamList);
     ProcDef->setBlock(castToNodeVisit(ctx->block()));
     if (ctx->type())
-        ProcDef->setRetTy(castToTypeVisit(ctx->type()));
+        ProcDef->setRetTy(
+                PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type())));
 
     auto ProcTy = PM->TypeReg.getProcedureType(ParamTypes, ProcDef->getRetTy());
     ProcDef->getIdentifier()->setIdentType(ProcTy);
@@ -563,7 +601,7 @@ std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) 
 }
 
 std::any ASTBuilderPass::visitNullLiteral(GazpreaParser::NullLiteralContext *ctx) {
-    return PM->Builder.build<NullLiteral>();
+    return cast<ASTNodeT>(PM->Builder.build<NullLiteral>());
 }
 
 std::any ASTBuilderPass::visitAddSubExpr(GazpreaParser::AddSubExprContext *ctx) {

@@ -37,6 +37,10 @@ public:
         std::cout << "Assignment" << "\n";
     }
 
+    void visitMemberAssignment(MemberAssignment *Assign) {
+        std::cout << "MemberAssignment\n" ;
+    }
+
     void visitDeclaration(Declaration *Decl) {
         std:: cout << "Decl(" << Decl->getIdentifier()->getName();
         std::cout << ", Sym:" << Decl->getIdentifier()->getReferred();

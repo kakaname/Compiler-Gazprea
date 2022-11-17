@@ -25,6 +25,8 @@ public:
         N_AST_NoOp,
         N_AST_Identifier,
         N_AST_Assignment,
+        N_AST_MemberAssignment,
+        N_AST_IndexAssignment,
         N_AST_CalleeParameter,
         N_AST_Declaration,
         N_AST_Block,

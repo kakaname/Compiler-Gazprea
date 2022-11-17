@@ -22,14 +22,14 @@ void CallableArgumentTypeCheckingPass::checkProcCall(FunctionCall *Call, const P
     "Incorrect number of arguments");
 
     for (int I = 0; I < Ty->getNumOfArgs(); I++) {
-        auto ParamType = Ty->getArgTypeAt(I);
+        auto ParamType = Ty->getParamTypeAt(I);
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
         if (!ParamType->isConst()) {
             assert(isa<Identifier>(Expr) ||
                     isa<MemberAccess>(Expr)
                     && "Only lvalues may bind to var argument types.");
-            assert(ExprType == ParamType && "incorrect argument type.");
+            assert(!ExprType->isConst() && "incorrect argument type.");
             continue;
         }
 
@@ -56,7 +56,7 @@ void CallableArgumentTypeCheckingPass::checkFuncCall(FunctionCall *Call, const F
            "Incorrect number of arguments");
 
     for (int I = 0; I < Ty->getNumOfArgs(); I++) {
-        auto ParamType = Ty->getArgTypeAt(I);
+        auto ParamType = Ty->getParamTypeAt(I);
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
 

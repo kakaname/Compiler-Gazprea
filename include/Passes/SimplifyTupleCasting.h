@@ -20,7 +20,6 @@ struct SimplifyTupleCasting : VisitorPass<SimplifyTupleCasting, void> {
     void runOnAST(ASTPassManager &P, ASTNodeT *Root) {
         PM = &P;
         visit(Root);
-//        PM->invalidateResult<ExprTypeAnnotatorPass>();
     }
 
     ASTPassManager *PM;

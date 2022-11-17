@@ -11,6 +11,8 @@
 #include <array>
 #include <cassert>
 #include <string>
+#include <algorithm>
+
 
 #include "llvm/Support/Casting.h"
 #include "Types/Type.h"
@@ -133,7 +135,7 @@ public:
         return Inserted.first->second.get();
     }
 
-    const Type *getFunctionType(const FunctionTy::ArgsTypeContainer& Args, const Type *RetTy) {
+    const Type *getFunctionType(const FunctionTy::ParamTypeContainer& Args, const Type *RetTy) {
         pair Key{Args, RetTy};
         auto Res = FunctionTypes.find(Key);
         if (Res != FunctionTypes.end())
@@ -182,10 +184,43 @@ public:
                                  Mat->getNumOfColumns(), true);
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
-            vector<const Type*> ConstMems;
-            for (auto *MemberTy : Tup->getMemberTypes())
-                ConstMems.emplace_back(getConstTypeOf(MemberTy));
-            return getTupleType(ConstMems, Tup->getMappings(), true);
+            vector<const Type*> VarMembers;
+            for (auto Mem: Tup->getMemberTypes())
+                VarMembers.emplace_back(getConstTypeOf(Mem));
+            return getTupleType(VarMembers, Tup->getMappings(), true);
+        }
+
+        assert(false && "Should not be reachable.");
+    }
+
+    const Type *getVarTypeOf(const Type *Ty) {
+        if (isa<NullTy>(Ty) || isa<IdentityTy>(Ty))
+            assert(false && "Asking for var identity or null");
+
+        if (isa<IntegerTy>(Ty))
+            return getIntegerTy(false);
+
+        if (isa<BoolTy>(Ty))
+            return getBooleanTy(false);
+
+        if (isa<CharTy>(Ty))
+            return getCharTy(false);
+
+        if (isa<RealTy>(Ty))
+            return getRealTy(false);
+
+        if (auto *Vec = dyn_cast<VectorTy>(Ty))
+            return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
+            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+                                 Mat->getNumOfColumns(), false);
+
+        if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
+            vector<const Type*> VarMembers;
+            for (auto Mem: Tup->getMemberTypes())
+                VarMembers.emplace_back(getVarTypeOf(Mem));
+            return getTupleType(VarMembers, Tup->getMappings(), false);
         }
 
         assert(false && "Should not be reachable.");

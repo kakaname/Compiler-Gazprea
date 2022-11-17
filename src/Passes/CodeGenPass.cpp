@@ -12,12 +12,11 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PM = &Manager;
 
     // Set Runtime Functions
+    llvm::FunctionType *MainTy = llvm::FunctionType::get(LLVMIntTy, false);
 
-    llvm::FunctionType *ft = llvm::FunctionType::get(
-            LLVMIntTy, false
-    );
 
-    GlobalFunction = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", Mod);
+    GlobalFunction = llvm::Function::Create(
+            MainTy, llvm::Function::ExternalLinkage, "main", Mod);
 
     llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "entry", GlobalFunction);
 
@@ -61,32 +60,43 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     std::ofstream Out(OutputFile);
     llvm::raw_os_ostream OS(Out);
     OS << Mod;
-
-
 }
 
 llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
+    if (!Ty)
+        return IR.getVoidTy();
+
+    auto ConstConv = [&](llvm::Type *LLVMTy, bool IsConst) {
+        if (IsConst)
+            return LLVMTy;
+        return cast<llvm::Type>(LLVMTy->getPointerTo());
+    };
+
     switch (Ty->getKind()) {
         case Type::TypeKind::T_Bool:
-            return LLVMBoolTy;
+            return ConstConv(LLVMBoolTy, Ty->isConst());
         case Type::TypeKind::T_Int:
-            return LLVMIntTy;
+            return ConstConv(LLVMIntTy, Ty->isConst());
         case Type::TypeKind::T_Real:
-            return LLVMRealTy;
+            return ConstConv(LLVMRealTy, Ty->isConst());
         case Type::TypeKind::T_Char:
-            return LLVMCharTy;
+            return ConstConv(LLVMCharTy, Ty->isConst());
         case Type::TypeKind::T_Tuple:
-            return getLLVMTupleType(dyn_cast<TupleTy>(Ty));
+            return ConstConv(getLLVMTupleType(
+                    cast<TupleTy>(Ty)), Ty->isConst());
+        case Type::TypeKind::T_Function:
+            return getLLVMFunctionType(cast<FunctionTy>(Ty));
+        case Type::TypeKind::T_Procedure:
+            return getLLVMProcedureType(cast<ProcedureTy>(Ty));
         default:
-            return nullptr;
+            assert(false && "Unknown type");
     }
 }
 
 llvm::Type *CodeGenPass::getLLVMTupleType(const TupleTy *Tuple) {
     vector<llvm::Type*> TupleTypes;
-    for (const Type *SubTy : Tuple->getMemberTypes()) {
-        TupleTypes.push_back(getLLVMType(SubTy));
-    }
+    for (const Type *SubTy : Tuple->getMemberTypes())
+        TupleTypes.push_back(getLLVMType(PM->TypeReg.getConstTypeOf(SubTy)));
     return llvm::StructType::get(GlobalCtx, TupleTypes);
 }
 
@@ -101,6 +111,8 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     return IR.CreateLoad(SymbolMap[Ident->getReferred()]);
 }
 
+
+
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     Value *StoreVal = visit(Assign->getExpr());
     Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
@@ -111,7 +123,7 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     Value *InitValue = visit(Decl->getInitExpr());
-    const Type *DeclType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
+    auto DeclType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
     Value *DeclValue = createAlloca(DeclType);
     IR.CreateStore(InitValue, DeclValue);
     SymbolMap[Decl->getIdentifier()->getReferred()] = DeclValue;
@@ -124,9 +136,9 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
     Value *RightOperand = visit(Op->getRightExpr());
 
     // Just an assertion, not needed for code gen.
-    const Type* LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    const Type* RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert( RightType == LeftType && "Operation between different types should not"
+    auto LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+    assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
     llvm::CmpInst::Predicate Pred;
@@ -153,7 +165,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
 
     const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert( RightType == LeftType && "Operation between different types should not"
+    assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
     const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
@@ -727,5 +739,22 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             assert(false && "Invalid type for outstream");
     }
     return nullptr;
+
+}
+
+llvm::Type *CodeGenPass::getLLVMFunctionType(const FunctionTy *FuncTy) {
+    vector<llvm::Type*> ParamTypes;
+    for (auto Ty: FuncTy->getParamTypes())
+        ParamTypes.emplace_back(getLLVMType(Ty));
+    return llvm::cast<llvm::Type>(
+            llvm::FunctionType::get(getLLVMType(FuncTy->getRetType()), ParamTypes, false));
+}
+
+llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
+    vector<llvm::Type*> ParamTypes;
+    for (auto Ty: ProcTy->getParamTypes())
+        ParamTypes.emplace_back(getLLVMType(Ty));
+    return llvm::cast<llvm::Type>(
+            llvm::FunctionType::get(getLLVMType(ProcTy->getRetTy()), ParamTypes, false));
 
 }

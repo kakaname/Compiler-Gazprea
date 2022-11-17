@@ -43,7 +43,10 @@ identDecl
 
 // we cannot assign procedureCall to an ID? I removed it.
 // Here procedureCall specifically means `call precodurename()`
-assignment : ID EQ expr SC;
+assignment : (index| memAccess | ID) EQ expr SC;
+
+index : expr LSQRPAREN expr RSQRPAREN;
+memAccess: ID PERIOD (ID | INTLITERAL);
 
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
