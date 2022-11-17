@@ -332,3 +332,8 @@ const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Bool, PM->TypeReg.getBooleanTy());
     return PM->TypeReg.getBooleanTy();
 }
+
+const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
+    return PM->TypeReg.getCharTy();
+}
