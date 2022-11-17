@@ -11,7 +11,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     assert(isa<Program>(Root) && "CodeGenPass should run on the entire program");
     PM = &Manager;
 
+    // Set Runtime Functions
     llvm::FunctionType *MainTy = llvm::FunctionType::get(LLVMIntTy, false);
+
 
     GlobalFunction = llvm::Function::Create(
             MainTy, llvm::Function::ExternalLinkage, "main", Mod);
@@ -20,6 +22,32 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     // Set the current function to the global function (for global variables)
     CurrentFunction = GlobalFunction;
+
+    PrintInt = Mod.getOrInsertFunction("rt_print_int",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMIntTy}, false));
+    PrintReal = Mod.getOrInsertFunction("rt_print_real",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMRealTy}, false));
+    PrintChar = Mod.getOrInsertFunction("rt_print_char",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMCharTy}, false));
+    PrintBool = Mod.getOrInsertFunction("rt_print_bool",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
+    ScanInt = Mod.getOrInsertFunction("rt_scan_int",
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanReal = Mod.getOrInsertFunction("rt_scan_real",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanChar = Mod.getOrInsertFunction("rt_scan_char",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    // Create the buffer pointer
+    llvm::StructType *BufferTy = llvm::StructType::create(GlobalCtx);
+    BufferTy->setBody({
+        LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, llvm::ArrayType::get(LLVMCharTy, 1025)
+    });
+
+    // get pointer to the first element of the buffer
+    BufferPtr = IR.CreateAlloca(BufferTy, nullptr, "buffer");
+    BufferPtr = IR.CreateStructGEP(BufferTy, BufferPtr, 0, "buffer_ptr_ptr");
 
     IR.SetInsertPoint(Entry);
     visit(Root);
@@ -140,20 +168,54 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
-    switch (Op->getOpKind()) {
-        case ArithmeticOp::ADD:
-            return IR.CreateAdd(LeftOperand, RightOperand);
-        case ArithmeticOp::SUB:
-            return IR.CreateSub(LeftOperand, RightOperand);
-        case ArithmeticOp::MUL:
-            return IR.CreateMul(LeftOperand, RightOperand);
-        case ArithmeticOp::DIV:
-            return IR.CreateSDiv(LeftOperand, RightOperand);
-        case ArithmeticOp::EXP:
-            return IR.CreateCall(llvm::Intrinsic::getDeclaration(&Mod, llvm::Intrinsic::powi), {LeftOperand, RightOperand});
-        case ArithmeticOp::MOD:
-            return IR.CreateSRem(LeftOperand, RightOperand);
+    const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
+    if (ResultType->getKind() != Type::TypeKind::T_Real) {
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                return IR.CreateAdd(LeftOperand, RightOperand);
+            case ArithmeticOp::SUB:
+                return IR.CreateSub(LeftOperand, RightOperand);
+            case ArithmeticOp::MUL:
+                return IR.CreateMul(LeftOperand, RightOperand);
+            case ArithmeticOp::DIV:
+                return IR.CreateSDiv(LeftOperand, RightOperand);
+            case ArithmeticOp::MOD:
+                return IR.CreateSRem(LeftOperand, RightOperand);
+            case ArithmeticOp::EXP:
+                return IR.CreateCall(
+                        llvm::Intrinsic::getDeclaration(
+                                &Mod,
+                                llvm::Intrinsic::powi,
+                                {getLLVMType(LeftType), getLLVMType(RightType)}),
+                        {LeftOperand, RightOperand});
         }
+    } else {
+        // Metadata for rounding
+        llvm::MDNode *FPMetadata = llvm::MDNode::get(
+                GlobalCtx,
+                {llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::RoundingMode::rmTowardZero)),
+                llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(LLVMIntTy, llvm::fp::ExceptionBehavior::ebStrict))}
+        );
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                return IR.CreateFAdd(LeftOperand, RightOperand, "fadd", FPMetadata);
+            case ArithmeticOp::SUB:
+                return IR.CreateFSub(LeftOperand, RightOperand, "fsub", FPMetadata);
+            case ArithmeticOp::MUL:
+                return IR.CreateFMul(LeftOperand, RightOperand, "fmul", FPMetadata);
+            case ArithmeticOp::DIV:
+                return IR.CreateFDiv(LeftOperand, RightOperand, "fdiv", FPMetadata);
+            case ArithmeticOp::MOD:
+                return IR.CreateFRem(LeftOperand, RightOperand, "frem", FPMetadata);
+            case ArithmeticOp::EXP:
+                return IR.CreateCall(
+                        llvm::Intrinsic::getDeclaration(
+                                &Mod,
+                                llvm::Intrinsic::pow,
+                                {getLLVMType(LeftType), getLLVMType(RightType)}),
+                        {LeftOperand, RightOperand});
+        }
+    }
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
@@ -364,6 +426,7 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Bool:
             return IR.CreateICmpNE(Val, llvm::Constant::getNullValue(getLLVMType(SrcTy)));
         case Type::TypeKind::T_Char:
+            // TODO fix char
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Int:
                     return IR.CreateTrunc(Val, LLVMCharTy);
@@ -375,7 +438,6 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Int:
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Char:
-                    return IR.CreateSExt(Val, LLVMIntTy);
                 case Type::TypeKind::T_Bool:
                     return IR.CreateZExt(Val, LLVMIntTy);
                 case Type::TypeKind::T_Real:
@@ -386,8 +448,8 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
         case Type::TypeKind::T_Real:
             switch (SrcTy->getKind()) {
                 case Type::TypeKind::T_Int:
-                case Type::TypeKind::T_Char:
                     return IR.CreateSIToFP(Val, LLVMRealTy);
+                case Type::TypeKind::T_Char:
                 case Type::TypeKind::T_Bool:
                     return IR.CreateUIToFP(Val, LLVMRealTy);
                 default:
@@ -632,43 +694,52 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 
 }
 
-llvm::Value *CodeGenPass::visitOutStream(OutStream *OutStream) {
-//    Value *ValToOut = visit(Stream->getOutStreamExpr());
-//    Type ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(*Stream->getOutStreamExpr());
-//    // TODO depends on the TypeRegistry Implementation
-//    if (ValType == CharType) {
-//        // TODO enforce ValToOut = 0/1 for null and identity
-//        IR.CreateCall(PrintCharFunc, {ValToOut});
-//    } else if (ValType == IntegerType) {
-//        IR.CreateCall(PrintIntFunc, {ValToOut});
-//    } else if (ValType == RealType) {
-//        IR.CreateCall(PrintRealFunc, {ValToOut});
-//    } else if (ValType == BoolType) {
-//        IR.CreateCall(PrintBoolFunc, {ValToOut});
-//    } else {
-//        // should not reach here ever
-//        assert(false && "Cannot output non-output type");
-//    }
-//    return nullptr;
+llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
+    Value *ValToOut = visit(Stream->getOutStreamExpr());
+    const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
+    assert(ValType->isOutputTy() && "Invalid output stream type");
+    switch (ValType->getKind()) {
+        case Type::TypeKind::T_Char:
+            IR.CreateCall(PrintChar, {ValToOut});
+            break;
+        case Type::TypeKind::T_Int:
+            IR.CreateCall(PrintInt, {ValToOut});
+            break;
+        case Type::TypeKind::T_Bool:
+            IR.CreateCall(PrintBool, {ValToOut});
+            break;
+        case Type::TypeKind::T_Real:
+            IR.CreateCall(PrintReal, {ValToOut});
+            break;
+        default:
+            assert(false && "Invalid type for outstream");
+    }
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getIdentifier());
+    assert(IdentTy->isInputTy() && "Invalid input stream type");
     Value *StoreLoc = SymbolMap[InStream->getIdentifier()->getReferred()];
 
-//    if (IdentTy == CharType) {
-//        IR.CreateCall(ReadCharFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == IntegerType) {
-//        IR.CreateCall(ReadIntFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == RealType) {
-//        IR.CreateCall(ReadRealFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else if (IdentTy == BoolType) {
-//        IR.CreateCall(ReadBoolFunc, {StoreLoc, StreamStateLoc, Buffer});
-//    } else {
-//        // should not reach here ever
-//        assert(false && "Cannot input non-input type");
-//    }
+    switch (IdentTy->getKind()) {
+        case Type::TypeKind::T_Char:
+            IR.CreateCall(ScanChar, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Int:
+            IR.CreateCall(ScanInt, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Bool:
+            IR.CreateCall(ScanBool, {StoreLoc, BufferPtr});
+            break;
+        case Type::TypeKind::T_Real:
+            IR.CreateCall(ScanReal, {StoreLoc, BufferPtr});
+            break;
+        default:
+            assert(false && "Invalid type for outstream");
+    }
     return nullptr;
+
 }
 
 llvm::Type *CodeGenPass::getLLVMFunctionType(const FunctionTy *FuncTy) {
