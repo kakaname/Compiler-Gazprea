@@ -2,18 +2,18 @@ procedure main() returns integer {
 
   // Integer
   var integer a = 2 ^ 2;
-  a -> std_output;
   var integer b = a ^ 3;
-  b -> std_output;
   var integer c = b ^ a;
+  var real x = 0.5 ^ 2.0;
+  var real y = 256.0 * x;
+  var real z = x ^ y;
+  a -> std_output;
+  b -> std_output;
   c -> std_output;
 
   // Real
-  var real x = 0.5 ^ 2.0;
   x -> std_output;
-  var real y = 256.0 * x;
   y -> std_output;
-  var real z = x ^ y;
   z -> std_output;
 
   return 0;

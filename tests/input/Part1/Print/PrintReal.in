@@ -1,2 +1,7 @@
+procedure main() returns integer {
+
 var real v = 3.1415;
 v -> std_output;
+
+return 0;
+}
