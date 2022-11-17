@@ -1,10 +1,13 @@
 procedure main() returns integer {
   // tests for integer input
   var integer x;
+  char z;
   x <- std_input;
   x -> std_output;
+  z <- std_input;
   x <- std_input;
   x -> std_output;
+  z <- std_input;
   x <- std_input;
   x -> std_output;
   

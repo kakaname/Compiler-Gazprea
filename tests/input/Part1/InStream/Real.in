@@ -1,17 +1,25 @@
 procedure main() returns integer {
   // tests for real input
   var real x;
+  char z;
   x <- std_input;
   x -> std_output;
+  z <- std_input;
   x <- std_input;
   x -> std_output;
+  z <- std_input;
+
   x <- std_input;
   x -> std_output;
+  z <- std_input;
+
  // negatives 
   x <- std_input;
   x -> std_output;
+  z <- std_input;
   x <- std_input;
   x -> std_output;
+  z <- std_input;
   x <- std_input;
   x -> std_output;
   
