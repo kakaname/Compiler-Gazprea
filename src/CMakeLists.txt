@@ -19,7 +19,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ScopeResolutionPass.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ConvertIdentMemberAccessToIdxPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ConvertIdentMemberAccessToIdxPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/AssignmentTypeCheckerPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ErrorHandling/exceptions.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Symbol/Symbol.cpp"
@@ -32,7 +32,9 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CallableArgumentTypeCheckingPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallAliasCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/SimplifyTupleCasting.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/NullIdentityTypeCastPass.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/NullIdentityTypeCastPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureExpressionCheckPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
