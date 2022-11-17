@@ -96,6 +96,11 @@ public:
         Ctx = ctx;
     }
 
+    void copyCtx(TreeNode *node) {
+        Ctx = node->Ctx;
+    }
+
+
     size_t getLine() {
         return Ctx->getStart()->getLine();
     }

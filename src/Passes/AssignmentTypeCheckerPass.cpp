@@ -61,6 +61,7 @@ void AssignmentTypeCheckerPass::visitMemberAssignment(MemberAssignment *Assign) 
 
 TypeCast *AssignmentTypeCheckerPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const {
     auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
     Cast->setTargetType(Target);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Target);

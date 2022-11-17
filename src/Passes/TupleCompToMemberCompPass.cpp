@@ -34,6 +34,7 @@ void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
     }
 
     auto AndOp = PM->Builder.build<LogicalOp>();
+    AndOp->copyCtx(Op);
     AndOp->setOp(LogicalOp::AND);
     AndOp->setLeftExpr(EqualOps[0]);
 
@@ -46,6 +47,7 @@ void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
             break;
         }
         auto Second = PM->Builder.build<LogicalOp>();
+        Second->copyCtx(Op);
         Second->setOp(LogicalOp::AND);
         Second->setLeftExpr(EqualOps[I]);
         First->setRightExpr(Second);
@@ -58,9 +60,11 @@ void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
 MemberAccess *TupleCompToMemberCompPass::buildMemberAccess(
         ASTNodeT *BaseExpr, int Idx) const {
     auto IntLit = PM->Builder.build<IntLiteral>();
+    IntLit->copyCtx(BaseExpr);
     IntLit->setIntVal(Idx);
 
     auto Access = PM->Builder.build<MemberAccess>();
+    Access->copyCtx(BaseExpr);
     Access->setExpr(BaseExpr);
     Access->setMemberExpr(IntLit);
 
@@ -71,6 +75,7 @@ LogicalOp *
 TupleCompToMemberCompPass::buildLogicalOp(
         ASTNodeT *LExpr, ASTNodeT *RExpr, LogicalOp::OpKind OpKind) const {
     auto Op = PM->Builder.build<LogicalOp>();
+    Op->copyCtx(LExpr);
     Op->setLeftExpr(LExpr);
     Op->setRightExpr(RExpr);
     Op->setOp(OpKind);
