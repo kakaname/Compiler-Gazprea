@@ -49,15 +49,15 @@ class SyntaxErrorListener: public antlr4::BaseErrorListener {
 };
 
 int main(int argc, char **argv) {
-//  if (argc < 3) {
-//    std::cout << "Missing required argument.\n"
-//              << "Required arguments: <input file path> <output file path>\n";
-//    return 1;
-//  }
+  if (argc < 3) {
+    std::cout << "Missing required argument.\n"
+              << "Required arguments: <input file path> <output file path>\n";
+    return 1;
+  }
 
   // Open the file then parse and lex it.
   antlr4::ANTLRFileStream afs;
-  afs.loadFromFile("../test_gaz");
+  afs.loadFromFile(argv[1]);
   gazprea::GazpreaLexer lexer(&afs);
   antlr4::CommonTokenStream tokens(&lexer);
   gazprea::GazpreaParser parser(&tokens);
@@ -129,9 +129,9 @@ int main(int argc, char **argv) {
 
     Manager.runAllPasses();
 
-//    auto CG = CodeGenPass(argv[2]);
-//    auto *Root = Manager.getRoot();
-//    CG.runOnAST(Manager, Root);
+    auto CG = CodeGenPass(argv[2]);
+    auto *Root = Manager.getRoot();
+    CG.runOnAST(Manager, Root);
     return 0;
 
 }

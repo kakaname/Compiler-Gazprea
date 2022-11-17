@@ -15,30 +15,33 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     llvm::FunctionType *MainTy = llvm::FunctionType::get(LLVMIntTy, false);
 
 
-    GlobalFunction = llvm::Function::Create(
-            MainTy, llvm::Function::ExternalLinkage, "main", Mod);
-
-    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "entry", GlobalFunction);
-
-    // Set the current function to the global function (for global variables)
-    CurrentFunction = GlobalFunction;
-
     PrintInt = Mod.getOrInsertFunction("rt_print_int",
                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMIntTy}, false));
     PrintReal = Mod.getOrInsertFunction("rt_print_real",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMRealTy}, false));
+                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMRealTy}, false));
     PrintChar = Mod.getOrInsertFunction("rt_print_char",
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMCharTy}, false));
     PrintBool = Mod.getOrInsertFunction("rt_print_bool",
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
     ScanInt = Mod.getOrInsertFunction("rt_scan_int",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                      llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
     ScanReal = Mod.getOrInsertFunction("rt_scan_real",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
     ScanChar = Mod.getOrInsertFunction("rt_scan_char",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
     ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+    llvm::Function *MainProd = getMainProcProto();
+
+    GlobalFunction = llvm::Function::Create(
+            MainTy, llvm::Function::ExternalLinkage, "main", Mod);
+
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "entry", GlobalFunction);
+    IR.SetInsertPoint(Entry);
+
+    // Set the current function to the global function (for global variables)
+    CurrentFunction = GlobalFunction;
+
     // Create the buffer pointer
     llvm::StructType *BufferTy = llvm::StructType::create(GlobalCtx);
     BufferTy->setBody({
@@ -49,12 +52,12 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     BufferPtr = IR.CreateAlloca(BufferTy, nullptr, "buffer");
     BufferPtr = IR.CreateStructGEP(BufferTy, BufferPtr, 0, "buffer_ptr_ptr");
 
-    IR.SetInsertPoint(Entry);
-    visit(Root);
 
     // TODO check for main function existing (in error handling)
-    llvm::Value *RetVal = IR.CreateCall(MainFunction, {});
+    llvm::Value *RetVal = IR.CreateCall(MainProd, {});
     IR.CreateRet(RetVal);
+
+    visit(Root);
 
     // Dump the module to the output file.
     std::ofstream Out(OutputFile);
@@ -550,35 +553,38 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 
 llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
 
-    // Get arg types
-    std::vector<llvm::Type *> ParamTypes;
-    for (size_t i = 0; i < ProcedureDef->getParamList()->numOfChildren(); i++) {
-        Identifier *Ident = ProcedureDef->getParamList()->getParamAt(i);
-        const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ident);
+    llvm::Function *Func = Mod.getFunction("pd_" + ProcedureDef->getIdentifier()->getName());
+    if (!Func) {
 
-        // Constant arguments are passed by value
-        if (IdentTy->isConst()) {
-            ParamTypes.push_back(getLLVMType(IdentTy));
+        // Get arg types
+        std::vector<llvm::Type *> ParamTypes;
+        for (size_t i = 0; i < ProcedureDef->getParamList()->numOfChildren(); i++) {
+            Identifier *Ident = ProcedureDef->getParamList()->getParamAt(i);
+            const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ident);
 
-        // Variable arguments are passed by reference
-        } else {
-            ParamTypes.push_back(llvm::PointerType::get(getLLVMType(IdentTy), 0));
+            // Constant arguments are passed by value
+            if (IdentTy->isConst()) {
+                ParamTypes.push_back(getLLVMType(IdentTy));
+
+                // Variable arguments are passed by reference
+            } else {
+                ParamTypes.push_back(llvm::PointerType::get(getLLVMType(IdentTy), 0));
+            }
         }
+
+        // Get function type
+        llvm::FunctionType *ProcedureTy = llvm::FunctionType::get(
+                getLLVMType(ProcedureDef->getRetTy()),
+                ParamTypes,
+                false);
+
+        // Define a function
+        Func = llvm::Function::Create(
+                ProcedureTy,
+                llvm::Function::ExternalLinkage,
+                "pd_" + ProcedureDef->getIdentifier()->getName(),
+                Mod);
     }
-
-    // Get function type
-    llvm::FunctionType *ProcedureTy = llvm::FunctionType::get(
-            getLLVMType(ProcedureDef->getRetTy()),
-            ParamTypes,
-            false);
-
-    // Define a function
-    llvm::Function *Func = llvm::Function::Create(
-            ProcedureTy,
-            llvm::Function::ExternalLinkage,
-            "pd_" + ProcedureDef->getIdentifier()->getName(),
-            Mod);
-
     // Create a new basic block to start insertion into
     llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Func);
     IR.SetInsertPoint(BB);
@@ -604,10 +610,7 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
         i++;
     }
 
-    // Set main procedure if applicable
-    if (ProcedureDef->getIdentifier()->getName() == "main") {
-        MainFunction = Func;
-    }
+
 
     // Set current function
     CurrentFunction = Func;
@@ -757,4 +760,9 @@ llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
     return llvm::cast<llvm::Type>(
             llvm::FunctionType::get(getLLVMType(ProcTy->getRetTy()), ParamTypes, false));
 
+}
+
+llvm::Function *CodeGenPass::getMainProcProto() {
+    llvm::FunctionType *FT = llvm::FunctionType::get(LLVMIntTy, {}, false);
+    return llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "pd_main", &Mod);
 }
