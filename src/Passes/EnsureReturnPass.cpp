@@ -7,8 +7,9 @@
 
 
 bool EnsureReturnPass::visitFunctionDef(FunctionDef *FuncDef) {
-    assert(visit(FuncDef->getBlock()) && "Not all branches"
-                                         " lead to a return.");
+
+    if (!visit(FuncDef->getBlock()))
+        throw FunctionReturnError(FuncDef, FuncDef->getIdentifier()->getName());
 }
 
 bool EnsureReturnPass::visitBlock(Block *Blk) {
@@ -27,8 +28,9 @@ bool EnsureReturnPass::visitProcedureDef(ProcedureDef *ProcDef) {
     // If the procedure has no return type, we don't care.
     if (!ProcDef->getRetTy())
         return true;
-    assert(visit(ProcDef->getBlock()) && "Not all branches "
-                                         "lead to a return.");
+    if (!visit(ProcDef->getBlock()))
+        throw ProcedureReturnError(ProcDef, ProcDef->getIdentifier()->getName());
+
 }
 
 bool EnsureReturnPass::visitConditionalElse(ConditionalElse *Cond) {

@@ -1,1 +1,4 @@
-var  integer i; 
+procedure main() returns integer {
+var  integer i;
+return 0;
+}

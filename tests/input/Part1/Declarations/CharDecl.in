@@ -1,2 +1,7 @@
+procedure main() returns integer {
+
 var character a;
 var character a = 'a';
+
+return 0;
+}

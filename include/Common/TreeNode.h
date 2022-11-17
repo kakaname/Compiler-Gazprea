@@ -6,6 +6,7 @@
 #define GAZPREABASE_TREENODE_H
 
 #include "llvm/Support/Casting.h"
+#include "GazpreaLexer.h"
 
 #include <vector>
 #include <list>
@@ -25,8 +26,8 @@ public:
         N_AST_NoOp,
         N_AST_Identifier,
         N_AST_Assignment,
-        N_AST_MemberAssignment,
-        N_AST_IndexAssignment,
+        N_AST_MemberReference,
+        N_AST_IdentReference,
         N_AST_CalleeParameter,
         N_AST_Declaration,
         N_AST_Block,
@@ -43,16 +44,10 @@ public:
         N_AST_CharLiteral,
         N_AST_TupleLiteral,
         N_AST_MemberAccess,
-        N_AST_TupleTypeDecl,
-        N_AST_IntegerTypeNode,
-        N_AST_BooleanTypeNode,
-        N_AST_CharacterTypeNode,
-        N_AST_RealTypeNode,
         N_AST_InfiniteLoop,
         N_AST_Conditional,
         N_AST_ConditionalElse,
         N_AST_TypeCast,
-        N_AST_TypeDef,
         N_AST_ResolvedType,
         N_AST_LogicalOp,
         N_AST_UnaryOp,
@@ -81,7 +76,7 @@ public:
 
     TreeNode() = delete;
 
-    explicit TreeNode(TreeNodeKind Kind) : Kind(Kind), Parent(nullptr) {}
+    explicit TreeNode(TreeNodeKind Kind) : Kind(Kind), Parent(nullptr), Ctx(nullptr) {}
 
     void setParent(TreeNode *P) {
         Parent = P;
@@ -89,6 +84,19 @@ public:
 
     TreeNode *getParent() {
         return Parent;
+    }
+
+    void setCtx(antlr4::ParserRuleContext *ctx) {
+        Ctx = ctx;
+    }
+
+    void copyCtx(TreeNode *node) {
+        Ctx = node->Ctx;
+    }
+
+
+    size_t getLine() {
+        return Ctx->getStart()->getLine();
     }
 
     void addChild(TreeNode *Child) {
@@ -154,6 +162,7 @@ protected:
 private:
     TreeNodeKind Kind;
     TreeNode *Parent;
+    antlr4::ParserRuleContext *Ctx;
 };
 
 

@@ -27,6 +27,7 @@ public:
     }
 
     void visitIdentifier(Identifier *Ident) {
+        std::cout << "Ident(Name: ";
         std::cout << Ident->getName();
         std::cout << ", Ty: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Ident)->getTypeName();
         std::cout << ", Sym: " << Ident->getReferred();
@@ -37,10 +38,6 @@ public:
         std::cout << "Assignment" << "\n";
     }
 
-    void visitMemberAssignment(MemberAssignment *Assign) {
-        std::cout << "MemberAssignment\n" ;
-    }
-
     void visitDeclaration(Declaration *Decl) {
         std:: cout << "Decl(" << Decl->getIdentifier()->getName();
         std::cout << ", Sym:" << Decl->getIdentifier()->getReferred();
@@ -49,6 +46,16 @@ public:
 
     void visitBlock(Block *Blk) {
         std::cout << "Block" << "\n";
+    }
+
+    void visitIdentReference(IdentReference *Ref) {
+        std::cout << "Ident Reference(Ty: "
+        << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
+    }
+
+    void visitMemberReference(MemberReference *Ref) {
+        std::cout << "Member Reference(Ty: "
+        << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
     }
 
     void visitComparisonOp(ComparisonOp *Op);

@@ -10,7 +10,7 @@
 
 struct ConvertIdentMemberAccessToIdxPass : VisitorPass<ConvertIdentMemberAccessToIdxPass, void> {
     void visitMemberAccess(MemberAccess *Access);
-
+    void visitMemberReference(MemberReference *Ref);
     void runOnAST(ASTPassManager &M, ASTNodeT *Root) {
         PM = &M;
         visit(Root);

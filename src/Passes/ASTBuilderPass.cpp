@@ -30,7 +30,7 @@ std::any ASTBuilderPass::visitFile(GazpreaParser::FileContext *ctx) {
 
 std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     auto Decl = PM->Builder.build<Declaration>();
-
+    Decl->setCtx(ctx);
     assert((ctx->typeQualifier() || ctx->type()) && "At least one is needed");
 
     bool IsConst = (ctx->typeQualifier() && ctx->typeQualifier()->CONST());
@@ -47,6 +47,7 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     }
 
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     Ident->setIdentType(Decl->getIdentType());
     Decl->setIdent(Ident);
@@ -54,11 +55,17 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     // If there is an init expression, we set it. Else we insert an initialization
     // with null.
     if (!ctx->expr()) {
-        Decl->setInitExpr(PM->Builder.build<NullLiteral>());
-        assert(Decl->getIdentType() && "Must specify a type if leaving ident"
-                                       " uninitialized");
+        auto NullLit = PM->Builder.build<NullLiteral>();
+        NullLit->setCtx(ctx);
+        Decl->setInitExpr(NullLit);
+
+        if (!Decl->getIdentType())
+            throw NullDeclarationInferenceError(Decl);
+
         auto Null = PM->Builder.build<NullLiteral>();
+        Null->setCtx(ctx);
         auto Cast = PM->Builder.build<TypeCast>();
+        Cast->setCtx(ctx);
         Cast->setTargetType(Decl->getIdentType());
         Cast->setExpr(Null);
         Decl->setInitExpr(Cast);
@@ -69,52 +76,18 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitAssignment(GazpreaParser::AssignmentContext *ctx) {
-
-    auto *Expr = castToNodeVisit(ctx->expr());
-
-    // Identifier assignment.
-    if (ctx->ID()) {
-        auto Assign = PM->Builder.build<Assignment>();
-        auto Ident = PM->Builder.build<Identifier>();
-
-        Ident->setName(ctx->ID()->getText());
-        Assign->setIdentifier(Ident);
-        Assign->setExpr(Expr);
-        return cast<ASTNodeT>(Assign);
-    }
-
-    if (auto MemAccessRule = ctx->memAccess()) {
-        auto MemberAcc = PM->Builder.build<MemberAccess>();
-
-        // Set the identifier
-        auto Ident = PM->Builder.build<Identifier>();
-        Ident->setName(MemAccessRule->ID(0)->getText());
-        MemberAcc->setExpr(Ident);
-
-        // When the member is accessed by name.
-        if (auto MemberId = MemAccessRule->ID(1)) {
-            auto IdentExpr = PM->Builder.build<Identifier>();
-            IdentExpr->setName(MemberId->getText());
-            MemberAcc->setMemberExpr(IdentExpr);
-        }
-        // When the member is accessed by index.
-        if (MemAccessRule->INTLITERAL()) {
-            auto IntegerLit = PM->Builder.build<IntLiteral>();
-            IntegerLit->setVal(MemAccessRule->INTLITERAL()->getText());
-            MemberAcc->setMemberExpr(IntegerLit);
-        }
-
-        auto MemAssign = PM->Builder.build<MemberAssignment>();
-        MemAssign->setMemberAccess(MemberAcc);
-        MemAssign->setExpr(Expr);
-        return cast<ASTNodeT>(MemAssign);
-    }
-
-    assert(false && "Index assignments are unimplemented");
+    auto Expr = castToNodeVisit(ctx->expr());
+    auto AssignedTo = castToNodeVisit(ctx->lvalue());
+    auto Assign = PM->Builder.build<Assignment>();
+    Assign->setAssignedTo(AssignedTo);
+    Assign->setExpr(Expr);
+    Assign->setCtx(ctx);
+    return cast<ASTNodeT>(Assign);
 }
 
 std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext *ctx) {
     auto IfStat = PM->Builder.build<Conditional>();
+    IfStat->setCtx(ctx);
 
     // Set the conditional expression
     auto CondExpr = castToNodeVisit(ctx->expr());
@@ -124,6 +97,7 @@ std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext 
     auto StatementBody = castToNodeVisit(ctx->stmt());
     if (!isa<Block>(StatementBody)) {
         auto CondBody = PM->Builder.build<Block>();
+        CondBody->setCtx(ctx);
         CondBody->addChild(StatementBody);
         IfStat->setBlock(CondBody);
         return cast<ASTNodeT>(IfStat);
@@ -135,11 +109,13 @@ std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext 
 
 std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditionalContext *ctx) {
     auto IfElseStat = PM->Builder.build<ConditionalElse>();
+    IfElseStat->setCtx(ctx);
     IfElseStat->setConditional(castToNodeVisit(ctx->expr()));
 
     auto IfBody = castToNodeVisit(ctx->stmt(0));
     if (!isa<Block>(IfBody)) {
         auto IfBodyBlock = PM->Builder.build<Block>();
+        IfBodyBlock->setCtx(ctx);
         IfBodyBlock->addChild(IfBody);
         IfElseStat->setIfBlock(IfBodyBlock);
     } else
@@ -149,6 +125,7 @@ std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditional
 
     if (!isa<Block>(ElseBody)) {
         auto ElseBodyBlock = PM->Builder.build<Block>();
+        ElseBodyBlock->setCtx(ctx);
         ElseBodyBlock->addChild(ElseBody);
         IfElseStat->setElseBlock(ElseBodyBlock);
     } else
@@ -159,11 +136,13 @@ std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditional
 
 std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *ctx) {
     auto Loop = PM->Builder.build<InfiniteLoop>();
+    Loop->setCtx(ctx);
 
     // Set the statement body
     auto LoopBody = castToNodeVisit(ctx->stmt());
     if (!isa<Block>(LoopBody)) {
         auto LoopBlock = PM->Builder.build<Block>();
+        LoopBlock->setCtx(ctx);
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
         return cast<ASTNodeT>(Loop);
@@ -174,6 +153,7 @@ std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *c
 
 std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
     auto Loop = PM->Builder.build<ConditionalLoop>();
+    Loop->setCtx(ctx);
 
     // Set the conditional expression
     auto CondExpr = castToNodeVisit(ctx->expr());
@@ -183,6 +163,7 @@ std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
     auto LoopBody = castToNodeVisit(ctx->stmt());
     if (!isa<Block>(LoopBody)) {
         auto LoopBlock = PM->Builder.build<Block>();
+        LoopBlock->setCtx(ctx);
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
         return cast<ASTNodeT>(Loop);
@@ -193,6 +174,7 @@ std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
 
 std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) {
     auto Loop = PM->Builder.build<ConditionalLoop>();
+    Loop->setCtx(ctx);
 
     // Set the conditional expression
     auto CondExpr = castToNodeVisit(ctx->expr());
@@ -201,6 +183,7 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
     auto LoopBody = castToNodeVisit(ctx->stmt());
     if (!isa<Block>(LoopBody)) {
         auto LoopBlock = PM->Builder.build<Block>();
+        LoopBlock->setCtx(ctx);
         LoopBlock->addChild(LoopBody);
         Loop->setBlock(LoopBlock);
         Loop->setConditionalAfter();
@@ -231,12 +214,15 @@ std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     auto BaseType = castToTypeVisit(ctx->type());
     auto NewType = PM->SymTable.defineTypeSymbol(ctx->ID()->getText(), BaseType);
     GlobalScope.declareInScope(ctx->ID()->getText(), NewType);
-    return cast<ASTNodeT>(PM->Builder.build<NoOp>());
+    auto Value = PM->Builder.build<NoOp>();
+    Value->setCtx(ctx);
+    return cast<ASTNodeT>(Value);
 }
 
 
 std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
     auto Output = PM->Builder.build<OutStream>();
+    Output->setCtx(ctx);
     auto Expr = castToNodeVisit(ctx->expr());
     Output->setOutStreamExpr(Expr);
     return cast<ASTNodeT>(Output);
@@ -245,19 +231,22 @@ std::any ASTBuilderPass::visitOutput(GazpreaParser::OutputContext *ctx) {
 
 std::any ASTBuilderPass::visitInput(GazpreaParser::InputContext *ctx) {
     auto Input = PM->Builder.build<InStream>();
-    auto Ident = PM->Builder.build<Identifier>();
-    Ident->setName(ctx->ID()->getText());
-    Input->setIdentifier(Ident);
-
+    Input->setCtx(ctx);
+    auto LValue = castToNodeVisit(ctx->lvalue());
+    Input->setTarget(LValue);
     return cast<ASTNodeT>(Input);
 }
 
 std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
     auto RetStmt = PM->Builder.build<Return>();
+    RetStmt->setCtx(ctx);
 
     // Set the returned expression
-    if (!ctx->expr())
-        RetStmt->setReturnExpr(PM->Builder.build<NoOp>());
+    if (!ctx->expr()) {
+        auto NoOpVal = PM->Builder.build<NoOp>();
+        NoOpVal->setCtx(ctx);
+        RetStmt->setReturnExpr(NoOpVal);
+    }
     else
         RetStmt->setReturnExpr(castToNodeVisit(ctx->expr()));
 
@@ -267,9 +256,12 @@ std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
     auto ResolvedSym = GlobalScope.resolve(ctx->ID()->getText());
-    assert(ResolvedSym && "Symbol not found");
+    auto text = ctx->ID()->getText();
+    if (!ResolvedSym)
+        throw SymbolNotFoundError(&GlobalScope, ctx->ID()->getText());
     auto TypeSym = dyn_cast<TypeSymbol>(ResolvedSym);
-    assert(TypeSym && "Symbol not a type symbol");
+    if (!TypeSym)
+        throw InvalidTypeSymbolError(&GlobalScope, ctx->ID()->getText());
     return TypeSym->getType();
 }
 
@@ -309,9 +301,11 @@ std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWi
 
 std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext *ctx) {
     auto FuncDecl = PM->Builder.build<FunctionDecl>();
+    FuncDecl->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->funcName->getText());
     FuncDecl->setIdent(Ident);
 
@@ -329,9 +323,11 @@ std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext 
 
 std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefinitionContext *ctx) {
     auto FuncDef = PM->Builder.build<FunctionDef>();
+    FuncDef->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     FuncDef->setIdent(Ident);
 
@@ -339,10 +335,12 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     vector<const Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
+    ParamList->setCtx(ctx);
     for (auto Param : ctx->functionParameter()) {
         auto ParamType = PM->TypeReg.getConstTypeOf(
                 castToTypeVisit(Param->type()));
         auto ParamIdent = PM->Builder.build<Identifier>();
+        ParamIdent->setCtx(Param);
         ParamIdent->setIdentType(ParamType);
         ParamIdent->setName(Param->ID()->getText());
         ParamList->addParam(ParamIdent);
@@ -360,8 +358,10 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     // If the function is in expression format, we change it to block format.
     if (ctx->expr()) {
         auto RetStmt = PM->Builder.build<Return>();
+        RetStmt->setCtx(ctx);
         RetStmt->setReturnExpr(castToNodeVisit(ctx->expr()));
         auto FuncBody = PM->Builder.build<Block>();
+        FuncBody->setCtx(ctx);
         FuncBody->addChild(RetStmt);
         FuncDef->setBlock(FuncBody);
         return cast<ASTNodeT>(FuncDef);
@@ -373,9 +373,11 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
 
 std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContext *ctx) {
     auto ProcDecl = PM->Builder.build<ProcedureDecl>();
+    ProcDecl->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->procName->getText());
     ProcDecl->setIdent(Ident);
 
@@ -400,21 +402,25 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
 
 std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefinitionContext *ctx) {
     auto ProcDef = PM->Builder.build<ProcedureDef>();
+    ProcDef->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     ProcDef->setIdent(Ident);
 
     vector<const Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
+    ParamList->setCtx(ctx);
     for (auto Param : ctx->typeIdentPair()) {
         bool IsVar = (Param->typeQualifier() && Param->typeQualifier()->VAR());
         auto ParamType = castToTypeVisit(Param->type());
         if (!IsVar)
             ParamType = PM->TypeReg.getConstTypeOf(ParamType);
         auto ParamIdent = PM->Builder.build<Identifier>();
+        ParamIdent->setCtx(Param);
         ParamIdent->setName(Param->ID()->getText());
         ParamIdent->setIdentType(ParamType);
         ParamList->addParam(ParamIdent);
@@ -435,14 +441,17 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
 
 std::any ASTBuilderPass::visitFunctionCall(GazpreaParser::FunctionCallContext *ctx) {
     auto FuncCall = PM->Builder.build<FunctionCall>();
+    FuncCall->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     FuncCall->setIdent(Ident);
 
     // Set arguments list
     auto ArgumentsList = PM->Builder.build<ArgsList>();
+    ArgumentsList->setCtx(ctx);
     for (auto *Child : ctx->expr())
         ArgumentsList->addChild(castToNodeVisit(Child));
 
@@ -453,14 +462,17 @@ std::any ASTBuilderPass::visitFunctionCall(GazpreaParser::FunctionCallContext *c
 
 std::any ASTBuilderPass::visitProcedureCall(GazpreaParser::ProcedureCallContext *ctx) {
     auto ProcCall = PM->Builder.build<ProcedureCall>();
+    ProcCall->setCtx(ctx);
 
     // Set the identifier node
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     ProcCall->setIdent(Ident);
 
     // Set arguments list
     auto ArgumentsList = PM->Builder.build<ArgsList>();
+    ArgumentsList->setCtx(ctx);
 
     for (auto *Child : ctx->expr())
         ArgumentsList->addChild(castToNodeVisit(Child));
@@ -471,6 +483,7 @@ std::any ASTBuilderPass::visitProcedureCall(GazpreaParser::ProcedureCallContext 
 
 std::any ASTBuilderPass::visitBlock(GazpreaParser::BlockContext *ctx) {
     auto *Blk = PM->Builder.build<Block>();
+    Blk->setCtx(ctx);
 
     for (auto *Stmt : ctx->stmt())
         Blk->addChild(castToNodeVisit(Stmt));
@@ -481,6 +494,7 @@ std::any ASTBuilderPass::visitBlock(GazpreaParser::BlockContext *ctx) {
 // Remains to be done
 std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *ctx) {
     auto Cast = PM->Builder.build<ExplicitCast>();
+    Cast->setCtx(ctx);
 
     auto TargetType = castToTypeVisit(ctx->type());
     Cast->setTargetType(TargetType);
@@ -493,6 +507,7 @@ std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *c
 
 std::any ASTBuilderPass::visitBoolLiteral(GazpreaParser::BoolLiteralContext *ctx) {
     auto *BoolLit = PM->Builder.build<BoolLiteral>();
+    BoolLit->setCtx(ctx);
 
     if (ctx->TRUE())
         BoolLit->setTrue();
@@ -502,6 +517,7 @@ std::any ASTBuilderPass::visitBoolLiteral(GazpreaParser::BoolLiteralContext *ctx
 
 std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
     auto *UnaryExpr = PM->Builder.build<UnaryOp>();
+    UnaryExpr->setCtx(ctx);
 
     // Set the operator
     if (ctx->ADD())
@@ -527,6 +543,7 @@ std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext 
 
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
     auto ExpExpr = PM->Builder.build<ArithmeticOp>();
+    ExpExpr->setCtx(ctx);
 
     ExpExpr->setOp(ArithmeticOp::EXP);
 
@@ -541,6 +558,7 @@ std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
 
 std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
     auto CompExpr = PM->Builder.build<ComparisonOp>();
+    CompExpr->setCtx(ctx);
 
     // Set the operator
     if (ctx->LT())
@@ -567,26 +585,32 @@ std::any ASTBuilderPass::visitCompExpr(GazpreaParser::CompExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitIdentityLiteral(GazpreaParser::IdentityLiteralContext *ctx) {
-    return cast<ASTNodeT>(PM->Builder.build<IdentityLiteral>());
+    auto IdentLit = PM->Builder.build<IdentityLiteral>();
+    IdentLit->setCtx(ctx);
+    return cast<ASTNodeT>(IdentLit);
 }
 
 std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *ctx) {
     auto MemberAcc = PM->Builder.build<MemberAccess>();
+    MemberAcc->setCtx(ctx);
 
     // Set the identifier
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID(0)->getText());
     MemberAcc->setExpr(Ident);
 
     // When the member is accessed by name.
     if (auto MemberId = ctx->ID(1)) {
         auto IdentExpr = PM->Builder.build<Identifier>();
+        IdentExpr->setCtx(ctx);
         IdentExpr->setName(MemberId->getText());
         MemberAcc->setMemberExpr(IdentExpr);
     }
     // When the member is accessed by index.
     if (ctx->INTLITERAL()) {
         auto IntegerLit = PM->Builder.build<IntLiteral>();
+        IntegerLit->setCtx(ctx);
         IntegerLit->setVal(ctx->INTLITERAL()->getText());
         MemberAcc->setMemberExpr(IntegerLit);
     }
@@ -596,16 +620,20 @@ std::any ASTBuilderPass::visitMemberAccess(GazpreaParser::MemberAccessContext *c
 
 std::any ASTBuilderPass::visitIdentifier(GazpreaParser::IdentifierContext *ctx) {
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->getText());
     return cast<ASTNodeT>(Ident);
 }
 
 std::any ASTBuilderPass::visitNullLiteral(GazpreaParser::NullLiteralContext *ctx) {
-    return cast<ASTNodeT>(PM->Builder.build<NullLiteral>());
+    auto NullLit = PM->Builder.build<NullLiteral>();
+    NullLit->setCtx(ctx);
+    return cast<ASTNodeT>(NullLit);
 }
 
 std::any ASTBuilderPass::visitAddSubExpr(GazpreaParser::AddSubExprContext *ctx) {
     auto Expr = PM->Builder.build<ArithmeticOp>();
+    Expr->setCtx(ctx);
 
     // Set operator
     if (ctx->ADD())
@@ -632,6 +660,7 @@ std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {
     auto IntegerLit = PM->Builder.build<IntLiteral>();
+    IntegerLit->setCtx(ctx);
     IntegerLit->setVal(ctx->INTLITERAL()->getText());
 
     return cast<ASTNodeT>(IntegerLit);
@@ -639,6 +668,7 @@ std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) 
 
 std::any ASTBuilderPass::visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotProdExprContext *ctx) {
     auto Expr = PM->Builder.build<ArithmeticOp>();
+    Expr->setCtx(ctx);
 
     // Set operator
     if (ctx->MUL())
@@ -666,6 +696,7 @@ std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
 
 std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
     auto OrExpr = PM->Builder.build<LogicalOp>();
+    OrExpr->setCtx(ctx);
 
     // Set operator
     if (ctx->OR())
@@ -690,7 +721,48 @@ std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) 
 
 std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
     auto CharLit = PM->Builder.build<CharLiteral>();
-    CharLit->setCharacter(ctx->CHARLITERAL()->getText());
+    CharLit->setCtx(ctx);
+    std::string CharVal = ctx->CHARLITERAL()->getText();
+
+    if (CharVal.length() == 1) {
+        CharLit->setCharacter(CharVal[0]);
+    } else {
+        char Escape = CharVal[1];
+        char Val;
+        switch (Escape) {
+            case '0':
+                Val = 0x00;
+                break;
+            case 'a':
+                Val = 0x07;
+                break;
+            case 'b':
+                Val = 0x08;
+                break;
+            case 't':
+                Val = 0x09;
+                break;
+            case 'n':
+                Val = 0x0A;
+                break;
+            case 'r':
+                Val = 0x0D;
+                break;
+            case '"':
+                Val = 0x22;
+                break;
+            case '\'':
+                Val = 0x27;
+                break;
+            case '\\':
+                Val = 0x5C;
+                break;
+            default:
+                Val = Escape;
+                break;
+        }
+        CharLit->setCharacter(Val);
+    }
     return cast<ASTNodeT>(CharLit);
 }
 
@@ -702,6 +774,7 @@ std::any ASTBuilderPass::visitIndexExpr(GazpreaParser::IndexExprContext *ctx) {
 
 std::any ASTBuilderPass::visitTupleLiteral(GazpreaParser::TupleLiteralContext *ctx) {
     auto TupleLit = PM->Builder.build<TupleLiteral>();
+    TupleLit->setCtx(ctx);
 
     for (auto *Child : ctx->expr())
         TupleLit->addChild(castToNodeVisit(Child));
@@ -727,6 +800,7 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 
 std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
     auto Expr = PM->Builder.build<LogicalOp>();
+    Expr->setCtx(ctx);
 
     // Set operator
     if (ctx->EQEQ())
@@ -745,6 +819,7 @@ std::any ASTBuilderPass::visitEqualExpr(GazpreaParser::EqualExprContext *ctx) {
 
 std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
     auto AndExpr = PM->Builder.build<LogicalOp>();
+    AndExpr->setCtx(ctx);
     AndExpr->setOp(LogicalOp::AND);
 
     // Set the left expression.
@@ -758,6 +833,7 @@ std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
 
 std::any ASTBuilderPass::visitSciRealLiteral(GazpreaParser::SciRealLiteralContext *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
     auto *FullRealLit = cast<RealLiteral>(castToNodeVisit(ctx->fullRealLiteral()));
 
     string RealString = std::to_string(FullRealLit->getVal()) + "e" + ctx->INTLITERAL()->getText();
@@ -768,6 +844,7 @@ std::any ASTBuilderPass::visitSciRealLiteral(GazpreaParser::SciRealLiteralContex
 
 std::any ASTBuilderPass::visitMainReal(GazpreaParser::MainRealContext *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
     string RealString = ctx->INTLITERAL(0)->getText() + "." + ctx->INTLITERAL(1)->getText();
     RealLit->setVal(RealString);
 
@@ -776,6 +853,7 @@ std::any ASTBuilderPass::visitMainReal(GazpreaParser::MainRealContext *ctx) {
 
 std::any ASTBuilderPass::visitIntReal(GazpreaParser::IntRealContext *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
     string RealString = ctx->INTLITERAL()->getText() + ".";
     RealLit->setVal(RealString);
 
@@ -784,6 +862,7 @@ std::any ASTBuilderPass::visitIntReal(GazpreaParser::IntRealContext *ctx) {
 
 std::any ASTBuilderPass::visitDotReal(GazpreaParser::DotRealContext *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
     string RealString = "." + ctx->INTLITERAL()->getText();
     RealLit->setVal(RealString);
 
@@ -804,11 +883,15 @@ std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitBreakStmt(GazpreaParser::BreakStmtContext *ctx) {
-    return cast<ASTNodeT>(PM->Builder.build<Break>());
+    auto BreakStmt = PM->Builder.build<Break>();
+    BreakStmt->setCtx(ctx);
+    return cast<ASTNodeT>(BreakStmt);
 }
 
 std::any ASTBuilderPass::visitContinueStmt(GazpreaParser::ContinueStmtContext *ctx) {
-    return cast<ASTNodeT>(PM->Builder.build<Continue>());
+    auto ContinueStmt = PM->Builder.build<Continue>();
+    ContinueStmt->setCtx(ctx);
+    return cast<ASTNodeT>(ContinueStmt);
 }
 
 std::any ASTBuilderPass::visitRealLit(GazpreaParser::RealLitContext *ctx) {
@@ -826,10 +909,12 @@ std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclCont
     auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
     auto Expr = castToNodeVisit(ctx->expr());
     auto Decl = PM->Builder.build<Declaration>();
+    Decl->setCtx(ctx);
     Decl->setIdentType(Type);
     Decl->setInitExpr(Expr);
     Decl->setConst();
     auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
     Ident->setIdentType(Type);
     Decl->setIdent(Ident);
@@ -886,6 +971,47 @@ std::any ASTBuilderPass::visitInputStmt(GazpreaParser::InputStmtContext *ctx) {
 
 std::any ASTBuilderPass::visitProcedureCallStmt(GazpreaParser::ProcedureCallStmtContext *ctx) {
     return castToNodeVisit(ctx->procedureCall());
+}
+
+std::any ASTBuilderPass::visitIdentLValue(GazpreaParser::IdentLValueContext *ctx) {
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setCtx(ctx);
+    Ident->setName(ctx->ID()->getText());
+    auto IdentRef = PM->Builder.build<IdentReference>();
+    IdentRef->setIdentifier(Ident);
+    return cast<ASTNodeT>(IdentRef);
+}
+
+std::any ASTBuilderPass::visitIndexLValue(GazpreaParser::IndexLValueContext *ctx) {
+    throw std::runtime_error("Unimplemented");
+}
+
+std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueContext *ctx) {
+    auto MemberRef = PM->Builder.build<MemberReference>();
+    MemberRef->setCtx(ctx);
+    // Set the identifier
+    auto Ident = PM->Builder.build<Identifier>();
+    Ident->setName(ctx->ID(0)->getText());
+    MemberRef->setIdentifier(Ident);
+
+    // When the member is accessed by name.
+    if (auto MemberId = ctx->ID(1)) {
+        auto IdentExpr = PM->Builder.build<Identifier>();
+        IdentExpr->setName(MemberId->getText());
+        MemberRef->setMemberExpr(IdentExpr);
+    }
+    // When the member is accessed by index.
+    if (ctx->INTLITERAL()) {
+        auto IntegerLit = PM->Builder.build<IntLiteral>();
+        IntegerLit->setVal(ctx->INTLITERAL()->getText());
+        MemberRef->setMemberExpr(IntegerLit);
+    }
+
+    return cast<ASTNodeT>(MemberRef);
+}
+
+std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
+    throw std::runtime_error("Unimplemented");
 }
 
 

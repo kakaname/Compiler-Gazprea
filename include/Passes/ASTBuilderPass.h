@@ -187,6 +187,14 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitDotReal(GazpreaParser::DotRealContext *ctx) override;
 
+    std::any visitIdentLValue(GazpreaParser::IdentLValueContext *ctx) override;
+
+    std::any visitIndexLValue(GazpreaParser::IndexLValueContext *ctx) override;
+
+    std::any visitMemAccessLValue(GazpreaParser::MemAccessLValueContext *ctx) override;
+
+    std::any visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) override;
+
 public:
 
     explicit ASTBuilderPass(antlr4::tree::ParseTree *F): File(F) {};

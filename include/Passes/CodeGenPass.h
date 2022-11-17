@@ -76,7 +76,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitDeclaration(Declaration *Decl);
     llvm::Value *visitComparisonOp(ComparisonOp *Op);
 
-    llvm::Value *visitBlock(Block *Blk) {};
     llvm::Value *visitLogicalOp(LogicalOp *Op);
     llvm::Value *visitArithmeticOp(ArithmeticOp *Op);
     llvm::Value *visitIndex(Index *Idx);
@@ -109,11 +108,13 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitInStream(InStream *InStream);
 
     llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *createStructAlloca(llvm::StructType *Ty);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
     llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
-    llvm::Type *getLLVMType(const Type *Ty);
+    llvm::Type *getLLVMType(const Type *Ty, bool isConstPtrCheck = true);
+    llvm::Function *getMainProcProto();
 };
 
 

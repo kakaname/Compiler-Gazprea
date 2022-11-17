@@ -17,19 +17,22 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
     auto IsTupleTy = isa<TupleTy>(Cast->getTargetType());
     if (IsTupleTy) {
         auto TupleLit = PM->Builder.build<TupleLiteral>();
+        TupleLit->copyCtx(Cast);
 
         auto TupleType = cast<TupleTy>(Cast->getTargetType());
         size_t NumOfMembers = TupleType->getNumOfMembers();
         for (size_t I = 0; I < NumOfMembers; I++) {
             auto MemberType = TupleType->getMemberTypeAt(I);
-            TupleLit->setExprAtPos(
-                    getScalarLiteral(MemberType->getKind(), IsNull), I);
+            auto ExprAtPos = getScalarLiteral(MemberType->getKind(), IsNull);
+            ExprAtPos->copyCtx(Cast);
+            TupleLit->setExprAtPos(ExprAtPos, I);
         }
         Cast->getParent()->replaceChildWith(Cast, TupleLit);
         return;
     }
     // Scalar Types
     auto NewLit = getScalarLiteral(Cast->TargetType->getKind(), IsNull);
+    NewLit->copyCtx(Cast);
     Cast->getParent()->replaceChildWith(Cast, NewLit);
 }
 
@@ -45,7 +48,7 @@ ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type::TypeKind Kind, bool I
         case Type::T_Char:
         {
             auto CharLit = PM->Builder.build<CharLiteral>();
-            IsNull ? CharLit->setCharacter("\0") : CharLit->setCharacter("\x01");
+            IsNull ? CharLit->setCharacter(0x00) : CharLit->setCharacter(0x01);
             return CharLit;
         }
         case Type::T_Int:

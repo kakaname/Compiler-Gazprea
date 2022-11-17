@@ -17,24 +17,28 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     auto RightType = visit(RightExpr);
 
 
-    if (isa<NullTy>(LeftType)) {
-        assert(!isa<NullTy>(RightType) && "Operation between null types.");
+    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
+        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+            throw NullIdentityOpError(Op);
+
         auto Cast = wrapWithCastTo(LeftExpr, RightType);
         Op->setLeftExpr(Cast);
         LeftType = RightType;
     }
 
-    if (isa<NullTy>(RightType)) {
-        assert(!isa<NullTy>(LeftType) && "Operation between null types.");
+    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
+        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
+            throw NullIdentityOpError(Op);
         auto Cast = wrapWithCastTo(RightExpr, LeftType);
         Op->setRightExpr(Cast);
         RightType = LeftType;
     }
 
-    assert(LeftType->isValidForComparisonOp() && "Left type does not "
-                                                 "support comparison ops");
-    assert(RightType->isValidForComparisonOp() && "Right type does not "
-                                                  "support comparison ops");
+    if (!LeftType->isValidForComparisonOp())
+        throw InvalidComparisonOpError(Op, LeftType->getTypeName());
+
+    if (!RightType->isValidForComparisonOp())
+        throw InvalidComparisonOpError(Op, RightType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
@@ -65,26 +69,27 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto RightType = visit(RightExpr);
 
 
-    if (isa<NullTy>(LeftType)) {
-        assert(!isa<NullTy>(RightType) && "Operation between null types.");
+    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
+        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+            throw NullIdentityOpError(Op);
         auto Cast = wrapWithCastTo(LeftExpr, RightType);
         Op->setLeftExpr(Cast);
         LeftType = RightType;
     }
 
-    if (isa<NullTy>(RightType)) {
-        assert(!isa<NullTy>(LeftType) && "Operation between null types.");
+    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
+        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
+            throw NullIdentityOpError(Op);
         auto Cast = wrapWithCastTo(RightExpr, LeftType);
         Op->setRightExpr(Cast);
         RightType = LeftType;
     }
 
-    assert(LeftType->isValidForArithOps() && "Left type does not"
-                                             " support arithmetic ops");
+    if (!LeftType->isValidForArithOps())
+        throw InvalidArithmeticOpError(Op, LeftType->getTypeName());
 
-    assert(RightType->isValidForArithOps() && "Right type does not "
-                                              "support arithmetic ops");
-
+    if (!RightType->isValidForArithOps())
+        throw InvalidArithmeticOpError(Op, RightType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
@@ -120,23 +125,28 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     auto LeftType = visit(LeftExpr);
     auto RightType = visit(RightExpr);
 
-    if (isa<NullTy>(LeftType)) {
-        assert(!isa<NullTy>(RightType) && "Operation between null types.");
+    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
+        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+            throw NullIdentityOpError(Op);
         auto Cast = wrapWithCastTo(LeftExpr, RightType);
         Op->setLeftExpr(Cast);
         LeftType = RightType;
     }
 
-    if (isa<NullTy>(RightType)) {
-        assert(!isa<NullTy>(LeftType) && "Operation between null types.");
+    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
+        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
+            throw NullIdentityOpError(Op);
         auto Cast = wrapWithCastTo(RightExpr, LeftType);
         Op->setRightExpr(Cast);
         RightType = LeftType;
     }
 
     if (Op->getOpKind() == LogicalOp::EQ || Op->getOpKind() == LogicalOp::NEQ) {
-        assert(LeftType->isValidForEq() && "Left type does not support");
-        assert(RightType->isValidForEq() && "Right type does not support");
+        if (!LeftType->isValidForEq())
+            throw InvalidEqualityOpError(Op, LeftType->getTypeName());
+
+        if (!RightType->isValidForEq())
+            throw InvalidEqualityOpError(Op, RightType->getTypeName());
 
         if (LeftType->isSameTypeAs(RightType)) {
             PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
@@ -159,10 +169,13 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
         //Check tuple promotion
         if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
-            assert((LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
-                    || RightType->canPromoteTo(LeftType)) && "Cannot compare incompatible tuple types");
+            if(!(LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
+                    || RightType->canPromoteTo(LeftType)))
+                throw InvalidTupleComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
+
             if (LeftType->canPromoteTo(RightType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
+                Cast->copyCtx(Op);
                 auto TupleType = cast<TupleTy>(RightType);
 
                 Cast->setExpr(LeftExpr);
@@ -173,6 +186,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
             if (RightType->canPromoteTo(LeftType)) {
                 auto Cast = PM->Builder.build<TypeCast>();
+                Cast->copyCtx(Op);
                 auto TupleType = cast<TupleTy>(LeftType);
 
                 Cast->setExpr(RightExpr);
@@ -182,14 +196,20 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
             }
         }
 
-        assert(LeftType->isSameTypeAs(RightType) && "Cannot compare incompatible types");
+        if (!LeftType->isSameTypeAs(RightType))
+            throw InvalidComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
+
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
 
     } else {
         // All other "logical ops" are only supported for booleans.
-        assert(isa<BoolTy>(LeftType) && "Left type must be boolean");
-        assert(isa<BoolTy>(RightType) && "Right type must be boolean");
+        if (!isa<BoolTy>(LeftType))
+            throw InvalidLogicalOpError(Op, LeftType->getTypeName());
+
+        if (!isa<BoolTy>(RightType))
+            throw InvalidLogicalOpError(Op, RightType->getTypeName());
+
         PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
     }
@@ -197,6 +217,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
 TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *TargetType) const {
     auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
     Cast->setTargetType(TargetType);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, TargetType);
@@ -205,11 +226,13 @@ TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Targ
 
 const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     auto ChildType = visit(Op->getExpr());
-    if (Op->getOpKind() == UnaryOp::NOT)
-        assert(ChildType->isValidForUnaryNot() && "Type does not support not");
-    else
-        assert(ChildType->isValidForUnaryAddOrSub() && "Type does not "
-                                                       "support unary add or sub");
+    if (Op->getOpKind() == UnaryOp::NOT) {
+        if (!ChildType->isValidForUnaryNot())
+            throw InvalidUnaryNotError(Op, ChildType->getTypeName());
+    } else {
+        if (!ChildType->isValidForUnaryAddOrSub())
+            throw InvalidUnaryAddOrSubError(Op, ChildType->getTypeName());
+    }
 
     PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
     return PM->TypeReg.getBooleanTy();
@@ -219,10 +242,11 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     auto BaseTy = visit(MAccess->getExpr());
     assert(BaseTy && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(BaseTy);
-    assert(Tuple && "Only expressions that are of type tuple maybe have their members accessed");
+    if (!Tuple)
+        throw NonAccessibleError(MAccess, BaseTy->getTypeName());
     if (auto MemberIdx = dyn_cast<IntLiteral>(MAccess->getMemberExpr())) {
-        assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal()
-               && "Invalid index to access a member");
+        if (Tuple->getNumOfMembers() < MemberIdx->getVal())
+            throw OutOfRangeError(MAccess, MemberIdx->getVal(), Tuple->getNumOfMembers(), BaseTy->getTypeName());
         auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal() - 1);
         PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
         return ResultTy;
@@ -230,7 +254,8 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
 
     if (auto MemberIdent = dyn_cast<Identifier>(MAccess->getMemberExpr())) {
         auto MemIdx = Tuple->getMemberIdx(MemberIdent->getName());
-        assert(MemIdx && "Member of that name not found in the type.");
+        if (!MemIdx)
+            throw TupleAccessError(MAccess, MemberIdent->getName(), BaseTy->getTypeName());
         auto ResultTy = Tuple->getMemberTypeAt(MemIdx - 1);
         PM->setAnnotation<ExprTypeAnnotatorPass>(MAccess, ResultTy);
         return ResultTy;
@@ -254,7 +279,10 @@ const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
     assert(IdentTy && "Ident type not set for function call");
-    assert(IdentTy->isCallable() && "Tried call an non-callable type.");
+
+    if (!IdentTy->isCallable())
+        throw NonCallableError(Call, IdentTy->getTypeName());
+
     if (auto FuncTy = dyn_cast<FunctionTy>(IdentTy)) {
         auto RetTy = FuncTy->getRetType();
         PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
@@ -303,4 +331,41 @@ const Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
 const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Bool, PM->TypeReg.getBooleanTy());
     return PM->TypeReg.getBooleanTy();
+}
+
+const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
+    return PM->TypeReg.getCharTy();
+
+const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
+    auto BaseTy = visit(Ref->getIdentifier());
+    assert(BaseTy && "Type not assigned to identifier.");
+    auto Tuple = dyn_cast<TupleTy>(BaseTy);
+    assert(Tuple && "Only expressions that are of type tuple maybe have their members accessed");
+
+    if (auto MemberIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr())) {
+        assert((int32_t) Tuple->getNumOfMembers() >= MemberIdx->getVal()
+               && "Invalid index to access a member");
+        auto ResultTy = Tuple->getMemberTypeAt(MemberIdx->getVal() - 1);
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+        return ResultTy;
+    }
+
+    if (auto MemberIdent = dyn_cast<Identifier>(Ref->getMemberExpr())) {
+        auto MemIdx = Tuple->getMemberIdx(MemberIdent->getName());
+        assert(MemIdx && "Member of that name not found in the type.");
+        auto ResultTy = Tuple->getMemberTypeAt(MemIdx - 1);
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+        return ResultTy;
+    }
+
+    assert(false && "Invalid access into tuple type.");
+}
+
+const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
+    visit(Ref->getIdentifier());
+    auto IdentTy = Ref->getIdentifier()->getIdentType();
+    assert(IdentTy && "Ident type not known in ident reference");
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, IdentTy);
+    return IdentTy;
 }

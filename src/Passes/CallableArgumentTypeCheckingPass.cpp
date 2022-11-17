@@ -7,63 +7,76 @@
 
 void CallableArgumentTypeCheckingPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
-    auto CalleeType = Call->getIdentifier()->getIdentType();
-    if (auto FuncTy = dyn_cast<FunctionTy>(CalleeType))
-        return checkFuncCall(Call, FuncTy);
-
-    if (auto ProcTy = dyn_cast<ProcedureTy>(CalleeType))
-        return checkProcCall(Call, ProcTy);
-
-    assert(false && "Calling a non-callable type?");
-}
-
-void CallableArgumentTypeCheckingPass::checkProcCall(FunctionCall *Call, const ProcedureTy *Ty) {
-    assert(Call->getArgsList()->numOfChildren() == Ty->getNumOfArgs() &&
-    "Incorrect number of arguments");
+    auto Ty = cast<FunctionTy>(Call->getIdentifier()->getIdentType());
+    if (Call->getArgsList()->numOfChildren() != Ty->getNumOfArgs())
+        throw ArgumentCountError(
+                Call, Call->getIdentifier()->getName(), Ty->getNumOfArgs(),
+                Call->getArgsList()->numOfChildren());
 
     for (int I = 0; I < Ty->getNumOfArgs(); I++) {
         auto ParamType = Ty->getParamTypeAt(I);
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
         if (!ParamType->isConst()) {
-            assert(isa<Identifier>(Expr) ||
-                    isa<MemberAccess>(Expr)
-                    && "Only lvalues may bind to var argument types.");
-            assert(!ExprType->isConst() && "incorrect argument type.");
+            if(!isa<Identifier>(Expr) && !isa<MemberAccess>(Expr))
+                throw VariableArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
+            if (ExprType->isConst())
+                throw ConstantArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
             continue;
         }
 
         if (ParamType->isSameTypeAs(ExprType))
             continue;
 
-        assert(ExprType->canPromoteTo(ParamType) && "Invalid type for argument.");
+        if (!ExprType->canPromoteTo(ParamType))
+            throw ScalarPromotionError(Call, ExprType->getTypeName(), ParamType->getTypeName());
+
         auto Cast = wrapWithCastTo(Expr, ParamType);
         Call->getArgsList()->setExprAtPos(Cast, I);
     }
-
 }
 
 TypeCast *CallableArgumentTypeCheckingPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const {
     auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
     Cast->setTargetType(Ty);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, Ty);
     return Cast;
 }
 
-void CallableArgumentTypeCheckingPass::checkFuncCall(FunctionCall *Call, const FunctionTy *Ty) {
-    assert(Call->getArgsList()->numOfChildren() == Ty->getNumOfArgs() &&
-           "Incorrect number of arguments");
+void CallableArgumentTypeCheckingPass::visitProcedureCall(ProcedureCall *Call) {
+    visit(Call->getArgsList());
+    auto Ty = cast<ProcedureTy>(Call->getIdentifier()->getIdentType());
+
+    if (Call->getArgsList()->numOfChildren() != Ty->getNumOfArgs())
+        throw ArgumentCountError(Call, Call->getIdentifier()->getName(), Ty->getNumOfArgs(), Call->getArgsList()->numOfChildren());
 
     for (int I = 0; I < Ty->getNumOfArgs(); I++) {
         auto ParamType = Ty->getParamTypeAt(I);
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
+        if (!ParamType->isConst()) {
+            if(!isa<Identifier>(Expr) && !isa<MemberAccess>(Expr))
+                throw VariableArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
+            if (!ParamType->isSameTypeAs(ExprType))
+                throw VariableArgumentError(Call, I+1, Call->getIdentifier()->getName());
+
+            if (ExprType->isConst())
+                throw ConstantArgumentError(Call, I + 1, Call->getIdentifier()->getName());
+
+            continue;
+        }
 
         if (ParamType->isSameTypeAs(ExprType))
             continue;
 
-        assert(ExprType->canPromoteTo(ParamType) && "Invalid type for argument.");
+        if (!ExprType->canPromoteTo(ParamType))
+            throw ScalarPromotionError(Call, ExprType->getTypeName(), ParamType->getTypeName());
+
         auto Cast = wrapWithCastTo(Expr, ParamType);
         Call->getArgsList()->setExprAtPos(Cast, I);
     }
