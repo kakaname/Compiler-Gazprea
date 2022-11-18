@@ -15,7 +15,7 @@ struct ProcedureCallAliasCheckPass : VisitorPass<ProcedureCallAliasCheckPass, vo
         visit(Root);
     }
 
-    void visitFunctionCall(FunctionCall *Call);
+    void visitProcedureCall(ProcedureCall *Call);
 
     ASTPassManager *PM;
 };

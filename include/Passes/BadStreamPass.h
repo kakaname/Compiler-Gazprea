@@ -16,20 +16,16 @@
 #include "Symbol/Symbol.h"
 
 
-class BadStreamPass: public VisitorPass<BadStreamPass, void>  {
-    using AnnotationT = TreeNode*;
-    
-    void visitOutStream(OutStream *OutStream);
-    void visitInStream(InStream *InStream);
+struct BadStreamPass: public VisitorPass<BadStreamPass, void>  {
+    static void visitOutStream(OutStream *OutStream);
+    static void visitInStream(InStream *InStream);
 
     void runOnAST(ASTPassManager &P, ASTNodeT *Root) {
         PM = &P;
         visit(Root);
     };
+
 private:
-
     ASTPassManager *PM;
-
-    BadStreamPass() : VisitorPass() {}
 };
 #endif //GAZPREABASE_BADSTREAMPASS_H 

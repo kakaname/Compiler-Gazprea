@@ -5,8 +5,6 @@
 #include "Passes/ProcedureCallStatCheckPass.h"
 
 void ProcedureCallStatCheckPass::visitProcedureCall(ProcedureCall *ProcedureCall) {
-
     if (ProcedureCall->getIdentifier()->getIdentType()->getKind() == Type::T_Function)
         throw SyntaxError("Invalid function call");
-
 }

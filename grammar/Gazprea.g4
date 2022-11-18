@@ -70,7 +70,7 @@ typeDef : TYPEDEF type ID SC;
 
 output : expr PUT STDOUT SC;
 
-input : lvalue IN STDIN SC;
+input : lvalue GET STDIN SC;
 
 
 return : RETURN (expr)? SC;

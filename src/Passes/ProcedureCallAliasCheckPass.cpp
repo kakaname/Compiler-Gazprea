@@ -5,11 +5,9 @@
 #include "Passes/ProcedureCallAliasCheckPass.h"
 #include "Passes/ExprTypeAnnotatorPass.h"
 
-void ProcedureCallAliasCheckPass::visitFunctionCall(FunctionCall *Call) {
+void ProcedureCallAliasCheckPass::visitProcedureCall(ProcedureCall *Call) {
     auto ProcTy = dyn_cast<ProcedureTy>(Call->getIdentifier()->getIdentType());
-    // We don't care about function calls.
-    if (!ProcTy)
-        return;
+    assert(ProcTy && "Procedure call not calling procedures?");
 
     set<pair<const Symbol*, int>> UsedSymbols;
     auto Args = Call->getArgsList();

@@ -132,12 +132,15 @@ public:
     }
 
     bool canPromoteTo(const Type *T) const {
+        if (isSameTypeAs(T))
+            return true;
+
         switch (Kind) {
             case T_Null:
             case T_Identity:
                 return true;
             case T_Int:
-                return T->getKind() == T_Real || T->getKind() == T_Int;
+                return T->getKind() == T_Real;
             case T_Tuple:
                 return canPromoteTupleTo(this, T);
             default:

@@ -657,49 +657,25 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
     // The return is defined inside the function body
 }
 
-llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *ProcedureCall) {
-    // The stream state function is a special case,
-    // so it is handled here
-//    if (ProcedureCall->getIdentifier()->getName() == "stream_state")  {
-//        // load the stream state
-//        return IR.CreateLoad(StreamStateLoc);
-//    }
-
+llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
+    // TODO: Handle stream_state;
     // Get the function
-    llvm::Function *Func = Mod.getFunction(ProcedureCall->getIdentifier()->getName());
+    llvm::Function *Func = Mod.getFunction(Call->getIdentifier()->getName());
     assert(Func && "Function not found");
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
-    for (size_t i = 0; i < ProcedureCall->getArgsList()->numOfChildren(); i++) {
-        ASTNodeT *Expr = ProcedureCall->getArgsList()->getExprAtPos(i);
-        const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
+    for (auto Child : *Call->getArgsList())
+        Args.emplace_back(visit(Child));
 
-        // Constant arguments are passed by value
-        if (ExprTy->isConst()) {
-            Args.push_back(visit(Expr));
-
-        // Variable arguments are passed by reference
-        } else {
-            assert(isa<Identifier>(Expr) && "Invalid variable argument to procedure");
-            Args.push_back(SymbolMap[cast<Identifier>(Expr)->getReferred()]);
-        }
-    }
-
-    // Call the function
     return IR.CreateCall(Func, Args);
-
 }
 
 llvm::Value *CodeGenPass::visitReturn(Return *Return) {
-    if (Return->getReturnExpr()) {
-        llvm::Value *RetVal = visit(Return->getReturnExpr());
-        IR.CreateRet(RetVal);
-    } else {
-        IR.CreateRetVoid();
-    }
-    return nullptr;
-
+    // No-op means that the procedure does not have a return type.
+    if (isa<NoOp>(Return->getReturnExpr()))
+        return IR.CreateRetVoid();
+    return IR.CreateRet(visit(Return->getReturnExpr()));
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
@@ -752,7 +728,7 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
     assert(IdentTy->isInputTy() && "Invalid input stream type");
-    Value *StoreLoc = nullptr;/* SymbolMap[InStream->getIdentifier()->getReferred()]; */
+    Value *StoreLoc = visit(InStream->getTarget());
 
     switch (IdentTy->getKind()) {
         case Type::TypeKind::T_Char:
@@ -794,4 +770,16 @@ llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
 llvm::Function *CodeGenPass::getMainProcProto() {
     llvm::FunctionType *FT = llvm::FunctionType::get(LLVMIntTy, {}, false);
     return llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "pd_main", &Mod);
+}
+
+llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
+    return SymbolMap[Ref->getIdentifier()->getReferred()];
+}
+
+llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
+    auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
+    assert(MemIdx && "Only int literals should reach here");
+    auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
+    auto MemLoc = IR.CreateGEP(StructLoc, {IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
+    return MemLoc;
 }

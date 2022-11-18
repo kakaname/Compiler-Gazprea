@@ -35,7 +35,7 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
 
     // If not, the expression must be promotable to the ident type.
     if (!AssignedType->canPromoteTo(IdentType))
-        throw ScalarPromotionError(Decl, IdentType->getTypeName(), AssignedType->getTypeName());
+        throw ScalarPromotionError(Decl, AssignedType->getTypeName(), IdentType->getTypeName());
 
     auto Cast = wrapWithCastTo(Decl->getInitExpr(), IdentType);
     Decl->setInitExpr(Cast);
