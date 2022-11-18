@@ -1,0 +1,18 @@
+procedure increment(var integer x, integer y, const integer z) {
+  x = x + 1;
+}
+
+procedure main() returns integer {
+  // very basic procedure tests
+  integer x = 1;
+  const integer y = 5;
+  const integer z = 6;
+
+  call increment(x,y,z);
+  x->std_output;
+
+  
+
+  /* must have a return */
+  return 0;
+}

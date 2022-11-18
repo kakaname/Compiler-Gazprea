@@ -1,14 +1,14 @@
 procedure main() returns integer {
 
     var x = 5;
-    tuple(integer) my_tuple = (10);
+    tuple(integer, integer) my_tuple = (10, x);
     tuple(integer, real r) tuple_var = (1, 2.1);
-    var my_tuple_2 = (x);
+    var my_tuple_2 = (x, x);
     const my_tuple_3 = (x, true);
 
     my_tuple.1 -> std_output;
     tuple_var.1 -> std_output;
-    tuple_var.r -> std.output;
+    tuple_var.r -> std_output;
     my_tuple_2.1 -> std_output;
     my_tuple_3.1 -> std_output;
     my_tuple_3.2 -> std_output;

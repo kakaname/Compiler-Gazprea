@@ -258,10 +258,10 @@ std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *c
     auto ResolvedSym = GlobalScope.resolve(ctx->ID()->getText());
     auto text = ctx->ID()->getText();
     if (!ResolvedSym)
-        throw SymbolNotFoundError(&GlobalScope, ctx->ID()->getText());
+        throw std::runtime_error(text + " type not found.");
     auto TypeSym = dyn_cast<TypeSymbol>(ResolvedSym);
     if (!TypeSym)
-        throw InvalidTypeSymbolError(&GlobalScope, ctx->ID()->getText());
+        throw std::runtime_error(text + " is not a type.");
     return TypeSym->getType();
 }
 

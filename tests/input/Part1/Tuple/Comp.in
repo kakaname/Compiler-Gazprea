@@ -2,10 +2,10 @@ procedure main() returns integer {
 
     var x = 5;
     var y = 10;
-    tuple(integer) my_tuple = (10);
+    tuple(integer, integer) my_tuple = (10, 1);
     tuple(integer, real r) tuple_var = (5, 2.1);
-    var my_tuple_2 = (x);
-    var my_tuple_4 = (y);
+    var my_tuple_2 = (x, y);
+    var my_tuple_4 = (y, 1);
     const my_tuple_3 = (x, 2.1);
 
     my_tuple == my_tuple_2 -> std_output;

@@ -1,0 +1,20 @@
+procedure main() returns integer {
+  // test both tests with single statement and 
+  // block statements
+  integer x = 111;
+  real z = x / 1000000;
+  integer counter = 0;
+  
+  z -> std_output;
+  '\n' -> std_output;
+
+  z = x;
+
+  loop while (counter < 7){
+    z = z / 10;
+  }
+
+    z -> std_output;
+  /* must have a return */
+  return 0;
+}

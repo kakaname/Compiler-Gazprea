@@ -37,10 +37,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
 
     void setOpaqueTyCastTargetTy(const Type *Ty) {
-        if (Ty)
-            OpaqueTyCastTarget = PM->TypeReg.getConstTypeOf(Ty);
-        else
-            OpaqueTyCastTarget = Ty;
+        OpaqueTyCastTarget = Ty;
     }
 
     void annotate(ASTNodeT *Node, const Type *Ty) const {

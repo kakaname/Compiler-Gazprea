@@ -1,8 +1,8 @@
 procedure main() returns integer {
 
     boolean a;
-    char b;
-    integer c
+    character b;
+    integer c;
     real d;
 
     a -> std_output;

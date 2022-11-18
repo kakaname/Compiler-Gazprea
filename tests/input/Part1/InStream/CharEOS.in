@@ -5,9 +5,6 @@ procedure main() returns integer {
   x -> std_output;
   x <- std_input;
   x -> std_output;
-  if (as<integer>(x) == 255) {
-    'y' -> std_output;
-  }
   
 
   /* must have a return */

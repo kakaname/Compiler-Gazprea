@@ -2,8 +2,8 @@ procedure main() returns integer {
     // test for printing for tuple variables
     tuple(integer , character , real) t1;
     tuple(integer x , character y, real z) t2;
-    t1 = (1, 'a', 1.0);
-    character z;
+    var t1 = (1, 'a', 1.0);
+    char z;
     t1.1 <- std_input;
     z <- std_input;
     t1.2 <- std_input;

@@ -3,21 +3,15 @@ procedure main() returns integer {
   var boolean x;
   var character z;
   x <- std_input;
-
   x -> std_output;
-
   z <- std_input;
   x <- std_input;
-
   x -> std_output;
   
   z <- std_input;
   z <- std_input;
-
   z -> std_output;
-
   z <- std_input;
-
   z -> std_output;
 
 

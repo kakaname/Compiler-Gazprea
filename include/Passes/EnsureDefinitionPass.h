@@ -37,7 +37,7 @@ struct EnsureDefinitionPass: public VisitorPass<EnsureDefinitionPass, void>  {
             throw std::runtime_error("The main must be a procedure");
         auto CorrectMainTy = P.TypeReg.getProcedureType({}, P.TypeReg.getIntegerTy());
         if (!Ty->isSameTypeAs(CorrectMainTy))
-            throw std::runtime_error("The main must have type " + CorrectMainTy->getTypeName());
+            throw std::runtime_error("The main must have type" + CorrectMainTy->getTypeName());
     };
 
     set<string> Declared;

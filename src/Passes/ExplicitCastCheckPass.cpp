@@ -7,8 +7,8 @@
 #include "AST/ASTNodes.h"
 
 void ExplicitCastCheckPass::visitExplicitCast(ExplicitCast *ExplicitCast) {
-    auto ExprType = dyn_cast<TupleTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast->getExpr()));
-    auto TargetType = dyn_cast<TupleTy>(ExplicitCast->TargetType);
+    auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast->getExpr());
+    auto TargetType = ExplicitCast->TargetType;
 
     if (!ExprType->canCastTo(TargetType))
         throw CastError(ExplicitCast, ExprType->getTypeName(), TargetType->getTypeName());

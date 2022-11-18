@@ -441,6 +441,9 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
 
     // RULES FOR CASTING BASED ON DestTy
 
+    if (SrcTy->isSameTypeAs(DestTy))
+        return Val;
+
     switch (DestTy->getKind()) {
         case Type::TypeKind::T_Bool:
             return IR.CreateICmpNE(Val, llvm::Constant::getNullValue(getLLVMType(SrcTy)));

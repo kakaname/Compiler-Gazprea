@@ -7,7 +7,7 @@ loop while x < 10 {
 
   if x == 7 break;  /* end */
 
-  x -> std_output; "\n" -> std_output;
+  x -> std_output;
 }
   
 
