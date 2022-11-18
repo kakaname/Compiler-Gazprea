@@ -108,6 +108,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
 
@@ -127,9 +128,9 @@ int main(int argc, char **argv) {
 
     Manager.runAllPasses();
 //
-//    auto CG = CodeGenPass(argv[2]);
-//    auto *Root = Manager.getRoot();
-//    CG.runOnAST(Manager, Root);
+    auto CG = CodeGenPass("../gazout.ll");
+    auto *Root = Manager.getRoot();
+    CG.runOnAST(Manager, Root);
     return 0;
 
 }

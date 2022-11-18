@@ -16,11 +16,9 @@ void ReturnValuePromotionPass::visitProcedureDef(ProcedureDef *Def) {
 }
 
 void ReturnValuePromotionPass::visitReturn(Return *Ret) {
-    if (!ReturnTy) {
+    if (!ReturnTy)
         if (!isa<NoOp>(Ret->getReturnExpr()))
             throw NoReturnError(Ret);
-        return;
-    }
 
     auto RetExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(
             Ret->getReturnExpr());

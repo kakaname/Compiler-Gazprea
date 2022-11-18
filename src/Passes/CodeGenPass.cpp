@@ -118,24 +118,24 @@ llvm::Value *CodeGenPass::createStructAlloca(llvm::StructType *Ty) {
 }
 
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
-    return IR.CreateLoad(SymbolMap[Ident->getReferred()]);
+    auto Val = SymbolMap[Ident->getReferred()];
+    if (Val->getType()->isPointerTy())
+        return IR.CreateLoad(Val);
+    return Val;
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
-    Value *StoreVal = visit(Assign->getExpr());
-    // TODO: FIX ME.
-//    Value *StoreLoc = SymbolMap[Assign->getIdentifier()->getReferred()];
-    // All assignments, including tuple assignments, are lowered to store assignments
-//    IR.CreateStore(StoreVal, StoreLoc);
-    return nullptr;
+    auto *Val = visit(Assign->getExpr());
+    auto *Loc = visit(Assign->getAssignedTo());
+    return IR.CreateStore(Val, Loc);
 }
 
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
-    Value *InitValue = visit(Decl->getInitExpr());
-    auto DeclType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
-    Value *DeclValue = createAlloca(DeclType);
-    IR.CreateStore(InitValue, DeclValue);
-    SymbolMap[Decl->getIdentifier()->getReferred()] = DeclValue;
+    auto InitValue = visit(Decl->getInitExpr());
+    auto DeclType = Decl->getIdentifier()->getIdentType();
+    auto Loc = createAlloca(DeclType);
+    IR.CreateStore(InitValue, Loc);
+    SymbolMap[Decl->getIdentifier()->getReferred()] = Loc;
     return nullptr;
 }
 
@@ -151,20 +151,19 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
 
     llvm::CmpInst::Predicate Pred;
 
-    if (LeftType->isSameTypeAs(PM->TypeReg.getRealTy())) {
+    if (isa<RealTy>(LeftType)) {
         switch (Op->getOpKind()) {
             case ComparisonOp::GT:
                 Pred = llvm::CmpInst::Predicate::FCMP_OGT;
-            break;
+                break;
             case ComparisonOp::LT:
                 Pred = llvm::CmpInst::Predicate::FCMP_OLT;
-            break;
+                break;
             case ComparisonOp::LTEQ:
                 Pred = llvm::CmpInst::Predicate::FCMP_OLE;
-            break;
+                break;
             case ComparisonOp::GTEQ:
                 Pred = llvm::CmpInst::Predicate::FCMP_OGE;
-            break;
         }
         return IR.CreateFCmp(Pred, LeftOperand, RightOperand);
     }
@@ -403,8 +402,7 @@ llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // at this point
     int MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
     auto Expr = visit(MemberAcc->getExpr());
-    auto MemberPtr = IR.CreateExtractElement(Expr, MemberIdx-1);
-    return IR.CreateLoad(MemberPtr);
+    return IR.CreateExtractValue(Expr, MemberIdx-1);
 }
 
 llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
@@ -511,57 +509,28 @@ llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
             Cast->getTargetType());
 }
 
-llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *FuncDef) {
+llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
 
-    // Get arg types
-    std::vector<llvm::Type *> ParamTypes;
-    for (size_t i = 0; i < FuncDef->getParamList()->numOfChildren(); i++) {
-        Identifier *Ident = FuncDef->getParamList()->getParamAt(i);
-        const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ident);
-        assert(IdentTy->isConst() && "Non-const argument to function call");
-        // All args are passed by value as they are const
-        ParamTypes.push_back(getLLVMType(IdentTy));
-    }
-
-    // Get function type
-    llvm::FunctionType *FuncTy = llvm::FunctionType::get(
-            getLLVMType(FuncDef->getRetTy()),
-            ParamTypes,
-            false);
-
-    // Define a function
-    llvm::Function *Func = llvm::Function::Create(
-            FuncTy,
-            llvm::Function::ExternalLinkage,
-            "fn_" + FuncDef->getIdentifier()->getName(),
-            Mod);
+    auto FuncName = Def->getIdentifier()->getName();
+    auto FuncTy = Def->getIdentifier()->getIdentType();
+    auto Func = getOrInsertFunction(FuncTy, FuncName);
 
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "FuncEntry", Func);
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Func);
     IR.SetInsertPoint(BB);
 
     // Set function arguments and set them in the symbol map
-    size_t i = 0;
-    for (auto &Arg : Func->args()) {
-        Arg.setName(FuncDef->getParamList()->getParamAt(i)->getName());
-        // Allocate area for the argument
-        // This is a redundant step, but will be eliminated with the right pass
-        llvm::AllocaInst *Alloca = IR.CreateAlloca(getLLVMType(PM->getAnnotation<ExprTypeAnnotatorPass>(FuncDef->getParamList()->getParamAt(i))), nullptr, Arg.getName());
-        IR.CreateStore(&Arg, Alloca);
-        // Set the argument in the symbol map
-        SymbolMap[FuncDef->getParamList()->getParamAt(i)->getReferred()] = Alloca;
-        i++;
+    auto ParamList = Def->getParamList();
+    for (auto I = 0; I < ParamList->numOfChildren(); I++) {
+        auto Param = ParamList->getParamAt(I);
+        SymbolMap[Param->getReferred()] = Func->getArg(I);
     }
-
-    // Set current function
     CurrentFunction = Func;
 
     // Visit function body
-    visit(FuncDef->getBlock());
+    visit(Def->getBlock());
 
     CurrentFunction = GlobalFunction;
-
-    // The return is defined inside the function body
 
 }
 
@@ -573,88 +542,35 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
-    for (size_t i = 0; i < FuncCall->getArgsList()->numOfChildren(); i++) {
-        ASTNodeT *Expr = FuncCall->getArgsList()->getExprAtPos(i);
-        const Type *ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
-        assert(ExprTy->isConst() && "Non-const argument to function call");
-        // All args are passed by value as they are const
+    for (auto Expr : *FuncCall->getArgsList())
         Args.push_back(visit(Expr));
-    }
 
     // Call the function
     return IR.CreateCall(Func, Args);
 }
 
-llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
+llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
 
-    llvm::Function *Func = Mod.getFunction("pd_" + ProcedureDef->getIdentifier()->getName());
-    if (!Func) {
+    auto ProcName = Def->getIdentifier()->getName();
+    auto ProcTy = Def->getIdentifier()->getIdentType();
+    auto Proc = getOrInsertFunction(ProcTy, ProcName);
 
-        // Get arg types
-        std::vector<llvm::Type *> ParamTypes;
-        for (size_t i = 0; i < ProcedureDef->getParamList()->numOfChildren(); i++) {
-            Identifier *Ident = ProcedureDef->getParamList()->getParamAt(i);
-            const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ident);
-
-            // Constant arguments are passed by value
-            if (IdentTy->isConst()) {
-                ParamTypes.push_back(getLLVMType(IdentTy));
-
-                // Variable arguments are passed by reference
-            } else {
-                ParamTypes.push_back(llvm::PointerType::get(getLLVMType(IdentTy), 0));
-            }
-        }
-
-        // Get function type
-        llvm::FunctionType *ProcedureTy = llvm::FunctionType::get(
-                getLLVMType(ProcedureDef->getRetTy()),
-                ParamTypes,
-                false);
-
-        // Define a function
-        Func = llvm::Function::Create(
-                ProcedureTy,
-                llvm::Function::ExternalLinkage,
-                "pd_" + ProcedureDef->getIdentifier()->getName(),
-                Mod);
-    }
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Func);
+    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Proc);
     IR.SetInsertPoint(BB);
 
     // Set function arguments and set them in the symbol map
-    size_t i = 0;
-    for (auto &Arg : Func->args()) {
-        Identifier *Ident = ProcedureDef->getParamList()->getParamAt(i);
-        const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ident);
-        Arg.setName(Ident->getName());
-        if (IdentTy->isConst()) {
-            // Allocate area for the argument
-            // This is a redundant step, but will be eliminated with the right pass
-            llvm::AllocaInst *Alloca = IR.CreateAlloca(getLLVMType(PM->getAnnotation<ExprTypeAnnotatorPass>(Ident)), nullptr, Arg.getName());
-            IR.CreateStore(&Arg, Alloca);
-            // Set the argument in the symbol map
-            SymbolMap[Ident->getReferred()] = Alloca;
-        } else {
-            // Set the argument in the symbol map
-            // TODO confirm that this memory manipulation is allowed
-            SymbolMap[Ident->getReferred()] = &Arg;
-        }
-        i++;
+    auto ParamList = Def->getParamList();
+    for (auto I = 0; I < ParamList->numOfChildren(); I++) {
+        auto Param = ParamList->getParamAt(I);
+        SymbolMap[Param->getReferred()] = Proc->getArg(I);
     }
-
-
-
-    // Set current function
-    CurrentFunction = Func;
+    CurrentFunction = Proc;
 
     // Visit function body
-    visit(ProcedureDef->getBlock());
+    visit(Def->getBlock());
 
     CurrentFunction = GlobalFunction;
-
-    // The return is defined inside the function body
 }
 
 llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
@@ -686,7 +602,6 @@ llvm::Value *CodeGenPass::visitBreak(Break *Break) {
 
     IR.SetInsertPoint(AfterBreak);
     return nullptr;
-
 }
 
 llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
@@ -699,7 +614,6 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
     CurrentFunction->getBasicBlockList().push_back(AfterContinue);
     IR.SetInsertPoint(AfterContinue);
     return nullptr;
-
 }
 
 llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
@@ -708,21 +622,16 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     assert(ValType->isOutputTy() && "Invalid output stream type");
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
-            IR.CreateCall(PrintChar, {ValToOut});
-            break;
+            return IR.CreateCall(PrintChar, {ValToOut});
         case Type::TypeKind::T_Int:
-            IR.CreateCall(PrintInt, {ValToOut});
-            break;
+            return IR.CreateCall(PrintInt, {ValToOut});
         case Type::TypeKind::T_Bool:
-            IR.CreateCall(PrintBool, {ValToOut});
-            break;
+            return IR.CreateCall(PrintBool, {ValToOut});
         case Type::TypeKind::T_Real:
-            IR.CreateCall(PrintReal, {ValToOut});
-            break;
+            return IR.CreateCall(PrintReal, {ValToOut});
         default:
-            assert(false && "Invalid type for outstream");
+            assert(false && "Invalid type for out-stream");
     }
-    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
@@ -744,7 +653,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             IR.CreateCall(ScanReal, {StoreLoc, BufferPtr});
             break;
         default:
-            assert(false && "Invalid type for outstream");
+            assert(false && "Invalid type for in-stream");
     }
     return nullptr;
 
@@ -767,6 +676,7 @@ llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
 
 }
 
+// TODO: Look into if this is needed.
 llvm::Function *CodeGenPass::getMainProcProto() {
     llvm::FunctionType *FT = llvm::FunctionType::get(LLVMIntTy, {}, false);
     return llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "pd_main", &Mod);
@@ -782,4 +692,34 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
     auto MemLoc = IR.CreateGEP(StructLoc, {IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
     return MemLoc;
+}
+
+llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty, const string &Name) {
+
+    if (auto Func = Mod.getFunction(Name))
+        return Func;
+
+    auto FuncTy = dyn_cast<FunctionTy>(Ty);
+    auto ProcTy = dyn_cast<ProcedureTy>(Ty);
+    assert(ProcTy || FuncTy);
+    vector<const Type *> ParamTys;
+    llvm::Type *RetTy;
+    if (FuncTy) {
+        ParamTys = FuncTy->getParamTypes();
+        RetTy = getLLVMType(FuncTy->getRetType());
+    }
+    else {
+        ParamTys = ProcTy->getParamTypes();
+        RetTy = getLLVMType(ProcTy->getRetTy());
+    }
+
+    vector<llvm::Type*> LLVMParamTys;
+    auto BuildLLVMTypes = [&](const Type *T) {
+        LLVMParamTys.emplace_back(getLLVMType(T));};
+    std::for_each(ParamTys.begin(), ParamTys.end(), BuildLLVMTypes);
+
+    auto LLVMFuncTy = llvm::FunctionType::get(RetTy, LLVMParamTys, false);
+    return llvm::Function::Create(LLVMFuncTy, llvm::Function::ExternalLinkage,
+                                  Name, Mod);
+
 }

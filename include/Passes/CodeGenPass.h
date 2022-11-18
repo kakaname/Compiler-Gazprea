@@ -99,7 +99,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitUnaryOp(UnaryOp *Op);
     llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
     llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
-    llvm::Value *visitProcedureDef(ProcedureDef *ProcedureDef);
+    llvm::Value *visitProcedureDef(ProcedureDef *Def);
     llvm::Value *visitProcedureCall(ProcedureCall *ProcedureCall);
     llvm::Value *visitReturn(Return *Return);
     llvm::Value *visitBreak(Break *Break);
@@ -117,6 +117,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
     llvm::Type *getLLVMType(const Type *Ty, bool isConstPtrCheck = true);
     llvm::Function *getMainProcProto();
+
+    llvm::Function *getOrInsertFunction(const Type *Ty, const string &Name);
 };
 
 

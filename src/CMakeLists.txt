@@ -36,6 +36,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureExpressionCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ChangeMemAccessToMemRef.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/BadStreamPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureDeclInBeginOfBlock.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
 
 # Build our executable from the source files.

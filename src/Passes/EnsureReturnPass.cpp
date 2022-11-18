@@ -25,9 +25,14 @@ bool EnsureReturnPass::visitBlock(Block *Blk) {
 }
 
 bool EnsureReturnPass::visitProcedureDef(ProcedureDef *ProcDef) {
-    // If the procedure has no return type, we don't care.
-    if (!ProcDef->getRetTy())
+    // If the procedure has no return type we add a return
+    // statement to the end of function body to make sure there is a return.
+    if (!ProcDef->getRetTy()) {
+        auto RetStmt = PM->Builder.build<Return>();
+        RetStmt->setReturnExpr(PM->Builder.build<NoOp>());
+        ProcDef->getBlock()->addChild(RetStmt);
         return true;
+    }
     if (!visit(ProcDef->getBlock()))
         throw ProcedureReturnError(ProcDef, ProcDef->getIdentifier()->getName());
 
