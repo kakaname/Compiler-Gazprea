@@ -14,7 +14,6 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     // Set Runtime Functions
     llvm::FunctionType *MainTy = llvm::FunctionType::get(LLVMIntTy, false);
 
-
     PrintInt = Mod.getOrInsertFunction("rt_print_int",
                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMIntTy}, false));
     PrintReal = Mod.getOrInsertFunction("rt_print_real",
@@ -24,13 +23,13 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PrintBool = Mod.getOrInsertFunction("rt_print_bool",
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
     ScanInt = Mod.getOrInsertFunction("rt_scan_int",
-                                      llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                      llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt32PtrTy(GlobalCtx)}, false));
     ScanReal = Mod.getOrInsertFunction("rt_scan_real",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getFloatPtrTy(GlobalCtx)}, false));
     ScanChar = Mod.getOrInsertFunction("rt_scan_char",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt8PtrTy(GlobalCtx)}, false));
     ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMPtrTy, LLVMPtrTy}, false));
+                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt1PtrTy(GlobalCtx)}, false));
     llvm::Function *MainProd = getMainProcProto();
 
     GlobalFunction = llvm::Function::Create(
@@ -41,17 +40,6 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     // Set the current function to the global function (for global variables)
     CurrentFunction = GlobalFunction;
-
-    // Create the buffer pointer
-    llvm::StructType *BufferTy = llvm::StructType::create(GlobalCtx);
-    BufferTy->setBody({
-        LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, llvm::ArrayType::get(LLVMCharTy, 1025)
-    });
-
-    // get pointer to the first element of the buffer
-    BufferPtr = IR.CreateAlloca(BufferTy, nullptr, "buffer");
-    BufferPtr = IR.CreateStructGEP(BufferTy, BufferPtr, 0, "buffer_ptr_ptr");
-
 
     // TODO check for main function existing (in error handling)
     llvm::Value *RetVal = IR.CreateCall(MainProd, {});
@@ -642,16 +630,16 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
 
     switch (IdentTy->getKind()) {
         case Type::TypeKind::T_Char:
-            IR.CreateCall(ScanChar, {StoreLoc, BufferPtr});
+            IR.CreateCall(ScanChar, {StoreLoc});
             break;
         case Type::TypeKind::T_Int:
-            IR.CreateCall(ScanInt, {StoreLoc, BufferPtr});
+            IR.CreateCall(ScanInt, {StoreLoc});
             break;
         case Type::TypeKind::T_Bool:
-            IR.CreateCall(ScanBool, {StoreLoc, BufferPtr});
+            IR.CreateCall(ScanBool, {StoreLoc});
             break;
         case Type::TypeKind::T_Real:
-            IR.CreateCall(ScanReal, {StoreLoc, BufferPtr});
+            IR.CreateCall(ScanReal, {StoreLoc});
             break;
         default:
             assert(false && "Invalid type for in-stream");
