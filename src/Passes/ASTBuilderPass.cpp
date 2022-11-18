@@ -724,10 +724,10 @@ std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx
     CharLit->setCtx(ctx);
     std::string CharVal = ctx->CHARLITERAL()->getText();
 
-    if (CharVal.length() == 1) {
-        CharLit->setCharacter(CharVal[0]);
+    if (CharVal.length() == 3) {
+        CharLit->setCharacter(CharVal[1]);
     } else {
-        char Escape = CharVal[1];
+        char Escape = CharVal[2];
         char Val;
         switch (Escape) {
             case '0':
@@ -748,7 +748,7 @@ std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx
             case 'r':
                 Val = 0x0D;
                 break;
-            case '"':
+            case '\"':
                 Val = 0x22;
                 break;
             case '\'':
@@ -1013,9 +1013,3 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
     throw std::runtime_error("Unimplemented");
 }
-
-
-
-
-
-

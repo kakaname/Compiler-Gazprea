@@ -50,12 +50,12 @@ public:
 
     void visitIdentReference(IdentReference *Ref) {
         std::cout << "Ident Reference(Ty: "
-        << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
+                  << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
     }
 
     void visitMemberReference(MemberReference *Ref) {
         std::cout << "Member Reference(Ty: "
-        << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
+                  << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
     }
 
     void visitComparisonOp(ComparisonOp *Op);
@@ -104,7 +104,42 @@ public:
     }
 
     void visitCharLiteral(CharLiteral *CharLit) {
-        std::cout << "CharLit(" << CharLit->getCharacter() << ")" << "\n";
+
+        std::cout << "CharLit(";
+
+        switch (CharLit->getCharacter()) {
+            case 0x00:
+                std::cout << "\\0";
+                break;
+            case 0x07:
+                std::cout << "\\a";
+                break;
+            case 0x08:
+                std::cout << "\\b";
+                break;
+            case 0x09:
+                std::cout << "\\t";
+                break;
+            case 0x0A:
+                std::cout << "\\n";
+                break;
+            case 0x0D:
+                std::cout << "\\r";
+                break;
+            case 0x22:
+                std::cout << "\\\"";
+                break;
+            case 0x27:
+                std::cout << "\\\'";
+                break;
+            case 0x5C:
+                std::cout << "\\\\'";
+                break;
+            default:
+                std::cout << CharLit->getCharacter();
+        }
+
+        std::cout << ")" << "\n";
     }
 
     void visitTupleLiteral(TupleLiteral *TupleLit) {
