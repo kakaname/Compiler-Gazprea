@@ -1,0 +1,14 @@
+procedure main() returns integer {
+/* Prints every number between 1 and 10 */
+integer x = null + null + null;
+
+loop while x < 10 {
+  x = x + 1;
+
+  x -> std_output; 
+}
+  
+
+  /* must have a return */
+  return 0;
+}

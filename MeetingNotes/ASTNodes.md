@@ -6,7 +6,7 @@
 - Assignment
 - Declaration (will always include a value, if none, then null)
 - Block
-- LogicalOp
+- ComparisonOp
 - ArithmaticOp
 - Index
 - Loop
@@ -24,7 +24,7 @@
 - TupleDecl/TupleDef?
 - Conditional (two types of AST nodes)
 - Cast
-- BitwiseOp (and, or, xor)
+- LogicalOp (and, or, xor)
 - UnaryOp (+, -, not)
 - FunctionDef/FunctionDecl + FunctionCall
 - ProdedureDef/ProcedureDecl + ProcedureCall

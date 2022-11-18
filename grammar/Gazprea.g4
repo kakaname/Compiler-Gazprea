@@ -5,118 +5,199 @@ tokens {
 }
 
 // --- PARSER RULES ---
-file: scope EOF;
+file: (global)* EOF;
 
-stm : stmBody SC ;
-block : OBRACE (stm)* CBRACE ;
-blStm : block | stmBody ;
+global : globalIdentDecl        # globalIdentDeclStmt
+       | functionDeclr          # functionDeclrStmt
+       | functionDefinition     # functionDefStmt
+       | procedureDeclr         # procedureDeclrStmt
+       | procedureDefinition    # procedureDefStmt
+       | typeDef                # typeDefStmt
+       ;
 
-stmBody
-    : (qualtype | qualifier | type)
-      ID (EQ expr)?                 # Declaration
-    | lvalue EQ expr                # Assignment
-    | IF OPR expr CPR blStm
-      (ELSE IF OPR expr CPR blStm)*
-      (ELSE blStm)?                 # Conditional
-    | LOOP (WHILE stmBody)? blStm   # Loop
-    // TODO missing iterator loop for Part 1
-    | TYPEDEF type ID               # Typedef
-    | expr OUT STDOUT               # Output
-    | lvalue IN STDIN               # Input
-    | BREAK                         # Break
-    | CONTINUE                      # Continue
-    | RETURN expr?                  # Return
-    | funcDecl ( EQ expr | block)?  # FunctionDef
-    | prodDecl block?               # ProcedureDef
-    | prodCall                      # FunctionCall
-    | CALL prodCall                 # ProcedureCall
-    ;
-prodCall : ID OPR (ID (COMMA ID)*)? CPR ;
-funcDecl : FUNCTION ID OPR (type ID (COMMA type ID)*)? CPR ;
-prodDecl : PROCEDURE ID OPR (qualtype ID (COMMA qualtype ID)*)? CPR ;
+globalIdentDecl : CONST (type)? ID EQ expr SC;
 
-qualtype : qualifier type;
+stmt: simpleStmt | block; // Block should really be called compound statement.
 
-scope : stm* ;
+// typeDef can only appear at global scope, so I removed typeDef to global
+// Also, function/procedure declaration/definition are also removed for similar reason
+simpleStmt : identDecl          # identDeclStmt
+           | assignment         # assignmentStmt
+           | conditional        # conditionalStmt
+           | loop               # loopStmt
+           | output             # outputStmt
+           | input              # inputStmt
+           | break              # breakStmt
+           | continue           # continueStmt
+           | return             # returnStmt
+           | procedureCall      # procedureCallStmt
+           ;
 
-expr
-    : expr DOT ID                   # DotExpr
-    | expr OBR expr CBR             # IndexExpr
-    | expr DD expr                  # RangeExpr
-    | OPR expr CPR                  # BracketExpr
-    |<assoc=right> NOT expr         # NotExpr
-    | expr EXP expr                 # ExpExpr
-    | expr ( MUL | DIV | MOD | SS)
-      expr                          # MulDivExpr
-    | expr ( ADD | SUB ) expr       # AddSubExpr
-    | expr BY expr                  # ByExpr
-    | expr ( LT | GT | LTEQ | GTEQ )
-      expr                          # CompExpr
-    | expr ( EQEQ | NEQ ) expr      # EqualExpr
-    | expr AND expr                 # AndExpr
-    | expr (OR | XOR) expr          # OrExpr
-    | expr BB expr                  # BBExpr
-    | AS LT type GT OPR expr CPR    # AsExpr
-    | OBR ID INATOM expr BAR expr CBR   # GeneratorExpr
-    | OBR ID INATOM expr AND expr CBR   # FilterExpr
-    | atom                         # AtomExpr
+break : BREAK SC;
+
+continue : CONTINUE SC;
+
+identDecl
+    : typeQualifier (type)? ID (EQ expr)? SC
+    | (typeQualifier)? type ID (EQ expr)? SC;
+
+// we cannot assign procedureCall to an ID? I removed it.
+// Here procedureCall specifically means `call precodurename()`
+assignment : lvalue EQ expr SC;
+
+lvalue
+    : expr LSQRPAREN expr RSQRPAREN     # indexLValue
+    | ID PERIOD (ID | INTLITERAL)       # memAccessLValue
+    | ID COMMA ID (COMMA ID)*           # tupleUnpackLValue
+    | ID                                # identLValue
     ;
 
-atom :
-    | INT
-    | ID
-    | TRUE
-    | FALSE
-    | char
-    | real
-    | NULL
-    | IDENTITY
-    ;
+index : expr LSQRPAREN expr RSQRPAREN;
 
-real : fullReal | sciReal ;
+conditional : IF expr stmt              # ifConditional
+            | IF expr stmt ELSE stmt    # ifElseConditional;
 
-sciReal
-    : fullReal 'e' (ADD | SUB)? INT;
+loop : LOOP stmt                 #infiniteLoop
+     | LOOP WHILE expr stmt      #whileLoop
+     | LOOP stmt WHILE expr SC   #doWhileLoop
+     | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
 
-fullReal
-    : INT DOT INT           # MainReal
-    | INT DOT               # IntReal
-    | DOT INT               # DotReal
-    ;
+// I don't quite understand this one
+iterDomain : ID GET expr;
 
-char : QUOTE SChar QUOTE;
+typeDef : TYPEDEF type ID SC;
 
-lvalue : ID                         #ID
+output : expr PUT STDOUT SC;
 
-    ;
+input : lvalue GET STDIN SC;
 
-qualifier : CONST | VAR;
+
+return : RETURN (expr)? SC;
+
+typeQualifier : VAR
+              | CONST;
 
 type
-    : INATOM                            # InAtomType
-    | VECTOR                            # VectorType
-    | TUPLE OPR type (COMMA type)* CPR  # TupleType
+     : tupleTypeDecl                                    #tupleType
+     | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
+     | type LSQRPAREN expressionOrWildcard COMMA
+     expressionOrWildcard RSQRPAREN                     #matrixType
+     | INTEGER                                          #intType
+     | CHARACTER                                        #charType
+     | BOOLEANA                                         #booleanType
+     | REAL                                             #realType
+     | ID                                               #resolvedType
+     ;
+
+expressionOrWildcard: (MUL | expr);
+
+tupleTypeDecl
+    : TUPLE LPAREN tupleMemberType COMMA tupleMemberType
+    (COMMA tupleMemberType)* RPAREN;
+
+tupleMemberType
+    : type (ID)?;
+
+// added (typeQualifier)? because procedure parameters can have type qualifiers
+typeOptionalIdentPair : (typeQualifier)? type (ID)?;
+
+typeIdentPair : (typeQualifier)? type ID;
+
+functionParameter : (CONST)? type (ID)?;
+
+functionDeclr
+    : FUNCTION funcName=ID LPAREN
+      (functionParameter (COMMA functionParameter)*)?
+      RPAREN RETURNS type SC;
+
+functionDefinition
+    : FUNCTION funcName=ID LPAREN
+      (functionParameter (COMMA functionParameter)*)?
+      RPAREN RETURNS type (block | EQ expr SC);
+
+procedureDeclr
+    : PROCEDURE procName=ID LPAREN
+      (typeOptionalIdentPair (COMMA typeOptionalIdentPair)*)?
+      RPAREN (RETURNS type)? SC;
+
+procedureDefinition
+    : PROCEDURE procName=ID LPAREN
+    (typeIdentPair (COMMA typeIdentPair)*)? RPAREN (RETURNS type)? block;
+
+
+// Should be an expression.
+functionCall : ID LPAREN (expr (COMMA expr)*)? RPAREN;
+
+// added a SC token at the end
+procedureCall : CALL ID LPAREN (expr (COMMA expr)*)? RPAREN SC;
+
+block : LBRACE (stmt)* RBRACE ;
+
+// TODO: Check precedence(done) and add matrix literals, vector literals,
+//  real literals(done), string literals, tuple literals(done).
+
+// 1. promote bracketExpr to the highest priority
+// 2. change notExpr to unaryExpr
+// 3. expExpr should be right-associative
+// 4. appendOp should be right-associative
+// 5. And expression operator should be 'and' instead of '&'
+
+expr: LPAREN expr RPAREN                    # bracketExpr
+    | ID PERIOD (ID | INTLITERAL)           # memberAccess
+    | expr LSQRPAREN expr RSQRPAREN         # indexExpr
+    | expr DD expr (BY expr)?               # rangeExpr
+    | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
+    | <assoc=right> expr op=EXP expr        # expExpr
+    | expr op=(MUL | DIV | MOD | DOTPROD) expr   # mulDivModDotProdExpr // A better name perhaps
+    | expr op=(ADD | SUB) expr              # addSubExpr
+    | expr BY expr                          # byExpr
+    | expr op=(LT | GT | LTEQ | GTEQ) expr  # compExpr
+    | expr op=(EQEQ | NEQ) expr             # equalExpr
+    | expr op=ANDATOM expr                  # andExpr
+    | expr op=(OR | XOR) expr               # orExpr
+    | <assoc=right> expr APPENDOP expr      # appendOp
+    | AS LT type GT LPAREN expr RPAREN      # explicitCast
+    | LSQRPAREN ID IN expr BAR expr RSQRPAREN       # generatorExpr
+    | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
+    | functionCall                          # funcCall
+    | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
+    | ID                                    # identifier
+    | NULL_                                 # nullLiteral
+    | IDENTITY                              # identityLiteral
+    | (TRUE | FALSE)                        # boolLiteral
+    | INTLITERAL                            # intLiteral
+    | realLit                               # realLiteral
+    | CHARLITERAL                           # charLiteral
     ;
 
+
+realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
+        | INTLITERAL PERIOD ExponentialLiteral?             #realLit2
+        | INTLITERAL ExponentialLiteral                     #realLit3
+        ;
+
+// --- LEXER RULES ---
+
+ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
 
 // --- LEXER RULES ---
 
 // Characters ++
-OPR : '(' ;
-CPR : ')' ;
-OBR : '[' ;
-CBR : ']' ;
-OBRACE : '{' ;
-CBRACE : '}' ;
+LPAREN : '(' ;
+RPAREN : ')' ;
+LSQRPAREN : '[' ;
+RSQRPAREN : ']' ;
+LBRACE : '{' ;
+RBRACE : '}' ;
 BAR : '|' ;
-BB : '||' ;
+APPENDOP : '||' ;
 SC : ';' ;
 EQ : '=' ;
 DD : '..' ;
-DOT: '.' ;
+PERIOD: '.' ;
 AND : '&' ;
-OUT : '->' ;
-IN : '<-' ;
+PUT : '->' ;
+GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
 
@@ -125,7 +206,7 @@ ADD : '+' ;
 SUB : '-' ;
 DIV : '/' ;
 MUL : '*' ;
-SS : '**' ;
+DOTPROD : '**' ;
 LTEQ : '<=' ;
 GTEQ : '>=' ;
 LT : '<' ;
@@ -136,40 +217,40 @@ EXP : '^' ;
 MOD : '%' ;
 
 // Reserved
-IF : 'if' ;
-LOOP : 'loop' ;
-INATOM : 'in' ;
-VECTOR : 'vector' ;
 ANDATOM : 'and' ;
 AS : 'as' ;
-BOOLEANATOM : 'boolean' ;
-ELSE : 'else' ;
+BOOLEANA : 'boolean' ;
 BREAK : 'break' ;
-CONTINUE : 'continue' ;
 BY : 'by' ;
 CALL : 'call' ;
-CHARACTERATOM : 'character' ;
+CHARACTER : 'character' ;
 COLUMNS : 'columns' ;
 CONST : 'const' ;
+CONTINUE : 'continue' ;
+ELSE : 'else' ;
 FALSE : 'false' ;
-TRUE : 'true' ;
 FUNCTION : 'function' ;
 IDENTITY : 'identity' ;
-INTEGERATOM : 'integer' ;
+IF : 'if' ;
+IN : 'in' ;
+INTEGER: 'integer';
 INTERVAL : 'interval' ;
 LENGTH : 'length' ;
+LOOP : 'loop' ;
 NOT : 'not' ;
-NULL : 'null' ;
+NULL_ : 'null' ;
 OR : 'or' ;
 PROCEDURE : 'procedure' ;
-REALATOM : 'real' ;
+REAL: 'real';
 RETURN : 'return' ;
 RETURNS : 'returns' ;
 REVERSE : 'reverse' ;
+ROWS : 'rows' ;
 STDIN : 'std_input' ;
 STDOUT : 'std_output' ;
 STRSTA : 'stream_state' ;
 STRINGATOM : 'string' ;
+TRUE : 'true' ;
 TUPLE : 'tuple' ;
 TYPEDEF : 'typedef' ;
 VAR : 'var' ;
@@ -177,30 +258,12 @@ WHILE : 'while' ;
 XOR : 'xor' ;
 
 
-// Customs
-INT : [0-9]+ ;
-ID : [_a-zA-Z] [_a-zA-Z0-9]* ;
-
-SChar
-    :   EscapeSequence
-    // TODO check if works
-    |   ~["\\\r\n]
-    ;
-
- fragment
- EscapeSequence
-     :   '\\' ['"abtnrv\\]
-     ;
-
-// Skip whitespace
-BlockComment
-    :   '/*' .*? '*/'
-        -> skip
-    ;
-
-LineComment
-    :   '//' ~[\r\n]*
-        -> skip
-    ;
+INTLITERAL : [0-9]+ ;
+ID : [_a-zA-Z][_a-zA-Z0-9]* ;
+CHARLITERAL : '\'' . '\''
+            | '\'' '\\' [0abtnr"'\\] '\''
+            ;
+// Skip comments and whitespace
+BlockComment : '/*' .*? '*/' -> skip ;
+LineComment : '//' ~[\r\n]* -> skip ;
 WS : [ \t\r\n]+ -> skip ;
-

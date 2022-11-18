@@ -1,0 +1,20 @@
+
+function times_two_real(integer x) returns real = 2.0 * x;
+
+function times_four_real(real x) returns real = 4 * x;
+procedure main() returns integer {
+  // test for time promotion inside of functions
+  integer x = 2;
+  real out =   times_two_real(x);
+  real i = times_two_real(identity);
+  real n = times_four_real(null);
+  real o = times_four_real(null + null + identity + identity);
+  real p = times_four_real(null + null + identity + 1);
+  out -> std_output;
+  out =   times_four_real(x);
+  out -> std_output;
+
+  /* must have a return */
+  return 0;
+}
+

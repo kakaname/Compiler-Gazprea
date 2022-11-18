@@ -1,0 +1,19 @@
+procedure main() returns integer {
+  // simply declares a boolean
+var boolean bool1;
+
+var boolean bool3 = true;
+const boolean bool4 = false;
+
+var boolean bool5 = null;
+var boolean bool6 = identity;
+
+const boolean bool7 = null;
+const boolean bool8 = identity;
+
+
+
+
+  /* must have a return */
+  return 0;
+}

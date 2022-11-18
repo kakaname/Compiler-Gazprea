@@ -1,0 +1,93 @@
+procedure main() returns integer {
+
+    // Boolean
+    // EQ
+    true == true -> std_output;
+    false == false -> std_output;
+    true == false -> std_output;
+    false == true -> std_output;
+
+    // NEQ
+    true != false -> std_output;
+    false != true -> std_output;
+    true != true -> std_output;
+    false != false -> std_output;
+
+    // Integer
+
+    // EQ
+    1 == 1 -> std_output;
+    23 == 23 -> std_output;
+    10 == 9 -> std_output;
+    12 == 14 -> std_output;
+
+    // NEQ
+    1023 != 9 -> std_output;
+    12 != 45514 -> std_output;
+    0 != 0 -> std_output;
+    32143 != 32143 -> std_output;
+
+    // LT
+    1 < 5 -> std_output;
+    4321 < 54321 -> std_output;
+    10 < 9 -> std_output;
+    23 < 23 -> std_output;
+
+    // GT
+    100 > 9 -> std_output;
+    243 > 23 -> std_output;
+    5 > 5 -> std_output;
+    4321 > 54321 -> std_output;
+
+    // LTE
+    1 <= 5 -> std_output;
+    23 <= 23 -> std_output;
+    10 <= 9 -> std_output;
+    4321 <= 21 -> std_output;
+
+    // GTE
+    5 >= 5 -> std_output;
+    100 >= 9 -> std_output;
+    243 >= 4523 -> std_output;
+    4321 >= 54321 -> std_output;
+
+    // Real
+
+    // EQ
+    1.2 == 1.2 -> std_output;
+    23.9997 == 23.9997 -> std_output;
+    10.0 == 9.99999999 -> std_output;
+    12.12 == 14.2638 -> std_output;
+
+    // NEQ
+    1023.2432 != 9.515 -> std_output;
+    12.0 != 11.99999 -> std_output;
+    0.0 != 0.0 -> std_output;
+    32143.123 != 32143.123 -> std_output;
+
+    // LT
+    1.456 < 5.005 -> std_output;
+    4321.123 < 54321.789 -> std_output;
+    10.00 < 9.9999 -> std_output;
+    23.001 < 23.001 -> std_output;
+
+    // GT
+    100.0 > 9.698 -> std_output;
+    243.0159 > 23.327 -> std_output;
+    5.998 > 5.9980001 -> std_output;
+    4321.4321 > 54321.54321 -> std_output;
+
+    // LTE
+    1.123 <= 5.123 -> std_output;
+    23.0001 <= 23.0001 -> std_output;
+    10.0 <= 9.9999999 -> std_output;
+    4321.123 <= 21.321 -> std_output;
+
+    // GTE
+    5.00001 >= 5.00001 -> std_output;
+    100.9 >= 9.100 -> std_output;
+    243.123 >= 4523.123 -> std_output;
+    4321.54321 >= 54321.54321 -> std_output;
+
+    return 0;
+}

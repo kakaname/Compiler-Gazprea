@@ -1,0 +1,11 @@
+procedure main() returns integer {
+    // tests basic if statements
+integer x = 0;
+integer y = 1;
+
+    if(true) x ->std_output;
+    if(false) y ->std_output;
+
+  /* must have a return */
+  return 0;
+}

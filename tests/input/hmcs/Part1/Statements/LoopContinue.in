@@ -1,0 +1,16 @@
+procedure main() returns integer {
+/* Prints every number between 1 and 10, except for 7 */
+integer x = null;
+
+loop while x < 10 {
+  x = x + 1;
+
+  if x == 7 continue;  /* Start at the beginning of the loop, skip 7 */
+
+  x -> std_output;
+}
+  
+
+  /* must have a return */
+  return 0;
+}

@@ -1,0 +1,17 @@
+procedure main() returns integer {
+/* Prints every number between 1 and 10, except for 7 */
+integer x = null + null + null + null;
+
+loop {
+  x = x + 1;
+
+  if x == 12 continue;  /* end */
+
+    if x == 14 break;
+  x -> std_output; '\n' -> std_output;
+}
+  
+
+  /* must have a return */
+  return 0;
+}

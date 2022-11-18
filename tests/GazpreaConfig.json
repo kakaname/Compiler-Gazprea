@@ -1,30 +1,25 @@
 {
-  "inDir": "<inDir>",
-  "outDir": "<outDir>",
-  "inStrDir": "<inStrDir>",
+  "inDir": "/cshome/yufei24/CMPUT415/gazprea-hmcs/tests/input/",
+  "outDir": "/cshome/yufei24/CMPUT415/gazprea-hmcs/tests/output/",
+  "inStrDir": "/cshome/yufei24/CMPUT415/gazprea-hmcs/tests/inStream/",
   "testedExecutablePaths": {
-    "<team id>": "<path_to_gazc_exe>"
+    "hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/gazc"
   },
   "runtimes": {
-    "<team id>": "<path_to_libgazrt.so>"
+    "hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/libgazrt.so"
   },
   "toolchains": {
     "gazprea": [
       {
         "stepName": "gazc",
         "executablePath": "$EXE",
-        "arguments": [
-          "$INPUT",
-          "$OUTPUT"
-          ],
+        "arguments": ["$INPUT", "$OUTPUT"],
         "output": "gazc.ll"
       },
       {
         "stepName": "lli",
-        "executablePath": "/cshome/c415/415-resources/llvmi/bin/lli",
-        "arguments": [
-          "$INPUT"
-        ],
+        "executablePath": "/cshome/cmput415/415-resources/llvmi/bin/lli",
+        "arguments": ["$INPUT"],
         "output": "-",
         "usesRuntime": true,
         "usesInStr": true

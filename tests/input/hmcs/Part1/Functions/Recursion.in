@@ -1,0 +1,20 @@
+function factorial(integer) returns integer;
+
+procedure main() returns integer {
+  // testing for recursive function calls
+  var out = factorial(5);
+  out ->std_output;
+
+  /* must have a return */
+  return 0;
+}
+
+function factorial(integer x) returns integer {
+    if(x == identity){
+        return identity;
+    }else{
+        integer b = factorial(x-identity);
+
+        return b*x;
+    }
+}

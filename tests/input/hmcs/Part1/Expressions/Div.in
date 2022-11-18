@@ -1,0 +1,32 @@
+procedure main() returns integer {
+  // Integer
+  var integer a = 10 / 2;
+  var integer b = 25 / a;
+  var integer c = b / a;
+
+  var real x = 11.0 / 2.0;
+  var real y = 30.25 / x;
+  var real z = x / y;
+
+  var integer d = b / identity;
+  var integer e = null / a;
+  var integer f = identity / identity;
+
+  var real g = x / identity;
+  var real h = null / x;
+  var real i = identity / identity;
+
+
+  a -> std_output;
+  b -> std_output;
+  c -> std_output;
+
+  // Real
+  
+  x -> std_output;
+  y -> std_output;
+  z -> std_output;
+
+  /* must have a return */
+  return 0;
+}

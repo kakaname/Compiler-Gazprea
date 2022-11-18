@@ -1,0 +1,19 @@
+procedure main() returns integer {
+integer x = null;
+integer y = null;
+
+loop while x < 3 {
+
+    x -> std_output; 
+    loop while y < 3{
+        y -> std_output;    
+        y = y+1;
+    }
+    y = null;
+    x = x+1;
+}
+  
+
+  /* must have a return */
+  return 0;
+}

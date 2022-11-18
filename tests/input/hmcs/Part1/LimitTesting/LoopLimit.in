@@ -1,0 +1,12 @@
+procedure main() returns integer {
+  // test both tests with single statement and 
+  // block statements
+  integer x = -2147483648;
+
+  loop while (x < 2147483640){
+    x = x + 9;
+  }
+
+  /* must have a return */
+  return 0;
+}

@@ -1,0 +1,27 @@
+procedure main() returns integer {
+
+    boolean a;
+    character b;
+    integer c;
+    real d;
+
+    a -> std_output;
+    b -> std_output;
+    c -> std_output;
+    d -> std_output;
+
+    a = identity;
+    b = identity;
+    c = identity;
+    d = identity;
+
+    a -> std_output;
+    b -> std_output;
+    c -> std_output;
+    d -> std_output;
+
+    c = null + identity;
+    c = null + null + null + identity;
+    
+    return 0;
+}
