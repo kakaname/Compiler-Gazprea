@@ -53,7 +53,6 @@ lvalue
     ;
 
 index : expr LSQRPAREN expr RSQRPAREN;
-memAccess: ID PERIOD (ID | INTLITERAL);
 
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
@@ -144,7 +143,7 @@ block : LBRACE (stmt)* RBRACE ;
 // 5. And expression operator should be 'and' instead of '&'
 
 expr: LPAREN expr RPAREN                    # bracketExpr
-    | ID PERIOD (ID | INTLITERAL)           # memberAccess
+    | MemberAccess                          # memberAccess
     | expr LSQRPAREN expr RSQRPAREN         # indexExpr
     | expr DD expr (BY expr)?               # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
@@ -166,15 +165,13 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
     | (TRUE | FALSE)                        # boolLiteral
-    | RealLit                               # realLiteral
     | INTLITERAL                            # intLiteral
+    | RealLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
     ;
 
 
-
-// --- LEXER RULES ---
-
+MemberAccess: ID PERIOD (ID | INTLITERAL);
 
 RealLit : INTLITERAL PERIOD INTLITERAL ExponentialLiteral?
         | INTLITERAL PERIOD ExponentialLiteral?
@@ -184,6 +181,8 @@ RealLit : INTLITERAL PERIOD INTLITERAL ExponentialLiteral?
 
 fragment
 ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
+
+// --- LEXER RULES ---
 
 // Characters ++
 LPAREN : '(' ;
@@ -266,12 +265,7 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
-
-
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;
-
 LineComment : '//' ~[\r\n]* -> skip ;
-
 WS : [ \t\r\n]+ -> skip ;
-
