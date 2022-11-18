@@ -4,10 +4,7 @@
 
 #include <fstream>
 #include "Passes/CodeGenPass.h"
-
-#include "llvm/CodeGen/UnreachableBlockElim.h"
-
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+#include "Passes/SubExpressionCacheSet.h"
 
 using llvm::Value;
 
@@ -413,8 +410,12 @@ llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
 llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // All member expressions should be converted to a tuple access by an index
     // at this point
+    auto Cache = PM->getResource<SubExpressionCacheSet>();
+    auto Val = Cache.getCached(MemberAcc->getExpr());
+    auto Expr = Val ? Val : visit(MemberAcc->getExpr());
+    if (Cache.shouldCache(MemberAcc->getExpr()))
+        Cache.setValueFor(MemberAcc->getExpr(), Expr);
     auto MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
-    auto Expr = visit(MemberAcc->getExpr());
     return IR.CreateExtractValue(Expr, MemberIdx-1);
 }
 

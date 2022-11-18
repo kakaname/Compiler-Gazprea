@@ -2,8 +2,9 @@ procedure main() returns integer {
     // tests basic if statements
 integer x = 0;
 integer y = 1;
+integer z = null + null + null + null;
 
-    if(x==0){
+    if(x==z){
         x ->std_output;
     }
     if(y != 1){

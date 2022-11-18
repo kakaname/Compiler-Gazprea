@@ -21,6 +21,8 @@ procedure main() returns integer {
   y = as<integer>(t);
   y -> std_output;
 
+  y = as<integer>(null + 1.0);
+
 
   /* must have a return */
   return 0;

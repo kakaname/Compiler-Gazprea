@@ -10,7 +10,7 @@ loop while x < 3 {
         continue;
         y -> std_output;    
     }
-    y = 0;
+    y = null;
     x = x+1;
 }
   

@@ -2,6 +2,7 @@ procedure main() returns integer {
     // basic test for if else statement
 integer x = 0;
 integer y = 1;
+integer z = null + null + null;
 
     if(x==0){
         y -> std_output;    
