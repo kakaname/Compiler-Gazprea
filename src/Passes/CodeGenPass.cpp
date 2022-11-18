@@ -128,9 +128,10 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
 }
 
 llvm::Value *CodeGenPass::declareGlobal(string name, const Type *Ty) {
-
-    Mod.getOrInsertGlobal(name, getLLVMType(PM->TypeReg.getConstTypeOf(Ty)));
+    llvm::Type *LLTy = getLLVMType(PM->TypeReg.getConstTypeOf(Ty));
+    Mod.getOrInsertGlobal(name, LLTy);
     llvm::GlobalVariable *GV = Mod.getNamedGlobal(name);
+    GV->setInitializer(llvm::Constant::getNullValue(LLTy));
     return GV;
 }
 
