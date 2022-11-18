@@ -3,10 +3,10 @@
   "outDir": "/cshome/yufei24/CMPUT415/gazprea-hmcs/tests/output/",
   "inStrDir": "/cshome/yufei24/CMPUT415/gazprea-hmcs/tests/inStream/",
   "testedExecutablePaths": {
-    "gazprea-hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/gazc"
+    "hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/gazc"
   },
   "runtimes": {
-    "gazprea-hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/libgazrt.so"
+    "hmcs": "/cshome/yufei24/CMPUT415/gazprea-hmcs/bin/libgazrt.so"
   },
   "toolchains": {
     "gazprea": [
