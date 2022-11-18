@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include <stack>
+#include <queue>
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
@@ -60,6 +61,10 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     // Used to keep track of which loop we are currently in for breaks/continues
     std::stack<llvm::BasicBlock*> LoopEndBlocks;
     std::stack<llvm::BasicBlock*> LoopBeginBlocks;
+
+    // Used to keep track of global declarations that later will
+    // be assigned in the main function
+    std::queue<Declaration*> GlobalDecls;
 
     // The file to dump the outputs to.
     const char *OutputFile;
@@ -119,6 +124,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
     llvm::Type *getLLVMType(const Type *Ty);
+    llvm::Value *declareGlobal(string name, const Type *Ty);
+    void assignGlobals();
 
     llvm::Function *getOrInsertFunction(const Type *Ty, const string &Name);
 };
