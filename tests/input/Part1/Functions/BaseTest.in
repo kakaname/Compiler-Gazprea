@@ -8,9 +8,15 @@ procedure main() returns integer {
   // block statements
   integer x = 2;
   integer out =   times_two(x);
+  integer i = times_two(identity);
+  integer n = times_four(null);
+  integer o = times_four(null + null + identity + identity);
+  integer p = times_four(null + null + identity + 1);
+
   out -> std_output;
   out =   times_four(x);
   out -> std_output;
+
 
   /* must have a return */
   return 0;

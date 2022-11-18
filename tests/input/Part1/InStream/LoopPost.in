@@ -7,7 +7,7 @@ loop {
     z <- std_input;
     x -> std_output;
 
-}while x == 0;
+}while x == null;
   
 
   /* must have a return */

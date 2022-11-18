@@ -322,21 +322,21 @@ struct DomainLoop: public TreeNode {
 };
 
 struct IntLiteral: public TreeNode {
-    int32_t Val;
+    long Val;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_IntLiteral;
     }
 
     void setVal(const std::basic_string<char> &Literal) {
-        Val = std::stoi(Literal);
+        Val = std::stol(Literal);
     }
 
-    void setIntVal(int V) {
+    void setIntVal(long V) {
         Val = V;
     }
 
-    int32_t getVal() {
+    long getVal() const {
         return Val;
     }
 
