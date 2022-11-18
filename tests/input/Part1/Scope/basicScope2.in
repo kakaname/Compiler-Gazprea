@@ -11,6 +11,7 @@ procedure main() returns integer {
     }
     {
         var integer y = 15;
+        integer z = null + null + null + identity;
         y->std_output;
     }
     {
