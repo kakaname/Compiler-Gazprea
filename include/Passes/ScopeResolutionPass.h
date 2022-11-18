@@ -111,31 +111,18 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     void visitConditionalLoop(ConditionalLoop *Loop) {
         visit(Loop->getConditional());
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
-        CurrentScope = NewScope;
         visit(Loop->getBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
     }
 
     void visitConditional(Conditional *Cond) {
         visit(Cond->getConditional());
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
         visit(Cond->getBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
     };
 
     void visitConditionalElse(ConditionalElse *CondWithElse) {
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
+        visit(CondWithElse->getConditional());
         visit(CondWithElse->getIfBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
-
-        NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
         visit(CondWithElse->getElseBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
     };
 
     void visitProcedureDef(ProcedureDef *Def) {

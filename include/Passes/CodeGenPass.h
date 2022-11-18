@@ -118,7 +118,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
     llvm::Type *getLLVMType(const Type *Ty);
-    llvm::Function *getMainProcProto();
 
     llvm::Function *getOrInsertFunction(const Type *Ty, const string &Name);
 };

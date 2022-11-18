@@ -30,20 +30,6 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                                        llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt8PtrTy(GlobalCtx)}, false));
     ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
                                        llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt1PtrTy(GlobalCtx)}, false));
-    llvm::Function *MainProd = getMainProcProto();
-
-    GlobalFunction = llvm::Function::Create(
-            MainTy, llvm::Function::ExternalLinkage, "main", Mod);
-
-    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "entry", GlobalFunction);
-    IR.SetInsertPoint(Entry);
-
-    // Set the current function to the global function (for global variables)
-    CurrentFunction = GlobalFunction;
-
-    // TODO check for main function existing (in error handling)
-    llvm::Value *RetVal = IR.CreateCall(MainProd, {});
-    IR.CreateRet(RetVal);
 
     visit(Root);
 
@@ -314,7 +300,7 @@ llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
 
 llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
     llvm::BasicBlock *Header = llvm::BasicBlock::Create(GlobalCtx, "LoopHeader", CurrentFunction);
-    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody");
     llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(GlobalCtx, "LoopEnd", CurrentFunction);
 
     LoopBeginBlocks.push(Header);
@@ -326,9 +312,11 @@ llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
         IR.CreateBr(LoopBody);
 
     IR.SetInsertPoint(Header);
-    Value *Res = visit(Loop->getConditional());
+    auto Res = visit(Loop->getConditional());
     IR.CreateCondBr(Res, LoopBody, LoopEnd);
 
+
+    CurrentFunction->getBasicBlockList().push_back(LoopBody);
     IR.SetInsertPoint(LoopBody);
     visit(Loop->getBlock());
     IR.CreateBr(Header);
@@ -397,20 +385,22 @@ llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
 llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
 
     llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(GlobalCtx, "CondHeader", CurrentFunction);
-    llvm::BasicBlock *CondIf = llvm::BasicBlock::Create(GlobalCtx, "CondIf", CurrentFunction);
-    llvm::BasicBlock *CondEnd = llvm::BasicBlock::Create(GlobalCtx, "CondEnd", CurrentFunction);
+    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(GlobalCtx, "CondTrue");
+    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(GlobalCtx, "CondFalse");
 
+    IR.CreateBr(CondHeader);
     IR.SetInsertPoint(CondHeader);
     Value *Res = visit(Cond->getConditional());
-    IR.CreateCondBr(Res, CondIf, CondEnd);
-
-    CurrentFunction->getBasicBlockList().push_back(CondIf);
-    IR.SetInsertPoint(CondIf);
+    IR.CreateCondBr(Res, CondTrue, CondFalse);
+    // Generate code for the true block.
+    CurrentFunction->getBasicBlockList().push_back(CondTrue);
+    IR.SetInsertPoint(CondTrue);
     visit(Cond->getBlock());
-    IR.CreateBr(CondEnd);
 
-    CurrentFunction->getBasicBlockList().push_back(CondEnd);
-    IR.SetInsertPoint(CondEnd);
+    // Set insert point back to the original.
+    CurrentFunction->getBasicBlockList().push_back(CondFalse);
+    IR.CreateBr(CondFalse);
+    IR.SetInsertPoint(CondFalse);
 
     return nullptr;
 }
@@ -418,25 +408,26 @@ llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
 llvm::Value *CodeGenPass::visitConditionalElse(ConditionalElse *Cond) {
 
     llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(GlobalCtx, "CondHeader", CurrentFunction);
-    llvm::BasicBlock *CondIf = llvm::BasicBlock::Create(GlobalCtx, "CondIf", CurrentFunction);
-    llvm::BasicBlock *CondElse = llvm::BasicBlock::Create(GlobalCtx, "CondElse", CurrentFunction);
+    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(GlobalCtx, "CondTrue", CurrentFunction);
+    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(GlobalCtx, "CondFalse", CurrentFunction);
     llvm::BasicBlock *CondEnd = llvm::BasicBlock::Create(GlobalCtx, "CondEnd", CurrentFunction);
+
+    IR.CreateBr(CondHeader);
 
     IR.SetInsertPoint(CondHeader);
     Value *Res = visit(Cond->getConditional());
-    IR.CreateCondBr(Res, CondIf, CondElse);
+    IR.CreateCondBr(Res, CondTrue, CondFalse);
 
-    CurrentFunction->getBasicBlockList().push_back(CondIf);
-    IR.SetInsertPoint(CondIf);
+    // Generate code for the true branch
+    IR.SetInsertPoint(CondTrue);
     visit(Cond->getIfBlock());
     IR.CreateBr(CondEnd);
 
-    CurrentFunction->getBasicBlockList().push_back(CondElse);
-    IR.SetInsertPoint(CondElse);
+    // Generate code for the false branch.
+    IR.SetInsertPoint(CondFalse);
     visit(Cond->getElseBlock());
     IR.CreateBr(CondEnd);
 
-    CurrentFunction->getBasicBlockList().push_back(CondEnd);
     IR.SetInsertPoint(CondEnd);
 
     return nullptr;
@@ -599,8 +590,6 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
     llvm::BasicBlock *LoopEnd = LoopBeginBlocks.top();
 
     IR.CreateBr(LoopEnd);
-
-    CurrentFunction->getBasicBlockList().push_back(AfterContinue);
     IR.SetInsertPoint(AfterContinue);
     return nullptr;
 }
@@ -663,12 +652,6 @@ llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
     return llvm::cast<llvm::Type>(
             llvm::FunctionType::get(getLLVMType(ProcTy->getRetTy()), ParamTypes, false));
 
-}
-
-// TODO: Look into if this is needed.
-llvm::Function *CodeGenPass::getMainProcProto() {
-    llvm::FunctionType *FT = llvm::FunctionType::get(LLVMIntTy, {}, false);
-    return llvm::Function::Create(FT, llvm::Function::ExternalLinkage, "pd_main", &Mod);
 }
 
 llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
