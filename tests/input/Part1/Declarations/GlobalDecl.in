@@ -1,0 +1,18 @@
+const integer x = 12;
+const character y = 'a';
+const real z = 3.14;
+const boolean w = true;
+typedef integer int;
+const int int = 0;
+
+procedure main() returns integer {
+  // simply declares an const integer
+
+    x -> std_output;
+    y -> std_output;
+    z -> std_output;
+    w -> std_output;
+    int -> std_output;
+  /* must have a return */
+  return 0;
+}
