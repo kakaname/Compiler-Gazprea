@@ -496,7 +496,7 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
                 case Type::TypeKind::T_Bool:
                     return IR.CreateZExt(Val, LLVMIntTy);
                 case Type::TypeKind::T_Real:
-                    return IR.CreateFPTrunc(Val, LLVMIntTy);
+                    return IR.CreateFPToSI(Val, LLVMIntTy);
                 default:
                     assert(false && "Invalid cast");
             }
@@ -519,14 +519,14 @@ llvm::Value *CodeGenPass::visitTypeCast(TypeCast *Cast) {
     return getCastValue(
             visit(Cast->getExpr()),
             PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
-            Cast->getTargetType());
+            PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
 }
 
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
     return getCastValue(
             visit(Cast->getExpr()),
             PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
-            Cast->getTargetType());
+            PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
 }
 
 llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
