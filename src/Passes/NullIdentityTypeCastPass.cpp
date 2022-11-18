@@ -6,7 +6,7 @@
 #include "Passes/NullIdentityTypeCastPass.h"
 
 void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
-    auto Expr = Cast->getExpr();
+    visit(Cast->getExpr());
     auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr());
 
     // Don't care if the type we are casting isn't null or identity.
