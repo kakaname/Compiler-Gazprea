@@ -413,7 +413,7 @@ llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
 llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // All member expressions should be converted to a tuple access by an index
     // at this point
-    int MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
+    auto MemberIdx = dyn_cast<IntLiteral>(MemberAcc->getMemberExpr())->getVal();
     auto Expr = visit(MemberAcc->getExpr());
     return IR.CreateExtractValue(Expr, MemberIdx-1);
 }
