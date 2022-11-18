@@ -7,6 +7,8 @@ procedure main() returns integer {
     
     {
         integer x = 12;
+        integer y = null;
+        integer z = null + null + null + identity;
     }
     {
         var integer y = 15;

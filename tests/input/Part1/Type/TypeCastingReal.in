@@ -17,6 +17,7 @@ procedure main() returns integer {
   y = as<real>(z);
   y -> std_output;
 
+  y = as<real>(null + 1);
 
   /* must have a return */
   return 0;

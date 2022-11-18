@@ -11,7 +11,7 @@ loop while x < 3 {
         if y == 3 
             break;
     }
-    y = 0;
+    y = null;
     x = x+1;
 }
   

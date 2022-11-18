@@ -8,6 +8,9 @@ procedure main() returns integer {
     var float d = 4;
     const integer e = 5;
     var integer f = 6;
+    var int g = null;
+    var float h = null + identity + null + identity;
+
     a -> std_output;
     b -> std_output;
     c -> std_output;

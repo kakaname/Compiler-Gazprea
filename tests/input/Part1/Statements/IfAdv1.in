@@ -8,7 +8,7 @@ integer y = 1;
     else
         1->std_output;
     
-    if x == 0
+    if x == null
         1->std_output;
     else
         0->std_output;
