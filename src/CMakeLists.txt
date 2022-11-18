@@ -15,7 +15,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ASTPrinterPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ExprTypeAnnotatorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureReturnPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopCheckPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ContinueAndBreakCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/VisitorPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/CodeGenPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ScopeResolutionPass.cpp"
@@ -37,6 +37,7 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ChangeMemAccessToMemRef.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/BadStreamPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureDeclInBeginOfBlock.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureDefinitionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
 
 # Build our executable from the source files.

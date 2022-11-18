@@ -7,6 +7,7 @@
 
 
 #include "VisitorPass.h"
+#include "EnsureDefinitionPass.h"
 
 struct EnsureDeclInBeginOfBlock : public VisitorPass<EnsureDeclInBeginOfBlock, void> {
     void visitBlock(Block *Blk);

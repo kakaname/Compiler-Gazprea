@@ -80,7 +80,7 @@ typeQualifier : VAR
 
 type
      : tupleTypeDecl                                    #tupleType
-     | type LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
+     | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
      | INTEGER                                          #intType

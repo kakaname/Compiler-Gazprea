@@ -9,17 +9,17 @@
  */
 
 // For part 1, no AST nodes need to be modified.
-//void LoopCheckPass::visitInfiniteLoop(InfiniteLoop *Loop) {
+//void ContinueAndBreakCheckPass::visitInfiniteLoop(InfiniteLoop *Loop) {
 //}
 //
-//void LoopCheckPass::ConditionalLoop(ConditionalLoop *Loop) {
+//void ContinueAndBreakCheckPass::ConditionalLoop(ConditionalLoop *Loop) {
 //}
 
-#include "Passes/LoopCheckPass.h"
+#include "Passes/ContinueAndBreakCheckPass.h"
 #include "Common/TreeNode.h"
 
 
-void LoopCheckPass::visitBreak(Break *Break) {
+void ContinueAndBreakCheckPass::visitBreak(Break *Break) {
 
     // The break statement must have a loop as it its parent somewhere.
     TreeNode *Curr = Break->getParent();
@@ -33,7 +33,7 @@ void LoopCheckPass::visitBreak(Break *Break) {
     throw std::runtime_error("Break outside the loop");
 }
 
-void LoopCheckPass::visitContinue(Continue *Continue) {
+void ContinueAndBreakCheckPass::visitContinue(Continue *Continue) {
 
     // loop through parents to find a loop
     TreeNode *Curr = Continue->getParent();
