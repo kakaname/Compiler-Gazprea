@@ -40,7 +40,8 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureDefinitionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureValidGlobalInitPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ConvertFuncCallNodesToProcCallPass.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp" 
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopIfConditionalTypeCheckPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})

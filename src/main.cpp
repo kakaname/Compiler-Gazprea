@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
 
   // Open the file then parse and lex it.
   antlr4::ANTLRFileStream afs;
-  afs.loadFromFile("../test_gaz");
+  afs.loadFromFile(argv[1]);
   gazprea::GazpreaLexer lexer(&afs);
   antlr4::CommonTokenStream tokens(&lexer);
   gazprea::GazpreaParser parser(&tokens);
