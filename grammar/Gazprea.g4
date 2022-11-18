@@ -166,21 +166,24 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
     | (TRUE | FALSE)                        # boolLiteral
+    | RealLit                               # realLiteral
     | INTLITERAL                            # intLiteral
-    | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
     ;
 
-realLit : fullRealLiteral | sciRealLiteral ;
 
-sciRealLiteral : fullRealLiteral 'e' (ADD | SUB)? INTLITERAL;
-
-fullRealLiteral : INTLITERAL PERIOD INTLITERAL    # mainReal
-                | INTLITERAL PERIOD               # intReal
-                | PERIOD INTLITERAL               # dotReal
-                ;
 
 // --- LEXER RULES ---
+
+
+RealLit : INTLITERAL PERIOD INTLITERAL ExponentialLiteral?
+        | INTLITERAL PERIOD ExponentialLiteral?
+        | PERIOD INTLITERAL ExponentialLiteral?
+        | INTLITERAL ExponentialLiteral
+        ;
+
+fragment
+ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
 
 // Characters ++
 LPAREN : '(' ;
@@ -200,7 +203,6 @@ PUT : '->' ;
 GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
-E : 'e' ;
 
 // Ops
 ADD : '+' ;
