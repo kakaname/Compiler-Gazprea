@@ -1,0 +1,7 @@
+procedure main() returns integer {
+// simple declares a variable integer
+var  integer i; 
+
+  /* must have a return */
+  return 0;
+}

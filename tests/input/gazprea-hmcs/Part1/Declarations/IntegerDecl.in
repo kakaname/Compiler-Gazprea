@@ -1,0 +1,16 @@
+procedure main() returns integer {
+  // integer declarations for every possible
+var integer i;
+var integer i1 = 5;
+
+integer n0;
+integer n1 = null;
+integer n2 = identity;
+var n3 = 3;
+const n4 = 4;
+const integer n5 = null;
+const integer n6 = identity;
+
+  /* must have a return */
+  return 0;
+}

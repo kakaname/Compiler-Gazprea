@@ -1,0 +1,28 @@
+procedure increment(var integer x) {
+  x = x + 1;
+}
+
+procedure fibonacci(var integer a, var integer b) returns integer {
+  integer c = a + b;
+  a = b;
+  b = c;
+  return c;
+}
+
+procedure main() returns integer {
+  // very basic procedure tests
+  integer x = 1;
+  integer y = 5;
+  integer z = 6;
+  integer out = fibonacci(y,z);
+
+  call increment(x);
+  x->std_output;
+  out ->std_output; 
+  out = -fibonacci(y,z);
+  out ->std_output; 
+  
+
+  /* must have a return */
+  return 0;
+}

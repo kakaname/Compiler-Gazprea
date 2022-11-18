@@ -1,0 +1,16 @@
+procedure main() returns integer {
+    // test for printing for tuple variables
+    tuple(integer , character , real) t1;
+    tuple(integer x , character y, real z) t2;
+    t1 = (1, 'a', 1.0);
+    t2 = (1, 'a', 1.0);
+    t1.1 -> std_output;
+    t1.2 -> std_output;
+    t1.3 -> std_output;
+    t2.x -> std_output;
+    t2.y -> std_output;
+    t2.z -> std_output;
+    
+  /* must have a return */
+  return 0;
+}

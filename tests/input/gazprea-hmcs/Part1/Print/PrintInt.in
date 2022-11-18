@@ -1,0 +1,10 @@
+procedure main() returns integer {
+  //tests basic integer printing
+  2 -> std_output;
+
+  1234 -> std_output;
+  
+
+  /* must have a return */
+  return 0;
+}

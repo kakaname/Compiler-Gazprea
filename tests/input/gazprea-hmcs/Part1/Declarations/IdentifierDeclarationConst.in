@@ -1,0 +1,7 @@
+procedure main() returns integer {
+  // simply declares an const integer
+const integer i;
+
+  /* must have a return */
+  return 0;
+}

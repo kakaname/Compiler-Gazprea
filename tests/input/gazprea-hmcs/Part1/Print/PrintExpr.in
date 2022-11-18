@@ -1,0 +1,8 @@
+procedure main() returns integer {
+  // tests printing expressions
+  2*4*3 -> std_output;
+  
+
+  /* must have a return */
+  return 0;
+}

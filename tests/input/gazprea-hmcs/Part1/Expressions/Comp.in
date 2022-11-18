@@ -1,0 +1,93 @@
+procedure main() returns integer {
+
+    // Boolean
+    // EQ
+    true == true -> std_output;
+    false == false -> std_output;
+    true == false -> std_output;
+    false == true -> std_output;
+
+    // NEQ
+    true != false -> std_output;
+    false != true -> std_output;
+    true != true -> std_output;
+    false != false -> std_output;
+
+    // Integer
+
+    // EQ
+    1 == 1 -> std_output;
+    23 == 23 -> std_output;
+    10 == 9 -> std_output;
+    12 == 14 -> std_output;
+
+    // NEQ
+    1023 != 9 -> std_output;
+    12 != 45514 -> std_output;
+    0 != 0 -> std_output;
+    32143 != 32143 -> std_output;
+
+    // LT
+    1 < 5 -> std_output;
+    4321 < 54321 -> std_output;
+    10 < 9 -> std_output;
+    23 < 23 -> std_output;
+
+    // GT
+    100 > 9 -> std_output;
+    243 > 23 -> std_output;
+    5 > 5 -> std_output;
+    4321 > 54321 -> std_output;
+
+    // LTE
+    1 <= 5 -> std_output;
+    23 <= 23 -> std_output;
+    10 <= 9 -> std_output;
+    4321 <= 21 -> std_output;
+
+    // GTE
+    5 >= 5 -> std_output;
+    100 >= 9 -> std_output;
+    243 >= 4523 -> std_output;
+    4321 >= 54321 -> std_output;
+
+    // Real
+
+    // EQ
+    1.2 == 1.2 -> std_output;
+    23.99 == 23.99 -> std_output;
+    10.0 == 9.9 -> std_output;
+    12.1 == 14.26 -> std_output;
+
+    // NEQ
+    1023.24 != 9.5 -> std_output;
+    12.0 != 11.9 -> std_output;
+    0.0 != 0.0 -> std_output;
+    32143.12 != 32143.12 -> std_output;
+
+    // LT
+    1.4 < 5.0 -> std_output;
+    4321.1 < 54321.7 -> std_output;
+    10.0 < 9.9 -> std_output;
+    23 < 23 -> std_output;
+
+    // GT
+    100.0 > 9.6 -> std_output;
+    243.01 > 23.7 -> std_output;
+    5.9 > 5.9 -> std_output;
+    4321.43 > 54321.54 -> std_output;
+
+    // LTE
+    1.12 <= 5.12 -> std_output;
+    23 <= 23 -> std_output;
+    10.0 <= 9.9 -> std_output;
+    4321.1 <= 21.3 -> std_output;
+
+    // GTE
+    5.0 >= 5.0 -> std_output;
+    100.9 >= 9.100 -> std_output;
+    243.13 >= 4523.23 -> std_output;
+    4321.21 >= 54321.21 -> std_output;
+
+    return 0;
+}

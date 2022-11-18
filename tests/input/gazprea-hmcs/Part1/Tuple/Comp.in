@@ -1,0 +1,24 @@
+procedure main() returns integer {
+
+    var x = 5;
+    var y = 10;
+    tuple(integer, integer) my_tuple = (10, 1);
+    tuple(integer, real r) tuple_var = (5, 2.1);
+    var my_tuple_2 = (x, y);
+    var my_tuple_4 = (y, 1);
+    const my_tuple_3 = (x, 2.1);
+
+    my_tuple == my_tuple_2 -> std_output;
+    my_tuple == my_tuple_4 -> std_output;
+    my_tuple != my_tuple_4 -> std_output;
+    my_tuple != my_tuple_2 -> std_output;
+
+    tuple_var == my_tuple_3 -> std_output;
+
+    // literals
+    (10, 2, 3) == (9, 1.2, 2) -> std_output;
+    (10, 9.0, 4) == (10, 9, 4) -> std_output;
+
+    return 0;
+}
+

@@ -1,0 +1,27 @@
+procedure main() returns integer {
+
+  boolean x = true;
+  integer y = as<integer>(x);
+  character z = 'a';
+  real t = 32.134;
+
+  y -> std_output;
+
+  x = false;
+  y = as<integer>(x);
+  y -> std_output;
+
+  y = as<integer>(z);
+  y -> std_output;
+
+  z = null;
+  y = as<integer>(z);
+  y -> std_output;
+
+  y = as<integer>(t);
+  y -> std_output;
+
+
+  /* must have a return */
+  return 0;
+}

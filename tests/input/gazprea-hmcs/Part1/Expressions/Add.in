@@ -1,0 +1,23 @@
+procedure main() returns integer {
+
+  // Integer
+  var integer a = 1 + 1;
+  var integer b = 2 + a;
+  var integer c = a + b;
+
+  var real x = 1.1 + 1.1;
+  var real y = 2.2 + x;
+  var real z = x + y;
+  
+  a -> std_output;
+  b -> std_output;
+  c -> std_output;
+
+  // Real
+  x -> std_output;
+  y -> std_output;
+  z -> std_output;
+
+  /* must have a return */
+  return 0;
+}

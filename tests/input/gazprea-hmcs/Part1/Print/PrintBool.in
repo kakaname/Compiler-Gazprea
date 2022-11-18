@@ -1,0 +1,11 @@
+procedure main() returns integer {
+  // tests only boolean printing
+  var bool x = true;
+  x -> std_output;
+  x = false;
+  x -> std_output;
+  
+
+  /* must have a return */
+  return 0;
+}

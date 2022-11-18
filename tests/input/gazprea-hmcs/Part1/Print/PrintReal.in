@@ -1,0 +1,8 @@
+procedure main() returns integer {
+  // test for basic real printing
+  3.1415 -> std_output;
+  
+
+  /* must have a return */
+  return 0;
+}

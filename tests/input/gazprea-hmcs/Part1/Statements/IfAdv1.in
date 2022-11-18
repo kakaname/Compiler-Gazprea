@@ -1,0 +1,48 @@
+procedure main() returns integer {
+// tests for all possible versions of if statement
+integer x = 0;
+integer y = 1;
+
+    if x == 3
+        0-> std_output;
+    else
+        1->std_output;
+    
+    if x == 0
+        1->std_output;
+    else
+        0->std_output;
+
+    if x == 1
+        0 -> std_output;
+    else if x == 2
+        0 -> std_output;
+    else
+        1 -> std_output;
+
+    if x == 1
+        0 -> std_output;
+    else if x == 0
+        1 -> std_output;
+    else
+        0 -> std_output;
+
+    if x == 1
+        0 -> std_output;
+    else if (x == 0){
+        1 -> std_output;
+    }
+    else
+        0 -> std_output;
+
+    if x == 1
+        0 -> std_output;
+    else if (x != 0){
+        0 -> std_output;
+    }
+    else
+        1 -> std_output;
+
+  /* must have a return */
+  return 0;
+}

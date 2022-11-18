@@ -1,0 +1,26 @@
+typedef integer itype;
+typedef char ctype;
+typedef real rtype;
+typedef boolean btype;
+typedef tuple(itype, ctype ctype, btype) ttype;
+
+typedef rtype yo;
+
+procedure main() returns itype {
+    yo yo = 15;
+    const ctype b = 'l';
+    var btype c = identity;
+    ttype ttype;
+
+    yo = yo + 1.1;
+    yo -> std_output;
+
+    b -> std_output;
+
+    c -> std_output;
+
+    ttype.ctype = 't';
+    ttype.ctype -> std_output;
+
+
+}
