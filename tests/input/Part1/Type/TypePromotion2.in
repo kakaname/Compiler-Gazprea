@@ -5,7 +5,7 @@ procedure main() returns integer {
     t1 = (1, 'a', 1.0);
     t2 = (1, 'a', 1.0);
     integer y = 12;
-    real z = 12.0
+    real z = 12.0;
 
 
     t1.3 -> std_output;
