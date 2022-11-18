@@ -1,0 +1,13 @@
+procedure main() returns integer {
+
+    tuple(integer, integer) my_tuple = (1, 2);
+    tuple(integer a, real b) tuple_var = (2, 1);
+
+    my_tuple.1 == tuple_var.a -> std_output; // F
+    my_tuple.1 != tuple_var.a -> std_output; // T
+    my_tuple.1 <= tuple_var.a -> std_output; // T
+    my_tuple.1 >= tuple_var.a -> std_output; // F
+
+    return 0;
+}
+

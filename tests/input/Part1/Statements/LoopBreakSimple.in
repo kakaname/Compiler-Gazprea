@@ -1,0 +1,12 @@
+procedure main() returns integer {
+    // basic test for if else statement
+
+integer x = 0;
+integer y = 1;
+
+loop break;
+1234 -> std_output;
+
+  /* must have a return */
+  return 0;
+}
