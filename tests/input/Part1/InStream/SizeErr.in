@@ -1,0 +1,9 @@
+procedure main() returns integer {
+integer a=15;
+integer b=25;
+a <- std_input;
+b <- std_input;
+a->std_output;
+b->std_output;
+return 0;
+}
