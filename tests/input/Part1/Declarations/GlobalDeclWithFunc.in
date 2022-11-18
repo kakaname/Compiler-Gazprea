@@ -1,0 +1,13 @@
+const integer x = 12;
+const integer y = 12;
+
+function double(integer z) returns integer = z * 2;
+
+procedure main() returns integer {
+  // simply declares an const integer
+
+  x -> std_output;
+  double(y) -> std_output;
+  /* must have a return */
+  return 0;
+}

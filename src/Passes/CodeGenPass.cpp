@@ -109,14 +109,46 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 }
 
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
-    auto InitValue = visit(Decl->getInitExpr());
+
     auto DeclType = Decl->getIdentifier()->getIdentType();
+
+    if (isa<Program>(Decl->getParent())) {
+        // These are global variables, that are only declared here, but later defined in the main function.
+        auto GV = declareGlobal(Decl->getIdentifier()->getName(), DeclType);
+        SymbolMap[Decl->getIdentifier()->getReferred()] = GV;
+        GlobalDecls.push(Decl);
+        return nullptr;
+    }
+    auto InitValue = visit(Decl->getInitExpr());
     // Declarations always get the space for the entire value.
     auto Loc = createAlloca(PM->TypeReg.getConstTypeOf(DeclType));
     IR.CreateStore(InitValue, Loc);
     SymbolMap[Decl->getIdentifier()->getReferred()] = Loc;
     return nullptr;
 }
+
+llvm::Value *CodeGenPass::declareGlobal(string name, const Type *Ty) {
+    llvm::Type *LLTy = getLLVMType(PM->TypeReg.getConstTypeOf(Ty));
+    Mod.getOrInsertGlobal(name, LLTy);
+    llvm::GlobalVariable *GV = Mod.getNamedGlobal(name);
+    GV->setInitializer(llvm::Constant::getNullValue(LLTy));
+    return GV;
+}
+
+void CodeGenPass::assignGlobals() {
+    // This function should be run at the beginning of the main procedure, to assign the values
+    // of the global variables.
+
+    while (!GlobalDecls.empty()) {
+        auto Decl = GlobalDecls.front();
+        GlobalDecls.pop();
+        auto *Val = visit(Decl->getInitExpr());
+        auto *Loc = SymbolMap[Decl->getIdentifier()->getReferred()];
+        IR.CreateStore(Val, Loc);
+    }
+
+}
+
 
 llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
@@ -562,6 +594,10 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
         SymbolMap[Param->getReferred()] = Proc->getArg(I);
     }
     CurrentFunction = Proc;
+
+    if (ProcName == "main") {
+        assignGlobals();
+    }
 
     // Visit function body
     visit(Def->getBlock());
