@@ -8,7 +8,7 @@ loop {
   if x == 12 continue;  /* end */
 
     if x == 14 break;
-  x -> std_output; "\n" -> std_output;
+  x -> std_output; '\n' -> std_output;
 }
   
 
