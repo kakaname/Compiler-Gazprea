@@ -140,6 +140,10 @@ void consume_to_curr() {
     s.front = (s.curr - 1) % 1025;
 }
 
+void consume_to_curr_one() {
+    s.front = s.curr;
+}
+
 void consume_single() {
     // increment front of buffer
     s.front = (s.front + 1) % 1025;
@@ -179,90 +183,77 @@ char peek_char() {
 
 }
 
-void rt_scan_char(char *c) {
+char rt_scan_char() {
     // TODO fix one missing after final
     char temp = consume_char();
     s.stream_state = 0;
-    *c = temp;
+    return temp;
 }
 
-void rt_scan_bool(int *b) {
+char rt_scan_bool() {
     char c = peek_char();
     if (c == 'T') {
-        consume_to_curr();
+        consume_to_curr_one();
         s.stream_state = 0;
-        *b = 1;
+        return 1;
     } else if (c == 'F') {
-        consume_to_curr();
+        consume_to_curr_one();
         s.stream_state = 0;
-        *b = 0;
+        return 0;
     } else if (c == EOF) {
         consume_single();
         s.stream_state = 1;
-        *b = 0;
+        return 0;
     } else {
         consume_single();
         s.stream_state = 2;
-        *b = 0;
+        return 0;
     }
 }
 
 
-void scan_real_err(float *f, char val) {
+float scan_real_err(char val) {
     s.stream_state = val;
-    *f = 0.0f;
-}
-void scan_int_err(int *i, char val) {
-    s.stream_state = val;
-    *i = 0;
+    return 0.0f;
 }
 
-void rt_scan_int(int *i) {
+int scan_int_err(char val) {
+    s.stream_state = val;
+    return 0;
+}
+
+int rt_scan_int() {
 
     char *token = peek_token(2);
-    if (token == NULL) return scan_int_err(i, 2);
+    if (token == NULL) return scan_int_err(2);
 
-    // check that there are only numbers and sign in the token
-    size_t str_len = strlen(token);
-    int j = 0;
-    if (token[0] == '-' || token[0] == '+') j = 1;
-
-    if (str_len == j) return scan_int_err(i, 1);
-    for (; j < strlen(token); j++)
-        if (token[j] < '0' || token[j] > '9') return scan_int_err(i, 1);
-
-    int num = atoi(token);
+    // convert the token to an int
+    char *end;
+    int num = strtol(token, &end, 10);
+    if (end == token) return scan_int_err(1);
+    if (!is_ws(*end) && *end != '\0') return scan_int_err(1);
     s.stream_state = 0;
-    *i = num;
 
     free(token);
     consume_to_curr();
+
+    return num;
 }
 
-void rt_scan_real(float *d) {
-    int seen_dot = 0;
+float rt_scan_real() {
     char *token = peek_token(2);
-    if (token == NULL) return scan_real_err(d, 2);
+    if (token == NULL) return scan_real_err(2);
 
-    // check that there are only numbers and sign in the token
-    size_t str_len = strlen(token);
-    int j = 0;
-    if (token[0] == '-' || token[0] == '+') j = 1;
+    char *end;
+    float num = strtof(token, &end);
+    if (end == token) return scan_real_err(1);
+    if (!is_ws(*end) && *end != '\0') return scan_real_err(1);
 
-    if (str_len == j) return scan_real_err(d, 1);
-    for (; j < strlen(token); j++) {
-        if (token[j] == '.') {
-            if (seen_dot) return scan_real_err(d, 1);
-            seen_dot = 1;
-        } else if (token[j] < '0' || token[j] > '9') return scan_real_err(d, 1);
-    }
-
-    float num = atof(token);
     s.stream_state = 0;
-    *d = num;
 
     free(token);
     consume_to_curr();
+    return num;
 }
 
 
@@ -271,14 +262,34 @@ void rt_scan_real(float *d) {
 int main() {
 
 
-//    int i;
-//    float d;
-//    char c = 0;
-//    int b;
+    int i;
+    float d;
+    char c = 0;
+    char b;
+    char sample;
 //
 //    while (1) {
-//        rt_scan_real(&d);
-//        printf("real: %g, state: %d\n", d, s.stream_state);
+    i = rt_scan_int();
+    printf("i: %d, state: %d\n", i, s.stream_state);
+    sample = rt_scan_char();
+    printf("c: %c, state: %d\n", sample, s.stream_state);
+
+    c = rt_scan_char();
+    printf("c: %c, state: %d\n", c, s.stream_state);
+    sample = rt_scan_char();
+    printf("c: %c, state: %d\n", sample, s.stream_state);
+
+    b = rt_scan_bool();
+    printf("b: %d, state: %d\n", b, s.stream_state);
+    sample = rt_scan_char();
+    printf("c: %c, state: %d\n", sample, s.stream_state);
+
+    d = rt_scan_real();
+    printf("val: %g, state: %d\n", d, s.stream_state);
+    rt_print_int(i);
+    rt_print_char(c);
+    rt_print_bool(b);
+    rt_print_real(d);
 //
 //        if (s.stream_state != 0) break;
 //    }

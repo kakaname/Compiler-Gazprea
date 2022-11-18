@@ -23,13 +23,13 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PrintBool = Mod.getOrInsertFunction("rt_print_bool",
                                         llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
     ScanInt = Mod.getOrInsertFunction("rt_scan_int",
-                                      llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt32PtrTy(GlobalCtx)}, false));
+                                      llvm::FunctionType::get(LLVMIntTy, {}, false));
     ScanReal = Mod.getOrInsertFunction("rt_scan_real",
-                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getFloatPtrTy(GlobalCtx)}, false));
+                                       llvm::FunctionType::get(LLVMRealTy, {}, false));
     ScanChar = Mod.getOrInsertFunction("rt_scan_char",
-                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt8PtrTy(GlobalCtx)}, false));
+                                       llvm::FunctionType::get(LLVMCharTy, {}, false));
     ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
-                                       llvm::FunctionType::get(LLVMVoidTy, {llvm::Type::getInt1PtrTy(GlobalCtx)}, false));
+                                       llvm::FunctionType::get(LLVMBoolTy, {}, false));
 
     visit(Root);
 
@@ -616,23 +616,25 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
     assert(IdentTy->isInputTy() && "Invalid input stream type");
     Value *StoreLoc = visit(InStream->getTarget());
+    Value *ReadVal;
 
     switch (IdentTy->getKind()) {
         case Type::TypeKind::T_Char:
-            IR.CreateCall(ScanChar, {StoreLoc});
+            ReadVal = IR.CreateCall(ScanChar);
             break;
         case Type::TypeKind::T_Int:
-            IR.CreateCall(ScanInt, {StoreLoc});
+            ReadVal = IR.CreateCall(ScanInt);
             break;
         case Type::TypeKind::T_Bool:
-            IR.CreateCall(ScanBool, {StoreLoc});
+            ReadVal = IR.CreateCall(ScanBool);
             break;
         case Type::TypeKind::T_Real:
-            IR.CreateCall(ScanReal, {StoreLoc});
+            ReadVal = IR.CreateCall(ScanReal);
             break;
         default:
             assert(false && "Invalid type for in-stream");
     }
+    IR.CreateStore(ReadVal, StoreLoc);
     return nullptr;
 
 }
