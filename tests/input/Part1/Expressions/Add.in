@@ -4,11 +4,20 @@ procedure main() returns integer {
   var integer a = 1 + 1;
   var integer b = 2 + a;
   var integer c = a + b;
+  var integer d = null + 1;
+  var integer e = identity + 1;
+  var integer f = null + null + identity + identity;
+  var integer g = 2 + identity;
 
+  var real l = 2;
   var real x = 1.1 + 1.1;
   var real y = 2.2 + x;
   var real z = x + y;
-  
+  var real h = null + 1.0;
+  var real i = identity + 1.0;
+  var real j = null + null;
+  var real k = 2.0 + identity;
+
   a -> std_output;
   b -> std_output;
   c -> std_output;
@@ -17,6 +26,8 @@ procedure main() returns integer {
   x -> std_output;
   y -> std_output;
   z -> std_output;
+
+
 
   /* must have a return */
   return 0;

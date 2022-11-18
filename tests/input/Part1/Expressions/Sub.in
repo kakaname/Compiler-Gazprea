@@ -4,11 +4,19 @@ procedure main() returns integer {
   var integer a = 4 - 1;
   var integer b = 6 - a;
   var integer c = b - a;
+  var integer d = null - 1;
+  var integer e = identity - 1;
+  var integer f = null - null;
+  var integer g = 2 - identity;
 
   var real x = 4.4 - 1.1;
   var real y = 6.6 - x;
   var real z = y - x;
-  
+  var real h = null - 1.0;
+  var real i = identity - 1.0;
+  var real j = null - null - null - null - identity;
+  var real k = 2.0 - identity;
+
   a -> std_output;
   b -> std_output;
   c -> std_output;

@@ -1,5 +1,7 @@
 const integer x = 12;
 const integer y = 12;
+const integer z = null + identity;
+const integer a = null + identity + null + identity;
 
 function double(integer z) returns integer = z * 2;
 
@@ -8,6 +10,8 @@ procedure main() returns integer {
 
   x -> std_output;
   double(y) -> std_output;
+  z -> std_output;
+  a -> std_output;
   /* must have a return */
   return 0;
 }
