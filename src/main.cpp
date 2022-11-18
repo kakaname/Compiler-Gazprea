@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(LoopCheckPass());
     Manager.registerPass(BadStreamPass());
+    Manager.registerPass(CheckCopyPass());
 //    Manager.registerPass(GlobalDeclPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
