@@ -40,6 +40,8 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureDefinitionPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/EnsureValidGlobalInitPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ConvertFuncCallNodesToProcCallPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp" 
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopIfConditionalTypeCheckPass.cpp")
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LValueReferenceCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
 
