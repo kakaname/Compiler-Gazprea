@@ -22,14 +22,14 @@
 #include "Passes/ReturnValuePromotionPass.h"
 #include "Passes/CodeGenPass.h"
 #include "Passes/BadStreamPass.h"
-//#include "Passes/GlobalDeclPass.h"
 #include "Passes/SimplifyTupleCasting.h"
 #include "Passes/NullIdentityTypeCastPass.h"
 #include "Passes/ExplicitCastCheckPass.h"
-#include "Passes/LoopCheckPass.h"
+#include "Passes/ContinueAndBreakCheckPass.h"
 #include "Passes/ProcedureCallAliasCheckPass.h"
 #include "Passes/TupleNotEqualTransformationPass.h"
 #include "Passes/ChangeMemAccessToMemRef.h"
+#include "Passes/EnsureDefinitionPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -101,9 +101,9 @@ int main(int argc, char **argv) {
 
     //
     Manager.registerPass(ExplicitCastCheckPass());
-    Manager.registerPass(LoopCheckPass());
+    Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
-    Manager.registerPass(CheckCopyPass());
+    Manager.registerPass(EnsureDefinitionPass());
 //    Manager.registerPass(GlobalDeclPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());

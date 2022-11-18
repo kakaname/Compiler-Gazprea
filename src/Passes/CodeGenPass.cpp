@@ -65,12 +65,12 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     OS << Mod;
 }
 
-llvm::Type *CodeGenPass::getLLVMType(const Type *Ty, bool constPtrCheck) {
+llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
     if (!Ty)
         return IR.getVoidTy();
 
     auto ConstConv = [&](llvm::Type *LLVMTy, bool IsConst) {
-        if (IsConst || !constPtrCheck)
+        if (IsConst)
             return LLVMTy;
         return cast<llvm::Type>(LLVMTy->getPointerTo());
     };
@@ -107,7 +107,7 @@ llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
     llvm::IRBuilder<> Builder(GlobalCtx);
     llvm::BasicBlock *BB = &CurrentFunction->front();
     Builder.SetInsertPoint(BB);
-    return Builder.CreateAlloca(getLLVMType(Ty, false));
+    return Builder.CreateAlloca(getLLVMType(Ty));
 }
 
 llvm::Value *CodeGenPass::createStructAlloca(llvm::StructType *Ty) {
@@ -133,7 +133,8 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     auto InitValue = visit(Decl->getInitExpr());
     auto DeclType = Decl->getIdentifier()->getIdentType();
-    auto Loc = createAlloca(DeclType);
+    // Declarations always get the space for the entire value.
+    auto Loc = createAlloca(PM->TypeReg.getConstTypeOf(DeclType));
     IR.CreateStore(InitValue, Loc);
     SymbolMap[Decl->getIdentifier()->getReferred()] = Loc;
     return nullptr;
@@ -722,4 +723,16 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty, const string &N
     return llvm::Function::Create(LLVMFuncTy, llvm::Function::ExternalLinkage,
                                   Name, Mod);
 
+}
+
+llvm::Value *CodeGenPass::visitFunctionDecl(FunctionDecl *Decl) {
+    auto FuncName = Decl->getIdentifier()->getName();
+    auto FuncTy = Decl->getIdentifier()->getIdentType();
+    return getOrInsertFunction(FuncTy, FuncName);
+}
+
+llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
+    auto ProcName = Decl->getIdentifier()->getName();
+    auto ProcTy = Decl->getIdentifier()->getIdentType();
+    return getOrInsertFunction(ProcTy, ProcName);
 }

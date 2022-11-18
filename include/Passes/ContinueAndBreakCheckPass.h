@@ -7,7 +7,7 @@
 #include "VisitorPass.h"
 #include "PassManager.h"
 
-struct LoopCheckPass : VisitorPass<LoopCheckPass, void> {
+struct ContinueAndBreakCheckPass : VisitorPass<ContinueAndBreakCheckPass, void> {
     using AnnotationT = TreeNode*;
 
     static void visitBreak(Break *Break);

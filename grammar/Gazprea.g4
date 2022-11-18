@@ -79,7 +79,7 @@ typeQualifier : VAR
 
 type
      : tupleTypeDecl                                    #tupleType
-     | type LSQRPAREN expressionOrWildcard RSQRPAREN      #vectorType
+     | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
      | INTEGER                                          #intType
@@ -166,20 +166,17 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | IDENTITY                              # identityLiteral
     | (TRUE | FALSE)                        # boolLiteral
     | INTLITERAL                            # intLiteral
-    | RealLit                               # realLiteral
+    | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
     ;
 
-
-MemberAccess: ID PERIOD (ID | INTLITERAL);
-
-RealLit : INTLITERAL PERIOD INTLITERAL ExponentialLiteral?
+realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral?
         | INTLITERAL PERIOD ExponentialLiteral?
-        | PERIOD INTLITERAL ExponentialLiteral?
         | INTLITERAL ExponentialLiteral
         ;
 
-fragment
+// --- LEXER RULES ---
+
 ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
 
 // --- LEXER RULES ---
