@@ -3,6 +3,7 @@
 //
 
 #include "Passes/TupleCompToMemberCompPass.h"
+#include "Passes/SubExpressionCacheSet.h"
 #include <vector>
 
 void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
@@ -67,6 +68,9 @@ MemberAccess *TupleCompToMemberCompPass::buildMemberAccess(
     Access->copyCtx(BaseExpr);
     Access->setExpr(BaseExpr);
     Access->setMemberExpr(IntLit);
+
+    auto &Cache = PM->getResource<SubExpressionCacheSet>();
+    Cache.addCachedNode(BaseExpr);
 
     return Access;
 }
