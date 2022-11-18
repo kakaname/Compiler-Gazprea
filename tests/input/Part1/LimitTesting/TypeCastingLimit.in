@@ -12,6 +12,7 @@ procedure main() returns integer {
 
   loop while (counter < 7){
     z = z / 10;
+    counter = counter + 1;
   }
 
     z -> std_output;
