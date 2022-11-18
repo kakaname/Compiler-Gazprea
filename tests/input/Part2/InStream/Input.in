@@ -1,3 +1,0 @@
-var integer v;
-v <- std_input;
-v -> std_output;

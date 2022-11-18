@@ -1,4 +1,0 @@
-var boolean bool = true;
-bool -> std_output;
-bool = false;
-bool -> std_output;

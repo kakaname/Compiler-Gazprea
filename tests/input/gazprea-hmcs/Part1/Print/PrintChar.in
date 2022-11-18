@@ -1,9 +1,0 @@
-procedure main() returns integer {
-  // tests only character printing
-  var character x = 'a';
-  x -> std_output;
-  'b' -> std_output; 
-
-  /* must have a return */
-  return 0;
-}

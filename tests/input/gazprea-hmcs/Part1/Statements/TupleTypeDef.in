@@ -1,9 +1,0 @@
-typedef tuple(itype, ctype ctype, btype) ttype;
-
-procedure main() returns integer {
-    ttype ttype;
-    ttype.ctype = 't';
-    ttype.ctype -> std_output;
-
-    return 0;
-}
