@@ -1,24 +1,16 @@
 procedure main() returns integer {
+  // integer declarations for every possible
 var integer i;
-var integer i = 5;
-
-
+var integer i1 = 5;
 
 integer n0;
-n0 -> std_output;
-
 integer n1 = null;
-n1 -> std_output;
-
 integer n2 = identity;
-n2 -> std_output;
-
 var n3 = 3;
-n3 -> std_output;
-
 const n4 = 4;
-n4 ->std_output;
+const integer n5 = null;
+const integer n6 = identity;
 
-
-return 0;
+  /* must have a return */
+  return 0;
 }

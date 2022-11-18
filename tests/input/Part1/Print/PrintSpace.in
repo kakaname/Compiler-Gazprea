@@ -1,6 +1,8 @@
 procedure main() returns integer {
+  // test for space printing
+  ' ' -> std_output;
+  
 
-' ' -> std_output;
-
-return 0;
+  /* must have a return */
+  return 0;
 }

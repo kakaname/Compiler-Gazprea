@@ -1,0 +1,6 @@
+procedure main() returns integer {
+ integer[*] v = 1; // no error
+ 1 -> std_output;
+  /* must have a return */
+  return 0;
+}

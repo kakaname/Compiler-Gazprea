@@ -1,6 +1,19 @@
 procedure main() returns integer {
-var boolean bool;
-var boolean bool1 = true;
+  // simply declares a boolean
+var boolean bool1;
 
-return 0;
+var boolean bool3 = true;
+const boolean bool4 = false;
+
+var boolean bool5 = null;
+var boolean bool6 = identity;
+
+const boolean bool7 = null;
+const boolean bool8 = identity;
+
+
+
+
+  /* must have a return */
+  return 0;
 }

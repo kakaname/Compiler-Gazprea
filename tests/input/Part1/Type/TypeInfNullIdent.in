@@ -1,7 +1,7 @@
 procedure main() returns integer {
     var x = identity + 2 + identity;
     var y = null + 3.0 + null;
-    var z = null + 3.2 + identity;
+    var z = null + 3.2 + ident;
     x -> std_output;
     y -> std_output;
     z -> std_output;

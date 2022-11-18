@@ -1,0 +1,20 @@
+function times_two(integer x) returns integer = 2 * x;
+
+function times_four(integer x) returns integer{
+  return 2 * times_two(x);
+}
+
+function times_eight(integer x) returns integer = 2 * times_four(x);
+procedure main() returns integer {
+  // Base test with testing for calling test from another test within and outside block;
+  integer x = 2;
+  integer out =   times_two(x);
+  out -> std_output;
+  out =   times_four(x);
+  out -> std_output;
+  out =   times_eight(x);
+  out -> std_output;
+
+  /* must have a return */
+  return 0;
+}

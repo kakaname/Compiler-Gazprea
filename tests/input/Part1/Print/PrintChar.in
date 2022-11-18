@@ -1,6 +1,9 @@
 procedure main() returns integer {
+  // tests only character printing
+  var character x = 'a';
+  x -> std_output;
+  'b' -> std_output; 
 
-'a' -> std_output;
-
-return 0;
+  /* must have a return */
+  return 0;
 }

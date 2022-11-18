@@ -1,0 +1,11 @@
+
+procedure main() returns integer {
+
+    tuple(integer, integer) int_tup = (1, 2);
+    tuple(real, real) real_tup = int_tup;
+    real_tup.1 -> std_output;
+    real_tup.2 -> std_output;
+
+  /* must have a return */
+  return 0;
+}

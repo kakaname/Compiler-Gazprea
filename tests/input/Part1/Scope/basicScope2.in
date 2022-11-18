@@ -1,0 +1,27 @@
+procedure main() returns integer { 
+    // basic scope testing for inside variables
+    var integer w = 1;
+    var integer x = 1;
+    var integer y = 2;
+    var integer z = 3;
+    
+    {
+        integer x = 12;
+        x->std_output;
+    }
+    {
+        var integer y = 15;
+        y->std_output;
+    }
+    {
+        const integer z = 14;
+        z -> std_output;
+    }
+    {
+        w -> std_output;
+    }
+    
+
+  /* must have a return */
+  return 0;
+}

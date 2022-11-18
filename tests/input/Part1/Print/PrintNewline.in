@@ -1,6 +1,8 @@
 procedure main() returns integer {
+  // test for printing newline
+  '\n' -> std_output;
+  
 
-'\n' -> std_output;
-
-return 0;
+  /* must have a return */
+  return 0;
 }

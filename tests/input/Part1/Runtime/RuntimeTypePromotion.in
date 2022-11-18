@@ -3,7 +3,7 @@ procedure main() returns integer {
   
     var real y;
     y <- std_input;
-    y -> std_output;
+    y -> std_output
 
   /* must have a return */
   return 0;

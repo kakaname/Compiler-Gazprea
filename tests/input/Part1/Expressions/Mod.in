@@ -2,22 +2,24 @@ procedure main() returns integer {
 
   // Integer
   var integer a = 10 % 2;
-  a -> std_output;
   var integer d = 4;
   var integer b = 11 % d;
-  b -> std_output;
   var integer e = 5;
   var integer c = e % b;
+  
+  var real f = 11.0 % 2.2;
+  var real j = 4.4;
+  var real h = 12.1 % j;
+  var real k = 5.0;
+  var real i = k % h;
+
+  a -> std_output;
+  b -> std_output;
   c -> std_output;
 
   // Real
-  var real f = 11.0 % 2.2;
   f -> std_output;
-  var real j = 4.4;
-  var real h = 12.1 % j;
   h -> std_output;
-  var real k = 5.0;
-  var real i = k % h;
   i -> std_output;
 
   /* must have a return */

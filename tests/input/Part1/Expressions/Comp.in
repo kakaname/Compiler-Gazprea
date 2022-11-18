@@ -88,4 +88,6 @@ procedure main() returns integer {
     100.9 >= 9.100 -> std_output;
     243.123 >= 4523.123 -> std_output;
     4321.54321 >= 54321.54321 -> std_output;
+
+    return 0;
 }

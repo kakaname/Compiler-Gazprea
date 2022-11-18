@@ -1,7 +1,8 @@
 procedure main() returns integer {
+  // test for basic real printing
+  3.1415 -> std_output;
+  
 
-var real v = 3.1415;
-v -> std_output;
-
-return 0;
+  /* must have a return */
+  return 0;
 }
