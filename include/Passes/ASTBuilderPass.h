@@ -177,16 +177,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) override;
 
-    std::any visitRealLit(GazpreaParser::RealLitContext *ctx) override;
-
-    std::any visitSciRealLiteral(GazpreaParser::SciRealLiteralContext *ctx) override;
-
-    std::any visitMainReal(GazpreaParser::MainRealContext *ctx) override;
-
-    std::any visitIntReal(GazpreaParser::IntRealContext *ctx) override;
-
-    std::any visitDotReal(GazpreaParser::DotRealContext *ctx) override;
-
     std::any visitIdentLValue(GazpreaParser::IdentLValueContext *ctx) override;
 
     std::any visitIndexLValue(GazpreaParser::IndexLValueContext *ctx) override;

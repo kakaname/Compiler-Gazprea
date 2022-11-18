@@ -655,7 +655,11 @@ std::any ASTBuilderPass::visitBracketExpr(GazpreaParser::BracketExprContext *ctx
 }
 
 std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) {
-    return castToNodeVisit(ctx->realLit());
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+    RealLit->setVal(ctx->RealLit()->getText());
+
+    return cast<ASTNodeT>(RealLit);
 }
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {
@@ -831,44 +835,6 @@ std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
     return cast<ASTNodeT>(AndExpr);
 }
 
-std::any ASTBuilderPass::visitSciRealLiteral(GazpreaParser::SciRealLiteralContext *ctx) {
-    auto RealLit = PM->Builder.build<RealLiteral>();
-    RealLit->setCtx(ctx);
-    auto *FullRealLit = cast<RealLiteral>(castToNodeVisit(ctx->fullRealLiteral()));
-
-    string RealString = std::to_string(FullRealLit->getVal()) + "e" + ctx->INTLITERAL()->getText();
-    RealLit->setVal(RealString);
-
-    return cast<ASTNodeT>(RealLit);
-}
-
-std::any ASTBuilderPass::visitMainReal(GazpreaParser::MainRealContext *ctx) {
-    auto RealLit = PM->Builder.build<RealLiteral>();
-    RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL(0)->getText() + "." + ctx->INTLITERAL(1)->getText();
-    RealLit->setVal(RealString);
-
-    return cast<ASTNodeT>(RealLit);
-}
-
-std::any ASTBuilderPass::visitIntReal(GazpreaParser::IntRealContext *ctx) {
-    auto RealLit = PM->Builder.build<RealLiteral>();
-    RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText() + ".";
-    RealLit->setVal(RealString);
-
-    return cast<ASTNodeT>(RealLit);
-}
-
-std::any ASTBuilderPass::visitDotReal(GazpreaParser::DotRealContext *ctx) {
-    auto RealLit = PM->Builder.build<RealLiteral>();
-    RealLit->setCtx(ctx);
-    string RealString = "." + ctx->INTLITERAL()->getText();
-    RealLit->setVal(RealString);
-
-    return cast<ASTNodeT>(RealLit);
-}
-
 std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
     vector<const Type*> MemberTypes;
     map<string, int> Mappings;
@@ -892,10 +858,6 @@ std::any ASTBuilderPass::visitContinueStmt(GazpreaParser::ContinueStmtContext *c
     auto ContinueStmt = PM->Builder.build<Continue>();
     ContinueStmt->setCtx(ctx);
     return cast<ASTNodeT>(ContinueStmt);
-}
-
-std::any ASTBuilderPass::visitRealLit(GazpreaParser::RealLitContext *ctx) {
-    return castToNodeVisit(ctx->children.at(0));
 }
 
 std::any ASTBuilderPass::visitStmt(GazpreaParser::StmtContext *ctx) {
