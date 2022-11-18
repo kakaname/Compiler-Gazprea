@@ -19,6 +19,9 @@ procedure main() returns integer {
     b -> std_output;
     c -> std_output;
     d -> std_output;
+
+    c = null + identity;
+    c = null + null + null + identity;
     
     return 0;
 }

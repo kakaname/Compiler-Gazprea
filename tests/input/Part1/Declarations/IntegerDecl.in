@@ -10,6 +10,8 @@ var n3 = 3;
 const n4 = 4;
 const integer n5 = null;
 const integer n6 = identity;
+const integer n7 = null + null;
+const integer n8 = identity + identity;
 
   /* must have a return */
   return 0;

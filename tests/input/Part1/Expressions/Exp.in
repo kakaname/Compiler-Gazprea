@@ -4,6 +4,11 @@ procedure main() returns integer {
   var integer a = 2 ^ 2;
   var integer b = a ^ 3;
   var integer c = b ^ a;
+
+  var integer d = identity ^ 10;
+  var integer e = 1024 ^ identity;
+  var integer f = null ^ 20;
+  var integer h = identity ^ identity;
   
   var real x = 0.5 ^ 2.0;
   var real y = 256.0 ^ x;

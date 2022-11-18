@@ -1,6 +1,9 @@
 procedure main() returns integer {
   // simply declares an const integer
 const integer i;
+const integer j = null;
+const integer k = null + identity;
+const integer l = identity;
 
   /* must have a return */
   return 0;

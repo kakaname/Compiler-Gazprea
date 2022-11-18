@@ -23,5 +23,6 @@ procedure main() returns integer {
     true and false -> std_output;
     false and true -> std_output;
 
+
     return 0;
 }

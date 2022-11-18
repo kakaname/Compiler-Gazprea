@@ -2,10 +2,10 @@ procedure main() returns integer {
 /* Prints every number between 1 and 10 */
 integer x = 0;
 
- if(x == 0){
+ if(x == null){
     x <- std_input;
     1 -> std_output;
- }else if(x == 1){
+ }else if(x == identity){
     0 -> std_output;
 
  }
