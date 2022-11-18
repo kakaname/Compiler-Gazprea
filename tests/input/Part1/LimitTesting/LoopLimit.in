@@ -3,9 +3,10 @@ procedure main() returns integer {
   // block statements
   integer x = -2147483648;
 
-  loop while (x<2147483640){
+  loop while (x < 2147483640){
     x = x + 9;
   }
+
   /* must have a return */
   return 0;
 }
