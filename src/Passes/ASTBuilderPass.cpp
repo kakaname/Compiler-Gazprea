@@ -213,7 +213,7 @@ std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
     auto BaseType = castToTypeVisit(ctx->type());
     auto NewType = PM->SymTable.defineTypeSymbol(ctx->ID()->getText(), BaseType);
-    GlobalScope.declareInScope(ctx->ID()->getText(), NewType);
+    GlobalScope.declareType(ctx->ID()->getText(), NewType);
     auto Value = PM->Builder.build<NoOp>();
     Value->setCtx(ctx);
     return cast<ASTNodeT>(Value);
@@ -255,7 +255,7 @@ std::any ASTBuilderPass::visitReturn(GazpreaParser::ReturnContext *ctx) {
 
 std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
-    auto ResolvedSym = GlobalScope.resolve(ctx->ID()->getText());
+    auto ResolvedSym = GlobalScope.resolveType(ctx->ID()->getText());
     auto text = ctx->ID()->getText();
     if (!ResolvedSym)
         throw std::runtime_error(text + " type not found.");
