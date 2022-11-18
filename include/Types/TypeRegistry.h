@@ -194,8 +194,11 @@ public:
     }
 
     const Type *getVarTypeOf(const Type *Ty) {
-        if (isa<NullTy>(Ty) || isa<IdentityTy>(Ty))
-            assert(false && "Asking for var identity or null");
+        if (isa<NullTy>(Ty))
+            return getNullTy();
+
+        if (isa<IdentityTy>(Ty))
+            return getIdentityTy();
 
         if (isa<IntegerTy>(Ty))
             return getIntegerTy(false);

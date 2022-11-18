@@ -4,6 +4,7 @@
 
 
 #include "Passes/SimplifyTupleCasting.h"
+#include "Passes/SubExpressionCacheSet.h"
 
 void SimplifyTupleCasting::visitTypeCast(TypeCast *Cast) {
     visit(Cast->getExpr());
@@ -30,6 +31,8 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
         return;
 
     auto Literal = PM->Builder.build<TupleLiteral>();
+    PM->getResource<SubExpressionCacheSet>().addCachedNode(Literal);
+
     Literal->copyCtx(Cast);
     for (int I = 0; I < TargetTy->getNumOfMembers(); I++) {
         auto MemCastTarget = TargetTy->getMemberTypeAt(I);

@@ -33,6 +33,7 @@
 #include "Passes/EnsureValidGlobalInitPass.h"
 #include "Passes/LValueReferenceCheckPass.h"
 #include "Passes/ConvertFuncCallNodesToProcCallPass.h"
+#include "Passes/SubExpressionCacheSet.h"
 
 #include <iostream>
 #include <fstream>
@@ -96,6 +97,9 @@ int main(int argc, char **argv) {
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
 
+    // Set the resource for the cache set.
+    Manager.setResource<SubExpressionCacheSet>(
+            SubExpressionCacheSet());
 
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
@@ -128,6 +132,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 //
