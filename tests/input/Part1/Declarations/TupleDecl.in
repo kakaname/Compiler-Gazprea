@@ -8,7 +8,6 @@ tuple(integer b, real a) t5 = (0,1.0);
 tuple(real b, real a) t6 = t5;
 t1 = (null, null);
 t2 = (identity, identity);
-t3 = (null + identity, identity + null);
 
   /* must have a return */
   return 0;
