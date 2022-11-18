@@ -5,6 +5,10 @@
 #include <fstream>
 #include "Passes/CodeGenPass.h"
 
+#include "llvm/CodeGen/UnreachableBlockElim.h"
+
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
+
 using llvm::Value;
 
 void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
@@ -496,8 +500,9 @@ llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
     auto Func = getOrInsertFunction(FuncTy, FuncName);
 
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Func);
-    IR.SetInsertPoint(BB);
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "FuncEntry", Func);
+    llvm::BasicBlock *Body = llvm::BasicBlock::Create(GlobalCtx, "FuncBody", Func);
+    IR.SetInsertPoint(Body);
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
@@ -507,10 +512,14 @@ llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
     }
     CurrentFunction = Func;
 
+
     // Visit function body
     visit(Def->getBlock());
 
-    CurrentFunction = GlobalFunction;
+    IR.CreateUnreachable();
+
+    IR.SetInsertPoint(Entry);
+    IR.CreateBr(Body);
 
 }
 
@@ -536,8 +545,11 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     auto Proc = getOrInsertFunction(ProcTy, ProcName);
 
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *BB = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Proc);
-    IR.SetInsertPoint(BB);
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Proc);
+    llvm::BasicBlock *Body = llvm::BasicBlock::Create(GlobalCtx, "ProcBody", Proc);
+
+    IR.SetInsertPoint(Body);
+
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
@@ -550,7 +562,13 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     // Visit function body
     visit(Def->getBlock());
 
+    IR.CreateUnreachable();
+    
+    IR.SetInsertPoint(Entry);
+    IR.CreateBr(Body);
+
     CurrentFunction = GlobalFunction;
+
 }
 
 llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
@@ -570,8 +588,12 @@ llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
 llvm::Value *CodeGenPass::visitReturn(Return *Return) {
     // No-op means that the procedure does not have a return type.
     if (isa<NoOp>(Return->getReturnExpr()))
-        return IR.CreateRetVoid();
-    return IR.CreateRet(visit(Return->getReturnExpr()));
+        IR.CreateRetVoid();
+    else
+        IR.CreateRet(visit(Return->getReturnExpr()));
+
+    llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(GlobalCtx, "AfterRet", CurrentFunction);
+    IR.SetInsertPoint(AfterRet);
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
@@ -706,4 +728,9 @@ llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
     auto ProcName = Decl->getIdentifier()->getName();
     auto ProcTy = Decl->getIdentifier()->getIdentType();
     return getOrInsertFunction(ProcTy, ProcName);
+}
+
+llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
+    for (auto Child: *Blk)
+        visit(Child);
 }

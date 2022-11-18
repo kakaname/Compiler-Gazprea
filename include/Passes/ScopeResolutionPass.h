@@ -239,7 +239,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (auto ProcTy = dyn_cast<ProcedureTy>(
                 Call->getIdentifier()->getIdentType())) {
             ParamTypes = ProcTy->getParamTypes();
-        } else if (auto FuncTy =  dyn_cast<ProcedureTy>(
+        } else if (auto FuncTy =  dyn_cast<FunctionTy>(
                 Call->getIdentifier()->getIdentType()))
             ParamTypes = FuncTy->getParamTypes();
         else
@@ -264,7 +264,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (auto ProcTy = dyn_cast<ProcedureTy>(
                 Call->getIdentifier()->getIdentType())) {
             ParamTypes = ProcTy->getParamTypes();
-        } else if (auto FuncTy =  dyn_cast<ProcedureTy>(
+        } else if (auto FuncTy =  dyn_cast<FunctionTy>(
                 Call->getIdentifier()->getIdentType()))
             ParamTypes = FuncTy->getParamTypes();
         else

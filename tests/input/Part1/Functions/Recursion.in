@@ -12,9 +12,9 @@ procedure main() returns integer {
 function factorial(integer x) returns integer {
     if(x==1){
         return 1;
-    }else{
+    } else {
         integer b = factorial(x-1);
-
         return b*x;
     }
+    return 1;
 }

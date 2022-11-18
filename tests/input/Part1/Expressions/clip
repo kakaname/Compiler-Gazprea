@@ -2,7 +2,7 @@ procedure main() returns integer {
 var integer a = -4;
 var integer b = +a;
 
-+a -> std_output;
++a -> std_output
 b -> std_output;
 
   /* must have a return */

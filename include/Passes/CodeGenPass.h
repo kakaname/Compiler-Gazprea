@@ -110,6 +110,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitInStream(InStream *InStream);
     llvm::Value *visitIdentReference(IdentReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
+    llvm::Value *visitBlock(Block *Blk);
 
     llvm::Value *createAlloca(const Type *Ty);
     llvm::Value *createStructAlloca(llvm::StructType *Ty);

@@ -7,7 +7,7 @@ procedure main() returns integer {
   integer x = 2;
   real out =   times_two_real(x);
   out -> std_output;
-  out =   times_four_real(x);
+  out =  times_four_real(x);
   out -> std_output;
 
   /* must have a return */
