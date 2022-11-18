@@ -4,10 +4,6 @@
 
 #include <fstream>
 #include "Passes/CodeGenPass.h"
-
-#include "llvm/CodeGen/UnreachableBlockElim.h"
-
-#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "Passes/SubExpressionCacheSet.h"
 
 using llvm::Value;
