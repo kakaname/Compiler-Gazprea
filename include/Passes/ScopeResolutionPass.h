@@ -27,14 +27,31 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
         return N->getKind() == TreeNode::N_ScopeTreeNode;
     }
 
-    map<string, const Symbol*> SymbolsInScope;
+    using SymbolMapT = map<string, const Symbol *>;
+
+    SymbolMapT SymbolsInScope;
+    SymbolMapT TypeSymbolsInScope;
+    // Note: The type symbols is only really relevant for global scopes
 
     void declareInScope(const string& Name, const Symbol *Sym) {
-        auto Res = SymbolsInScope.find(Name);
-        if (Res != SymbolsInScope.end())
-            throw std::runtime_error("Tried to redeclare when already in scope");
+        declareHelper(Name, Sym, &SymbolsInScope);
+    }
 
-        SymbolsInScope.insert({Name, Sym});
+    void declareType(const string& Name, const Symbol *Sym) {
+        declareHelper(Name, Sym, &TypeSymbolsInScope);
+    }
+
+    const Symbol *resolveType(const string &Name) {
+        auto Res = TypeSymbolsInScope.find(Name);
+        if (Res != TypeSymbolsInScope.end())
+            return Res->second;
+
+        if (!getParent())
+            return nullptr;
+
+        auto Parent = dyn_cast<ScopeTreeNode>(getParent());
+        assert(Parent && "ScopeTreeNode has a non ScopeTreeNode parent?");
+        return Parent->resolveType(Name);
     }
 
     const Symbol *resolve(const string &Name) {
@@ -50,7 +67,21 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
         return Parent->resolve(Name);
     }
 
+
+
     ScopeTreeNode(): TreeNode(TreeNodeKind::N_ScopeTreeNode) {}
+
+private:
+
+    void declareHelper(const string& Name, const Symbol *Sym, SymbolMapT *ScopeMap) {
+        auto Res = ScopeMap->find(Name);
+        if (Res != ScopeMap->end())
+            throw std::runtime_error("Tried to redeclare when already in scope");
+
+        ScopeMap->insert({Name, Sym});
+    }
+
+
 };
 
 
@@ -261,7 +292,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
         vector<const Type*> ParamTypes;
 
-        if (auto ProcTy = dyn_cast<ProcedureTy>(
+        if (auto ProcTy = dyn_cast<FunctionTy>(
                 Call->getIdentifier()->getIdentType())) {
             ParamTypes = ProcTy->getParamTypes();
         } else if (auto FuncTy =  dyn_cast<FunctionTy>(
