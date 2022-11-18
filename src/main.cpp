@@ -31,6 +31,7 @@
 #include "Passes/ChangeMemAccessToMemRef.h"
 #include "Passes/EnsureDefinitionPass.h"
 #include "Passes/EnsureValidGlobalInitPass.h"
+#include "Passes/LValueReferenceCheckPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -53,15 +54,15 @@ class SyntaxErrorListener: public antlr4::BaseErrorListener {
 };
 
 int main(int argc, char **argv) {
-//  if (argc < 3) {
-//    std::cout << "Missing required argument.\n"
-//              << "Required arguments: <input file path> <output file path>\n";
-//    return 1;
-//  }
+  if (argc < 3) {
+    std::cout << "Missing required argument.\n"
+              << "Required arguments: <input file path> <output file path>\n";
+    return 1;
+  }
 
   // Open the file then parse and lex it.
   antlr4::ANTLRFileStream afs;
-  afs.loadFromFile("../test_gaz");
+  afs.loadFromFile(argv[1]);
   gazprea::GazpreaLexer lexer(&afs);
   antlr4::CommonTokenStream tokens(&lexer);
   gazprea::GazpreaParser parser(&tokens);
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-    Manager.registerAnonymousPass(ASTPrinterPass());
+//    Manager.registerAnonymousPass(ASTPrinterPass());
 
 
     Manager.registerPass(ScopeResolutionPass());
@@ -104,6 +105,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
+    Manager.registerPass(LValueReferenceCheckPass());
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
@@ -112,7 +114,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     //
     Manager.registerPass(ChangeMemAccessToMemRef());
@@ -125,12 +127,12 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ASTPrinterPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 //
-    auto CG = CodeGenPass("../gazout.ll");
+    auto CG = CodeGenPass(argv[2]);
     auto *Root = Manager.getRoot();
     CG.runOnAST(Manager, Root);
     return 0;

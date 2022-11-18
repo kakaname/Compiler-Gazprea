@@ -148,6 +148,10 @@ public:
         }
     }
 
+    bool isOpaqueTy() const {
+        return TypeKind::T_Null == Kind || TypeKind::T_Identity == Kind;
+    }
+
     TypeKind getKind() const {
         return Kind;
     }

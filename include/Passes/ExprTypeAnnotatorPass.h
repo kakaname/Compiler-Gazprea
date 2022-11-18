@@ -36,6 +36,20 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitCharLiteral(CharLiteral *Char);
 
 
+    void setOpaqueTyCastTargetTy(const Type *Ty) {
+        if (Ty)
+            OpaqueTyCastTarget = PM->TypeReg.getConstTypeOf(Ty);
+        else
+            OpaqueTyCastTarget = Ty;
+    }
+
+    void annotate(ASTNodeT *Node, const Type *Ty) const {
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Node, Ty);
+    }
+
+    void annotateWithConst(ASTNodeT *Node, const Type *Ty) const {
+        annotate(Node, PM->TypeReg.getConstTypeOf(Ty));
+    }
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
@@ -45,5 +59,5 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     explicit ExprTypeAnnotatorPass() = default;
 
     ASTPassManager *PM{};
-    ConvertIdentMemberAccessToIdxPass IdxPass{};
+    const Type *OpaqueTyCastTarget{nullptr};
 };

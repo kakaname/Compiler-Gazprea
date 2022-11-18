@@ -16,22 +16,34 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     auto LeftType = visit(LeftExpr);
     auto RightType = visit(RightExpr);
 
-
-    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
-        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+    // If both of them are opaque types, we cast them to the opaque type target.
+    if (LeftType->isOpaqueTy() && RightType->isOpaqueTy()) {
+        if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
 
-        auto Cast = wrapWithCastTo(LeftExpr, RightType);
-        Op->setLeftExpr(Cast);
-        LeftType = RightType;
+        if (!OpaqueTyCastTarget->isValidForComparisonOp())
+            throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
+
+        auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
+        auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
+        Op->setLeftExpr(LeftCast);
+        Op->setRightExpr(RightCast);
+        annotateWithConst(Op, OpaqueTyCastTarget);
+        return OpaqueTyCastTarget;
     }
 
-    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
-        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
-            throw NullIdentityOpError(Op);
-        auto Cast = wrapWithCastTo(RightExpr, LeftType);
-        Op->setRightExpr(Cast);
-        RightType = LeftType;
+    // At least one of them is opaque.
+    if (LeftType->isOpaqueTy() || RightType->isOpaqueTy()) {
+        //
+        if (LeftType->isOpaqueTy()) {
+            auto Cast = wrapWithCastTo(LeftExpr, RightType);
+            Op->setLeftExpr(Cast);
+            LeftType = RightType;
+        } else {
+            auto Cast = wrapWithCastTo(RightExpr, LeftType);
+            Op->setRightExpr(Cast);
+            RightType = LeftType;
+        }
     }
 
     if (!LeftType->isValidForComparisonOp())
@@ -41,7 +53,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         throw InvalidComparisonOpError(Op, RightType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
+        annotate(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
     }
 
@@ -68,21 +80,34 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto LeftType = visit(LeftExpr);
     auto RightType = visit(RightExpr);
 
-
-    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
-        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+    // If both of them are opaque types, we cast them to the opaque type target.
+    if (LeftType->isOpaqueTy() && RightType->isOpaqueTy()) {
+        if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
-        auto Cast = wrapWithCastTo(LeftExpr, RightType);
-        Op->setLeftExpr(Cast);
-        LeftType = RightType;
+
+        if (!OpaqueTyCastTarget->isValidForComparisonOp())
+            throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
+
+        auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
+        auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
+        Op->setLeftExpr(LeftCast);
+        Op->setRightExpr(RightCast);
+        annotateWithConst(Op, OpaqueTyCastTarget);
+        return OpaqueTyCastTarget;
     }
 
-    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
-        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
-            throw NullIdentityOpError(Op);
-        auto Cast = wrapWithCastTo(RightExpr, LeftType);
-        Op->setRightExpr(Cast);
-        RightType = LeftType;
+    // At least one of them is opaque.
+    if (LeftType->isOpaqueTy() || RightType->isOpaqueTy()) {
+        //
+        if (LeftType->isOpaqueTy()) {
+            auto Cast = wrapWithCastTo(LeftExpr, RightType);
+            Op->setLeftExpr(Cast);
+            LeftType = RightType;
+        } else {
+            auto Cast = wrapWithCastTo(RightExpr, LeftType);
+            Op->setRightExpr(Cast);
+            RightType = LeftType;
+        }
     }
 
     if (!LeftType->isValidForArithOps())
@@ -92,22 +117,22 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
         throw InvalidArithmeticOpError(Op, RightType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
-        return LeftType;
+        annotateWithConst(Op, LeftType);
+        return PM->TypeReg.getConstTypeOf(LeftType);
     }
 
     if (LeftType->canPromoteTo(RightType)) {
         auto Cast = wrapWithCastTo(LeftExpr, RightType);
         Op->setLeftExpr(Cast);
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, RightType);
-        return RightType;
+        annotateWithConst(Op, RightType);
+        return PM->TypeReg.getConstTypeOf(RightType);
     }
 
     if (RightType->canPromoteTo(LeftType)) {
         auto Cast = wrapWithCastTo(RightExpr, LeftType);
         Op->setRightExpr(Cast);
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
-        return LeftType;
+        annotateWithConst(Op, LeftType);
+        return PM->TypeReg.getConstTypeOf(LeftType);
     }
 
     assert(false && "Comparison between incompatible types");
@@ -125,20 +150,34 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     auto LeftType = visit(LeftExpr);
     auto RightType = visit(RightExpr);
 
-    if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) ) {
-        if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) )
+    // If both of them are opaque types, we cast them to the opaque type target.
+    if (LeftType->isOpaqueTy() && RightType->isOpaqueTy()) {
+        if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
-        auto Cast = wrapWithCastTo(LeftExpr, RightType);
-        Op->setLeftExpr(Cast);
-        LeftType = RightType;
+
+        if (!OpaqueTyCastTarget->isValidForComparisonOp())
+            throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
+
+        auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
+        auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
+        Op->setLeftExpr(LeftCast);
+        Op->setRightExpr(RightCast);
+        annotateWithConst(Op, OpaqueTyCastTarget);
+        return OpaqueTyCastTarget;
     }
 
-    if (isa<NullTy>(RightType) || isa<IdentityTy>(RightType) ) {
-        if (isa<NullTy>(LeftType) || isa<IdentityTy>(LeftType) )
-            throw NullIdentityOpError(Op);
-        auto Cast = wrapWithCastTo(RightExpr, LeftType);
-        Op->setRightExpr(Cast);
-        RightType = LeftType;
+    // At least one of them is opaque.
+    if (LeftType->isOpaqueTy() || RightType->isOpaqueTy()) {
+        //
+        if (LeftType->isOpaqueTy()) {
+            auto Cast = wrapWithCastTo(LeftExpr, RightType);
+            Op->setLeftExpr(Cast);
+            LeftType = RightType;
+        } else {
+            auto Cast = wrapWithCastTo(RightExpr, LeftType);
+            Op->setRightExpr(Cast);
+            RightType = LeftType;
+        }
     }
 
     if (Op->getOpKind() == LogicalOp::EQ || Op->getOpKind() == LogicalOp::NEQ) {
@@ -168,33 +207,33 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
         }
 
         //Check tuple promotion
-        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
-            if(!(LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
-                    || RightType->canPromoteTo(LeftType)))
-                throw InvalidTupleComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
-
-            if (LeftType->canPromoteTo(RightType)) {
-                auto Cast = PM->Builder.build<TypeCast>();
-                Cast->copyCtx(Op);
-                auto TupleType = cast<TupleTy>(RightType);
-
-                Cast->setExpr(LeftExpr);
-                Cast->setTargetType(TupleType);
-                Op->setLeftExpr(Cast);
-                LeftType = Cast->getTargetType();
-            }
-
-            if (RightType->canPromoteTo(LeftType)) {
-                auto Cast = PM->Builder.build<TypeCast>();
-                Cast->copyCtx(Op);
-                auto TupleType = cast<TupleTy>(LeftType);
-
-                Cast->setExpr(RightExpr);
-                Cast->setTargetType(TupleType);
-                Op->setRightExpr(Cast);
-                RightType = Cast->getTargetType();
-            }
-        }
+//        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
+//            if(!(LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
+//                    || RightType->canPromoteTo(LeftType)))
+//                throw InvalidTupleComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
+//
+//            if (LeftType->canPromoteTo(RightType)) {
+//                auto Cast = PM->Builder.build<TypeCast>();
+//                Cast->copyCtx(Op);
+//                auto TupleType = cast<TupleTy>(RightType);
+//
+//                Cast->setExpr(LeftExpr);
+//                Cast->setTargetType(TupleType);
+//                Op->setLeftExpr(Cast);
+//                LeftType = Cast->getTargetType();
+//            }
+//
+//            if (RightType->canPromoteTo(LeftType)) {
+//                auto Cast = PM->Builder.build<TypeCast>();
+//                Cast->copyCtx(Op);
+//                auto TupleType = cast<TupleTy>(LeftType);
+//
+//                Cast->setExpr(RightExpr);
+//                Cast->setTargetType(TupleType);
+//                Op->setRightExpr(Cast);
+//                RightType = Cast->getTargetType();
+//            }
+//        }
 
         if (!LeftType->isSameTypeAs(RightType))
             throw InvalidComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
@@ -229,13 +268,14 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     if (Op->getOpKind() == UnaryOp::NOT) {
         if (!ChildType->isValidForUnaryNot())
             throw InvalidUnaryNotError(Op, ChildType->getTypeName());
-    } else {
-        if (!ChildType->isValidForUnaryAddOrSub())
-            throw InvalidUnaryAddOrSubError(Op, ChildType->getTypeName());
+        annotate(Op, PM->TypeReg.getBooleanTy());
+        return PM->TypeReg.getBooleanTy();
     }
 
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-    return PM->TypeReg.getBooleanTy();
+    if (!ChildType->isValidForUnaryAddOrSub())
+        throw InvalidUnaryAddOrSubError(Op, ChildType->getTypeName());
+    annotateWithConst(Op, ChildType);
+    return PM->TypeReg.getConstTypeOf(ChildType);
 }
 
 const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
