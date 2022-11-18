@@ -836,8 +836,11 @@ std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
     map<string, int> Mappings;
     int Idx = 1;
     for (auto *Member : ctx->tupleTypeDecl()->tupleMemberType()) {
-        if (Member->ID())
+        if (Member->ID()) {
+            if (Mappings.count(Member->ID()->getText()))
+                throw std::runtime_error("Tuple member with duplicate name");
             Mappings.insert({Member->ID()->getText(), Idx});
+        }
         MemberTypes.emplace_back(castToTypeVisit(Member->type()));
         ++Idx;
     }

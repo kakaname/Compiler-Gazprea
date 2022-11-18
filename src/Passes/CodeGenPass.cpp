@@ -446,7 +446,8 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
 
     switch (DestTy->getKind()) {
         case Type::TypeKind::T_Bool:
-            return IR.CreateICmpNE(Val, llvm::Constant::getNullValue(getLLVMType(SrcTy)));
+            return IR.CreateICmpNE(Val, llvm::Constant::getNullValue(
+                    getLLVMType(PM->TypeReg.getConstTypeOf(SrcTy))));
         case Type::TypeKind::T_Char:
             // TODO fix char
             switch (SrcTy->getKind()) {

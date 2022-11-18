@@ -410,3 +410,22 @@ const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, IdentTy);
     return IdentTy;
 }
+
+const Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
+    visit(Call->getArgsList());
+    auto IdentTy = visit(Call->getIdentifier());
+    assert(IdentTy && "Ident type not set for function call");
+
+    if (!IdentTy->isCallable())
+        throw NonCallableError(Call, IdentTy->getTypeName());
+
+    if (auto FuncTy = dyn_cast<FunctionTy>(IdentTy)) {
+        auto RetTy = FuncTy->getRetType();
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
+        return RetTy;
+    };
+    auto ProcTy = cast<ProcedureTy>(IdentTy);
+    auto RetTy = ProcTy->getRetTy();
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
+    return RetTy;
+}

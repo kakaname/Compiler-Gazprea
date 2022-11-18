@@ -32,6 +32,7 @@
 #include "Passes/EnsureDefinitionPass.h"
 #include "Passes/EnsureValidGlobalInitPass.h"
 #include "Passes/LValueReferenceCheckPass.h"
+#include "Passes/ConvertFuncCallNodesToProcCallPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -94,27 +95,32 @@ int main(int argc, char **argv) {
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-//    Manager.registerAnonymousPass(ASTPrinterPass());
+    Manager.registerAnonymousPass(ASTPrinterPass());
 
 
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
-    //
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
     Manager.registerPass(LValueReferenceCheckPass());
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     //
     Manager.registerPass(ChangeMemAccessToMemRef());

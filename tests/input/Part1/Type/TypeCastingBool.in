@@ -5,7 +5,7 @@ procedure main() returns integer {
   character z = 'a';
   y -> std_output;
    
-   x = 0;
+  x = 0;
   y = as<boolean>(x);
   y -> std_output;
 
