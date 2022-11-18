@@ -30,6 +30,7 @@
 #include "Passes/TupleNotEqualTransformationPass.h"
 #include "Passes/ChangeMemAccessToMemRef.h"
 #include "Passes/EnsureDefinitionPass.h"
+#include "Passes/EnsureValidGlobalInitPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -104,7 +105,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
     Manager.registerPass(EnsureDefinitionPass());
-//    Manager.registerPass(GlobalDeclPass());
+    Manager.registerPass(EnsureValidGlobalInitPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
