@@ -95,17 +95,15 @@ int main(int argc, char **argv) {
 //    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-    Manager.registerAnonymousPass(ASTPrinterPass());
 
 
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
 
-    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
@@ -113,14 +111,12 @@ int main(int argc, char **argv) {
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
 
     //
     Manager.registerPass(ChangeMemAccessToMemRef());
@@ -132,9 +128,6 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ASTPrinterPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 //

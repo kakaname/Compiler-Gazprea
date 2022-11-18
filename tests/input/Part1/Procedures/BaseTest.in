@@ -18,9 +18,9 @@ procedure main() returns integer {
 
   call increment(x);
   x->std_output;
-  out ->std_output; 
+  out -> std_output; 
   out = -fibonacci(y,z);
-  out ->std_output; 
+  out -> std_output; 
   
 
   /* must have a return */
