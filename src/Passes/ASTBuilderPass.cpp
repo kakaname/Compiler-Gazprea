@@ -876,7 +876,7 @@ std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclCont
     Ident->setName(ctx->ID()->getText());
     Ident->setIdentType(Type);
     Decl->setIdent(Ident);
-    return Decl;
+    return cast<ASTNodeT>(Decl);
 }
 
 std::any ASTBuilderPass::visitGlobalIdentDeclStmt(GazpreaParser::GlobalIdentDeclStmtContext *ctx) {

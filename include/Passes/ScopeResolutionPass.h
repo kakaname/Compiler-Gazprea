@@ -73,10 +73,9 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
     void visitDeclaration(Declaration *Decl) {
         visit(Decl->getInitExpr());
+        auto ExprType = runTypeAnnotator(Decl->getInitExpr(), Decl->getIdentType());
         // The type must be inferred.
         if (!Decl->getIdentType()) {
-            ExprAnnotator.runOnAST(*PM, Decl->getInitExpr());
-            auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
             assert(ExprType && "Cannot infer declaration type");
             assert(!isa<NullTy>(ExprType) && !isa<IdentityTy>(ExprType) &&
                     "Cannot infer identity or null type." );
@@ -85,6 +84,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }
+        ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+
         auto Sym = PM->SymTable.defineObject(
                 Decl->getIdentifier()->getName(), Decl->getIdentType());
         Decl->getIdentifier()->setReferred(Sym);
@@ -100,6 +101,14 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Ident->setReferred(Resolved);
     }
 
+    void visitAssignment(Assignment *Assign) {
+        visit(Assign->getAssignedTo());
+        visit(Assign->getExpr());
+        auto LeftTy = runTypeAnnotator(Assign->getAssignedTo());
+        runTypeAnnotator(Assign->getExpr(), LeftTy);
+        ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+    }
+
     void visitMemberReference(MemberReference *Ref) const {
         auto IdentName = Ref->getIdentifier()->getName();
         auto Resolved = CurrentScope->resolve(IdentName);
@@ -108,35 +117,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Ref->getIdentifier()->setIdentType(Resolved->getSymbolType());
         Ref->getIdentifier()->setReferred(Resolved);
     }
-
-    void visitConditionalLoop(ConditionalLoop *Loop) {
-        visit(Loop->getConditional());
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
-        CurrentScope = NewScope;
-        visit(Loop->getBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
-    }
-
-    void visitConditional(Conditional *Cond) {
-        visit(Cond->getConditional());
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
-        visit(Cond->getBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
-    };
-
-    void visitConditionalElse(ConditionalElse *CondWithElse) {
-        auto NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
-        visit(CondWithElse->getIfBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
-
-        NewScope = PM->Builder.build<ScopeTreeNode>();
-        CurrentScope->addChild(NewScope);
-        visit(CondWithElse->getElseBlock());
-        CurrentScope = cast<ScopeTreeNode>(NewScope->getParent());
-    };
 
     void visitProcedureDef(ProcedureDef *Def) {
         auto ParamList = Def->getParamList();
@@ -250,6 +230,56 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Decl->getIdentifier()->setReferred(ProcSym);
     }
 
+    void visitProcedureCall(ProcedureCall *Call) {
+        visit(Call->getArgsList());
+        visit(Call->getIdentifier());
+
+        vector<const Type*> ParamTypes;
+
+        if (auto ProcTy = dyn_cast<ProcedureTy>(
+                Call->getIdentifier()->getIdentType())) {
+            ParamTypes = ProcTy->getParamTypes();
+        } else if (auto FuncTy =  dyn_cast<ProcedureTy>(
+                Call->getIdentifier()->getIdentType()))
+            ParamTypes = FuncTy->getParamTypes();
+        else
+            throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
+
+        auto Args = Call->getArgsList();
+
+        if (ParamTypes.size() != Args->numOfChildren())
+            throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
+
+        for (auto I = 0; I < ParamTypes.size(); I++)
+            runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
+        ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+    }
+
+    void visitFunctionCall(FunctionCall *Call) {
+        visit(Call->getArgsList());
+        visit(Call->getIdentifier());
+
+        vector<const Type*> ParamTypes;
+
+        if (auto ProcTy = dyn_cast<ProcedureTy>(
+                Call->getIdentifier()->getIdentType())) {
+            ParamTypes = ProcTy->getParamTypes();
+        } else if (auto FuncTy =  dyn_cast<ProcedureTy>(
+                Call->getIdentifier()->getIdentType()))
+            ParamTypes = FuncTy->getParamTypes();
+        else
+            throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
+
+        auto Args = Call->getArgsList();
+
+        if (ParamTypes.size() != Args->numOfChildren())
+            throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
+
+        for (auto I = 0; I < ParamTypes.size(); I++)
+            runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
+        ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+    }
+
     void visitMemberAccess(MemberAccess *Access) {
         visit(Access->getExpr());
     }
@@ -262,6 +292,13 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             visit(Child);
         CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
     }
+
+    const Type *runTypeAnnotator(ASTNodeT *Node, const Type *Ty = nullptr) {
+        ExprAnnotator.setOpaqueTyCastTargetTy(Ty);
+        ExprAnnotator.runOnAST(*PM, Node);
+        return PM->getAnnotation<ExprTypeAnnotatorPass>(Node);
+    }
+
 };
 
 #endif //GAZPREABASE_SCOPERESOLUTIONPASS_H
