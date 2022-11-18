@@ -53,7 +53,6 @@ lvalue
     ;
 
 index : expr LSQRPAREN expr RSQRPAREN;
-memAccess: ID PERIOD (ID | INTLITERAL);
 
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
@@ -171,14 +170,17 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | CHARLITERAL                           # charLiteral
     ;
 
-realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral?
-        | INTLITERAL PERIOD ExponentialLiteral?
-        | INTLITERAL ExponentialLiteral
+
+realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
+        | INTLITERAL PERIOD ExponentialLiteral?             #realLit2
+        | INTLITERAL ExponentialLiteral                     #realLit3
         ;
 
 // --- LEXER RULES ---
 
 ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
+
+// --- LEXER RULES ---
 
 // Characters ++
 LPAREN : '(' ;
@@ -261,12 +263,7 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
-
-
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;
-
 LineComment : '//' ~[\r\n]* -> skip ;
-
 WS : [ \t\r\n]+ -> skip ;
-

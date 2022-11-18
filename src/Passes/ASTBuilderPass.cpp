@@ -655,11 +655,7 @@ std::any ASTBuilderPass::visitBracketExpr(GazpreaParser::BracketExprContext *ctx
 }
 
 std::any ASTBuilderPass::visitRealLiteral(GazpreaParser::RealLiteralContext *ctx) {
-    auto RealLit = PM->Builder.build<RealLiteral>();
-    RealLit->setCtx(ctx);
-    RealLit->setVal(ctx->RealLit()->getText());
-
-    return cast<ASTNodeT>(RealLit);
+    return castToNodeVisit(ctx->realLit());
 }
 
 std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) {
@@ -974,4 +970,42 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
     throw std::runtime_error("Unimplemented");
+}
+
+std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string RealString = ctx->INTLITERAL(0)->getText() + ".";
+    if (ctx->INTLITERAL().size() == 2)
+        RealString += ctx->INTLITERAL(1)->getText();
+    if (ctx->ExponentialLiteral())
+        RealString += ctx->ExponentialLiteral()->getText();
+
+    RealLit->setVal(RealString);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+    string RealString = ctx->INTLITERAL()->getText() + ".";
+    if (ctx->ExponentialLiteral())
+        RealString += ctx->ExponentialLiteral()->getText();
+
+    RealLit->setVal(RealString);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+    string RealString = ctx->INTLITERAL()->getText();
+    RealString += ctx->ExponentialLiteral()->getText();
+
+    RealLit->setVal(RealString);
+
+    return cast<ASTNodeT>(RealLit);
 }
