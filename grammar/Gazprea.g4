@@ -143,7 +143,7 @@ block : LBRACE (stmt)* RBRACE ;
 // 5. And expression operator should be 'and' instead of '&'
 
 expr: LPAREN expr RPAREN                    # bracketExpr
-    | MemberAccess                          # memberAccess
+    | ID PERIOD (ID | INTLITERAL)           # memberAccess
     | expr LSQRPAREN expr RSQRPAREN         # indexExpr
     | expr DD expr (BY expr)?               # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
@@ -170,9 +170,10 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | CHARLITERAL                           # charLiteral
     ;
 
-realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral?
-        | INTLITERAL PERIOD ExponentialLiteral?
-        | INTLITERAL ExponentialLiteral
+
+realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
+        | INTLITERAL PERIOD ExponentialLiteral?             #realLit2
+        | INTLITERAL ExponentialLiteral                     #realLit3
         ;
 
 // --- LEXER RULES ---
