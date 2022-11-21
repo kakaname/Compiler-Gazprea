@@ -13,6 +13,7 @@ void SimplifyTupleCasting::visitTypeCast(TypeCast *Cast) {
         return;
 
     auto Literal = PM->Builder.build<TupleLiteral>();
+    PM->getResource<SubExpressionCacheSet>().addCachedNode(Cast->getExpr());
     Literal->copyCtx(Cast);
     for (int I = 0; I < TargetTy->getNumOfMembers(); I++) {
         auto MemCastTarget = TargetTy->getMemberTypeAt(I);
@@ -31,7 +32,7 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
         return;
 
     auto Literal = PM->Builder.build<TupleLiteral>();
-    PM->getResource<SubExpressionCacheSet>().addCachedNode(Literal);
+    PM->getResource<SubExpressionCacheSet>().addCachedNode(Cast->getExpr());
 
     Literal->copyCtx(Cast);
     for (int I = 0; I < TargetTy->getNumOfMembers(); I++) {

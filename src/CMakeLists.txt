@@ -44,7 +44,10 @@ set(
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LoopIfConditionalTypeCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/LValueReferenceCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/SubExpressionCacheSet.cpp"
-	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp")
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/ProcedureCallStatCheckPass.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Codegen/CastOperation.cpp"
+	"${CMAKE_CURRENT_SOURCE_DIR}/Passes/BubbleGlobalDeclarationPass.cpp"
+)
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})

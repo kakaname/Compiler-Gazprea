@@ -94,16 +94,15 @@ std::any ASTBuilderPass::visitIfConditional(GazpreaParser::IfConditionalContext 
     IfStat->setConditional(CondExpr);
 
     // Set the statement body
-    auto StatementBody = castToNodeVisit(ctx->stmt());
-    if (!isa<Block>(StatementBody)) {
-        auto CondBody = PM->Builder.build<Block>();
-        CondBody->setCtx(ctx);
-        CondBody->addChild(StatementBody);
-        IfStat->setBlock(CondBody);
+    auto Body = castToNodeVisit(ctx->stmt());
+    if (!isa<Block>(Body)) {
+        auto Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+        IfStat->setBlock(Blk);
         return cast<ASTNodeT>(IfStat);
     }
 
-    IfStat->setBlock(dyn_cast<Block>(StatementBody));
+    IfStat->setBlock(cast<Block>(Body));
     return cast<ASTNodeT>(IfStat);
 }
 
@@ -114,9 +113,8 @@ std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditional
 
     auto IfBody = castToNodeVisit(ctx->stmt(0));
     if (!isa<Block>(IfBody)) {
-        auto IfBodyBlock = PM->Builder.build<Block>();
+        auto IfBodyBlock = wrapStmtInBlock(IfBody);
         IfBodyBlock->setCtx(ctx);
-        IfBodyBlock->addChild(IfBody);
         IfElseStat->setIfBlock(IfBodyBlock);
     } else
         IfElseStat->setIfBlock(cast<Block>(IfBody));
@@ -124,9 +122,8 @@ std::any ASTBuilderPass::visitIfElseConditional(GazpreaParser::IfElseConditional
     auto ElseBody = castToNodeVisit(ctx->stmt(1));
 
     if (!isa<Block>(ElseBody)) {
-        auto ElseBodyBlock = PM->Builder.build<Block>();
+        auto ElseBodyBlock = wrapStmtInBlock(ElseBody);
         ElseBodyBlock->setCtx(ctx);
-        ElseBodyBlock->addChild(ElseBody);
         IfElseStat->setElseBlock(ElseBodyBlock);
     } else
         IfElseStat->setElseBlock(cast<Block>(ElseBody));
@@ -138,16 +135,13 @@ std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *c
     auto Loop = PM->Builder.build<InfiniteLoop>();
     Loop->setCtx(ctx);
 
-    // Set the statement body
-    auto LoopBody = castToNodeVisit(ctx->stmt());
-    if (!isa<Block>(LoopBody)) {
-        auto LoopBlock = PM->Builder.build<Block>();
-        LoopBlock->setCtx(ctx);
-        LoopBlock->addChild(LoopBody);
-        Loop->setBlock(LoopBlock);
-        return cast<ASTNodeT>(Loop);
+    auto Body = castToNodeVisit(ctx->stmt());
+    if (!isa<Block>(Body)) {
+        auto Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+        return cast<ASTNodeT>(Blk);
     }
-    Loop->setBlock(dyn_cast<Block>(LoopBody));
+    Loop->setBlock(cast<Block>(Body));
     return cast<ASTNodeT>(Loop);
 }
 
@@ -160,15 +154,14 @@ std::any ASTBuilderPass::visitWhileLoop(GazpreaParser::WhileLoopContext *ctx) {
     Loop->setConditional(CondExpr);
 
     // Set the statement body
-    auto LoopBody = castToNodeVisit(ctx->stmt());
-    if (!isa<Block>(LoopBody)) {
-        auto LoopBlock = PM->Builder.build<Block>();
-        LoopBlock->setCtx(ctx);
-        LoopBlock->addChild(LoopBody);
-        Loop->setBlock(LoopBlock);
-        return cast<ASTNodeT>(Loop);
+    auto Body = castToNodeVisit(ctx->stmt());
+    if (!isa<Block>(Body)) {
+        auto Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+        return cast<ASTNodeT>(Blk);
     }
-    Loop->setBlock(dyn_cast<Block>(LoopBody));
+
+    Loop->setBlock(dyn_cast<Block>(Body));
     return cast<ASTNodeT>(Loop);
 }
 
@@ -180,17 +173,14 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
     auto CondExpr = castToNodeVisit(ctx->expr());
     Loop->setConditional(CondExpr);
 
-    auto LoopBody = castToNodeVisit(ctx->stmt());
-    if (!isa<Block>(LoopBody)) {
-        auto LoopBlock = PM->Builder.build<Block>();
-        LoopBlock->setCtx(ctx);
-        LoopBlock->addChild(LoopBody);
-        Loop->setBlock(LoopBlock);
-        Loop->setConditionalAfter();
-        return cast<ASTNodeT>(Loop);
+    auto Body = castToNodeVisit(ctx->stmt());
+    if (!isa<Block>(Body)) {
+        auto Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+        return cast<ASTNodeT>(Blk);
     }
 
-    Loop->setBlock(dyn_cast<Block>(LoopBody));
+    Loop->setBlock(dyn_cast<Block>(Body));
 
     // Set conditional after because this is a do-while loop
     Loop->setConditionalAfter();
@@ -257,8 +247,10 @@ std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *c
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
     auto ResolvedSym = GlobalScope.resolveType(ctx->ID()->getText());
     auto text = ctx->ID()->getText();
+
     if (!ResolvedSym)
         throw std::runtime_error(text + " type not found.");
+
     auto TypeSym = dyn_cast<TypeSymbol>(ResolvedSym);
     if (!TypeSym)
         throw std::runtime_error(text + " is not a type.");
@@ -1011,4 +1003,13 @@ std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
     RealLit->setVal(RealString);
 
     return cast<ASTNodeT>(RealLit);
+}
+
+Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
+    if (isa<Declaration>(Stmt))
+        throw std::runtime_error("Declaration may only occur"
+                                 " inside blocks");
+    auto Blk = PM->Builder.build<Block>();
+    Blk->addChild(Stmt);
+    return Blk;
 }

@@ -45,8 +45,9 @@ class PassObject {
     unique_ptr<PassConceptT> Pass;
 
 public:
+    // Should only be constructable with r-values.
     template<typename T>
-    PassObject(T &&P) : Pass(make_unique<PassModelT<T>>(PassModelT<T>(P))) {};
+    PassObject(T &&P) : Pass(make_unique<PassModelT<T>>((P))) {};
 
     void runOnAST(ASTPassManager &PM, ASTNodeT *Root)  {
         Pass->runOnAST(PM, Root);

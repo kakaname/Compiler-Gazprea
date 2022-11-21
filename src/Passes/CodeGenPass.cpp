@@ -5,6 +5,7 @@
 #include <fstream>
 #include "Passes/CodeGenPass.h"
 #include "Passes/SubExpressionCacheSet.h"
+#include "Codegen/CastOperation.h"
 
 using llvm::Value;
 
@@ -13,24 +14,38 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PM = &Manager;
 
     // Set Runtime Functions
-    llvm::FunctionType *MainTy = llvm::FunctionType::get(LLVMIntTy, false);
 
-    PrintInt = Mod.getOrInsertFunction("rt_print_int",
-                                       llvm::FunctionType::get(LLVMVoidTy, {LLVMIntTy}, false));
-    PrintReal = Mod.getOrInsertFunction("rt_print_real",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMRealTy}, false));
-    PrintChar = Mod.getOrInsertFunction("rt_print_char",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMCharTy}, false));
-    PrintBool = Mod.getOrInsertFunction("rt_print_bool",
-                                        llvm::FunctionType::get(LLVMVoidTy, {LLVMBoolTy}, false));
-    ScanInt = Mod.getOrInsertFunction("rt_scan_int",
-                                      llvm::FunctionType::get(LLVMIntTy, {}, false));
-    ScanReal = Mod.getOrInsertFunction("rt_scan_real",
-                                       llvm::FunctionType::get(LLVMRealTy, {}, false));
-    ScanChar = Mod.getOrInsertFunction("rt_scan_char",
-                                       llvm::FunctionType::get(LLVMCharTy, {}, false));
-    ScanBool = Mod.getOrInsertFunction("rt_scan_bool",
-                                       llvm::FunctionType::get(LLVMBoolTy, {}, false));
+    PrintInt = Mod.getOrInsertFunction(
+            "rt_print_int", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMIntTy}, false));
+
+    PrintReal = Mod.getOrInsertFunction(
+            "rt_print_real", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMRealTy}, false));
+
+    PrintChar = Mod.getOrInsertFunction(
+            "rt_print_char", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMCharTy}, false));
+
+    PrintBool = Mod.getOrInsertFunction(
+            "rt_print_bool", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMBoolTy}, false));
+
+    ScanInt = Mod.getOrInsertFunction(
+            "rt_scan_int", llvm::FunctionType::get(
+                    LLVMIntTy, {}, false));
+
+    ScanReal = Mod.getOrInsertFunction(
+            "rt_scan_real", llvm::FunctionType::get(
+                    LLVMRealTy, {}, false));
+
+    ScanChar = Mod.getOrInsertFunction(
+            "rt_scan_char", llvm::FunctionType::get(
+                    LLVMCharTy, {}, false));
+
+    ScanBool = Mod.getOrInsertFunction(
+            "rt_scan_bool", llvm::FunctionType::get(
+                    LLVMBoolTy, {}, false));
 
     visit(Root);
 
@@ -85,13 +100,6 @@ llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
     return Builder.CreateAlloca(getLLVMType(Ty));
 }
 
-llvm::Value *CodeGenPass::createStructAlloca(llvm::StructType *Ty) {
-    llvm::IRBuilder<> Builder(GlobalCtx);
-    llvm::BasicBlock *BB = &CurrentFunction->front();
-    Builder.SetInsertPoint(BB);
-    return Builder.CreateAlloca(Ty);
-}
-
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
     if (Val->getType()->isPointerTy())
@@ -124,10 +132,10 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     return nullptr;
 }
 
-llvm::Value *CodeGenPass::declareGlobal(string name, const Type *Ty) {
+llvm::Value *CodeGenPass::declareGlobal(const string &Name, const Type *Ty) {
     llvm::Type *LLTy = getLLVMType(PM->TypeReg.getConstTypeOf(Ty));
-    Mod.getOrInsertGlobal(name, LLTy);
-    llvm::GlobalVariable *GV = Mod.getNamedGlobal(name);
+    Mod.getOrInsertGlobal(Name, LLTy);
+    llvm::GlobalVariable *GV = Mod.getNamedGlobal(Name);
     GV->setInitializer(llvm::Constant::getNullValue(LLTy));
     return GV;
 }
@@ -152,14 +160,14 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
     Value *RightOperand = visit(Op->getRightExpr());
 
     // Just an assertion, not needed for code gen.
-    auto LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    auto RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
-                                     " have reached the code gen");
+    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
+                                     " not have reached the code gen");
 
     llvm::CmpInst::Predicate Pred;
 
-    if (isa<RealTy>(LeftType)) {
+    if (isa<RealTy>(LTy)) {
         switch (Op->getOpKind()) {
             case ComparisonOp::GT:
                 Pred = llvm::CmpInst::Predicate::FCMP_OGT;
@@ -196,10 +204,10 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
-                                     " have reached the code gen");
+    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
+                                     "not have reached the code gen");
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
     auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
@@ -223,7 +231,9 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                 LeftOperand = IR.CreateSIToFP(LeftOperand, LLVMRealTy);
                 llvm::Value *RetVal = IR.CreateIntrinsic(
                         llvm::Intrinsic::experimental_constrained_powi,
-                        {LLVMRealTy, LLVMIntTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)},
+                        {LLVMRealTy, LLVMIntTy, llvm::Type::getMetadataTy(
+                                GlobalCtx), llvm::Type::getMetadataTy(
+                                        GlobalCtx)},
                         {LeftOperand, RightOperand, RoundingMD, ExceptionMD}
                 );
                 return IR.CreateFPToSI(RetVal, LLVMIntTy);
@@ -251,12 +261,16 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
             case ArithmeticOp::EXP:
                 return IR.CreateIntrinsic(
                         llvm::Intrinsic::experimental_constrained_pow,
-                        {LLVMRealTy, LLVMRealTy, llvm::Type::getMetadataTy(GlobalCtx), llvm::Type::getMetadataTy(GlobalCtx)},
+                        {LLVMRealTy, LLVMRealTy, llvm::Type::getMetadataTy(
+                                GlobalCtx),
+                         llvm::Type::getMetadataTy(GlobalCtx)},
                         {LeftOperand, RightOperand, RoundingMD, ExceptionMD}
                 );
 
         }
-        return IR.CreateConstrainedFPBinOp(IntrinsicID, LeftOperand, RightOperand, nullptr, "", nullptr, llvm::fp::rmDynamic, llvm::fp::ebStrict);
+        return IR.CreateConstrainedFPBinOp(
+                IntrinsicID, LeftOperand, RightOperand, nullptr, "", nullptr,
+                llvm::fp::rmDynamic, llvm::fp::ebStrict);
     }
 }
 
@@ -312,8 +326,10 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
-    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody", CurrentFunction);
-    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(GlobalCtx, "LoopEnd", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_body", CurrentFunction);
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_end", CurrentFunction);
 
     LoopBeginBlocks.push(LoopBody);
     LoopEndBlocks.push(LoopEnd);
@@ -332,9 +348,12 @@ llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
 }
 
 llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
-    llvm::BasicBlock *Header = llvm::BasicBlock::Create(GlobalCtx, "LoopHeader", CurrentFunction);
-    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(GlobalCtx, "LoopBody");
-    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(GlobalCtx, "LoopEnd", CurrentFunction);
+    llvm::BasicBlock *Header = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_header", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_body");
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_end", CurrentFunction);
 
     LoopBeginBlocks.push(Header);
     LoopEndBlocks.push(LoopEnd);
@@ -410,7 +429,7 @@ llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
 llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
     // All member expressions should be converted to a tuple access by an index
     // at this point
-    auto Cache = PM->getResource<SubExpressionCacheSet>();
+    auto &Cache = PM->getResource<SubExpressionCacheSet>();
     auto Val = Cache.getCached(MemberAcc->getExpr());
     auto Expr = Val ? Val : visit(MemberAcc->getExpr());
     if (Cache.shouldCache(MemberAcc->getExpr()))
@@ -421,9 +440,12 @@ llvm::Value *CodeGenPass::visitMemberAccess(MemberAccess *MemberAcc) {
 
 llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
 
-    llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(GlobalCtx, "CondHeader", CurrentFunction);
-    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(GlobalCtx, "CondTrue");
-    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(GlobalCtx, "CondFalse");
+    llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_header", CurrentFunction);
+    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_true");
+    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_false");
 
     IR.CreateBr(CondHeader);
     IR.SetInsertPoint(CondHeader);
@@ -444,10 +466,14 @@ llvm::Value *CodeGenPass::visitConditional(Conditional *Cond) {
 
 llvm::Value *CodeGenPass::visitConditionalElse(ConditionalElse *Cond) {
 
-    llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(GlobalCtx, "CondHeader", CurrentFunction);
-    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(GlobalCtx, "CondTrue", CurrentFunction);
-    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(GlobalCtx, "CondFalse", CurrentFunction);
-    llvm::BasicBlock *CondEnd = llvm::BasicBlock::Create(GlobalCtx, "CondEnd", CurrentFunction);
+    llvm::BasicBlock *CondHeader = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_header", CurrentFunction);
+    llvm::BasicBlock *CondTrue = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_true", CurrentFunction);
+    llvm::BasicBlock *CondFalse = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_false", CurrentFunction);
+    llvm::BasicBlock *CondEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "cond_end", CurrentFunction);
 
     IR.CreateBr(CondHeader);
 
@@ -483,34 +509,11 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type
                     getLLVMType(PM->TypeReg.getConstTypeOf(SrcTy))));
         case Type::TypeKind::T_Char:
             // TODO fix char
-            switch (SrcTy->getKind()) {
-                case Type::TypeKind::T_Int:
-                    return IR.CreateTrunc(Val, LLVMCharTy);
-                case Type::TypeKind::T_Bool:
-                    return IR.CreateZExt(Val, LLVMCharTy);
-                default:
-                    assert(false && "Invalid cast");
-            }
+            return CastOperation<Type::T_Char>::doCast(IR, Val, SrcTy);
         case Type::TypeKind::T_Int:
-            switch (SrcTy->getKind()) {
-                case Type::TypeKind::T_Char:
-                case Type::TypeKind::T_Bool:
-                    return IR.CreateZExt(Val, LLVMIntTy);
-                case Type::TypeKind::T_Real:
-                    return IR.CreateFPToSI(Val, LLVMIntTy);
-                default:
-                    assert(false && "Invalid cast");
-            }
+            return CastOperation<Type::T_Int>::doCast(IR, Val, SrcTy);
         case Type::TypeKind::T_Real:
-            switch (SrcTy->getKind()) {
-                case Type::TypeKind::T_Int:
-                    return IR.CreateSIToFP(Val, LLVMRealTy);
-                case Type::TypeKind::T_Char:
-                case Type::TypeKind::T_Bool:
-                    return IR.CreateUIToFP(Val, LLVMRealTy);
-                default:
-                    assert(false && "Invalid cast");
-            }
+            return CastOperation<Type::T_Real>::doCast(IR, Val, SrcTy);
         default:
             assert(false && "Invalid cast");
     }
@@ -537,8 +540,10 @@ llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
     auto Func = getOrInsertFunction(FuncTy, FuncName);
 
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "FuncEntry", Func);
-    llvm::BasicBlock *Body = llvm::BasicBlock::Create(GlobalCtx, "FuncBody", Func);
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(
+            GlobalCtx, "func_entry", Func);
+    llvm::BasicBlock *Body = llvm::BasicBlock::Create(
+            GlobalCtx, "func_body", Func);
     IR.SetInsertPoint(Body);
 
     // Set function arguments and set them in the symbol map
@@ -582,8 +587,10 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     auto Proc = getOrInsertFunction(ProcTy, ProcName);
 
     // Create a new basic block to start insertion into
-    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(GlobalCtx, "ProcEntry", Proc);
-    llvm::BasicBlock *Body = llvm::BasicBlock::Create(GlobalCtx, "ProcBody", Proc);
+    llvm::BasicBlock *Entry = llvm::BasicBlock::Create(
+            GlobalCtx, "proc_entry", Proc);
+    llvm::BasicBlock *Body = llvm::BasicBlock::Create(
+            GlobalCtx, "proc_body", Proc);
 
     IR.SetInsertPoint(Body);
 
@@ -596,9 +603,8 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     }
     CurrentFunction = Proc;
 
-    if (ProcName == "main") {
+    if (ProcName == "main")
         assignGlobals();
-    }
 
     // Visit function body
     visit(Def->getBlock());
@@ -633,12 +639,14 @@ llvm::Value *CodeGenPass::visitReturn(Return *Return) {
     else
         IR.CreateRet(visit(Return->getReturnExpr()));
 
-    llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(GlobalCtx, "AfterRet", CurrentFunction);
+    llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(
+            GlobalCtx, "after_ret", CurrentFunction);
     IR.SetInsertPoint(AfterRet);
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
-    llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(GlobalCtx, "AfterBreak", CurrentFunction);
+    llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(
+            GlobalCtx, "after_break", CurrentFunction);
     llvm::BasicBlock *LoopEnd = LoopEndBlocks.top();
 
     IR.CreateBr(LoopEnd);
@@ -649,7 +657,8 @@ llvm::Value *CodeGenPass::visitBreak(Break *Break) {
 
 llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 
-    llvm::BasicBlock *AfterContinue = llvm::BasicBlock::Create(GlobalCtx, "AfterContinue", CurrentFunction);
+    llvm::BasicBlock *AfterContinue = llvm::BasicBlock::Create(
+            GlobalCtx, "after_continue", CurrentFunction);
     llvm::BasicBlock *LoopEnd = LoopBeginBlocks.top();
 
     IR.CreateBr(LoopEnd);
@@ -727,11 +736,12 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
     assert(MemIdx && "Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
-    auto MemLoc = IR.CreateGEP(StructLoc, {IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
-    return MemLoc;
+    return IR.CreateGEP(StructLoc, {
+        IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
 }
 
-llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty, const string &Name) {
+llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty,
+                                                 const string &Name) {
 
     if (auto Func = Mod.getFunction(Name))
         return Func;
@@ -739,16 +749,12 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty, const string &N
     auto FuncTy = dyn_cast<FunctionTy>(Ty);
     auto ProcTy = dyn_cast<ProcedureTy>(Ty);
     assert(ProcTy || FuncTy);
-    vector<const Type *> ParamTys;
-    llvm::Type *RetTy;
-    if (FuncTy) {
-        ParamTys = FuncTy->getParamTypes();
-        RetTy = getLLVMType(FuncTy->getRetType());
-    }
-    else {
-        ParamTys = ProcTy->getParamTypes();
-        RetTy = getLLVMType(ProcTy->getRetTy());
-    }
+
+    auto ParamTys = FuncTy ? FuncTy->getParamTypes()
+            : ProcTy->getParamTypes();
+
+    auto RetTy = FuncTy ? getLLVMType(FuncTy->getRetType())
+            : getLLVMType(ProcTy->getRetTy());
 
     vector<llvm::Type*> LLVMParamTys;
     auto BuildLLVMTypes = [&](const Type *T) {
@@ -758,7 +764,6 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty, const string &N
     auto LLVMFuncTy = llvm::FunctionType::get(RetTy, LLVMParamTys, false);
     return llvm::Function::Create(LLVMFuncTy, llvm::Function::ExternalLinkage,
                                   Name, Mod);
-
 }
 
 llvm::Value *CodeGenPass::visitFunctionDecl(FunctionDecl *Decl) {

@@ -191,6 +191,8 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitRealLit3(GazpreaParser::RealLit3Context *ctx) override;
 
+    Block *wrapStmtInBlock(ASTNodeT *Stmt);
+
 public:
 
     explicit ASTBuilderPass(antlr4::tree::ParseTree *F): File(F) {};

@@ -23,6 +23,10 @@ struct Program: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_Program;
     }
 
+    ChildrenContainerT &getChildren() {
+        return Children;
+    }
+
     Program() : TreeNode(TreeNodeKind::N_AST_Program) {}
 };
 
