@@ -118,13 +118,12 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitBlock(Block *Blk);
 
     llvm::Value *createAlloca(const Type *Ty);
-    llvm::Value *createStructAlloca(llvm::StructType *Ty);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
     llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
     llvm::Type *getLLVMType(const Type *Ty);
-    llvm::Value *declareGlobal(string name, const Type *Ty);
+    llvm::Value *declareGlobal(const string &Name, const Type *Ty);
     void assignGlobals();
 
     llvm::Function *getOrInsertFunction(const Type *Ty, const string &Name);

@@ -11,7 +11,6 @@
 #include "Types/CompositeTypes.h"
 #include "ErrorHandling/exceptions.h"
 
-#include "Passes/ASTPrinterPass.h"
 #include "Passes/ScopeResolutionPass.h"
 #include "Passes/ConvertIdentMemberAccessToIdxPass.h"
 #include "Passes/AssignmentTypeCheckerPass.h"
@@ -34,6 +33,7 @@
 #include "Passes/LValueReferenceCheckPass.h"
 #include "Passes/ConvertFuncCallNodesToProcCallPass.h"
 #include "Passes/SubExpressionCacheSet.h"
+#include "Passes/BubbleGlobalDeclarationPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -134,7 +134,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 //
