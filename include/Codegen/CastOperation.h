@@ -13,7 +13,7 @@
 
 template<Type::TypeKind DestT>
 struct CastOperation {
-    static llvm::Value *doCast(llvm::IRBuilder<> &IR, llvm::Value *Val, const Type *SrcTy) {
+    static llvm::Value *doCast(llvm::IRBuilder<>&, llvm::Value*, const Type*) {
         throw std::runtime_error("Invalid cast");        
     }
 };
