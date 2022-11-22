@@ -65,6 +65,7 @@ public:
         N_AST_OutStream,
         N_AST_InStream,
         N_AST_ExplicitCast,
+        N_AST_Vector,
 
         // Split AST nodes from tree node.
         N_ScopeTreeNode

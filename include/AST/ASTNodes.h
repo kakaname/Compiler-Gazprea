@@ -1084,4 +1084,36 @@ struct MemberReference : public TreeNode {
     MemberReference() : TreeNode(TreeNodeKind::N_AST_MemberReference) {}
 };
 
+struct Vector: public TreeNode {
+    const Type *MemType;
+    int vecSize;    
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Vector;
+    }
+    void setSize(const int x){
+        vecSize = x;
+    }
+    int getSize(){
+        return vecSize;
+    }
+
+    void setMemberType(const Type *T){
+        MemType = T;
+    }
+    const Type *getMemberType() const {
+        return MemType;
+    }
+
+    void setMember(ASTNodeT *Member, size_t location) {
+        setChildAt(location, Member);
+    } 
+
+    ASTNodeT *getMember(size_t location) {
+        return getChildAt(location);
+    }
+
+    Vector() : TreeNode(TreeNodeKind::N_AST_Vector) {};
+    
+};
 #endif //GAZPREABASE_ASTNODES_H
