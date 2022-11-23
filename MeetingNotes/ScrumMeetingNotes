@@ -1,6 +1,133 @@
 ============================================================================================
 *** Meeting Date/Time start/end:
+ 1/11/2022 3:30 PM
+ 1/11/2022 4:00 PM
 *** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
 *** Progress:
+- No progress from members, busy with classes
 *** Issues:
+- No current ones
 *** Actions:
+- Rajan: complete the grammar
+- Dhanraj: import the pass manager and create new "TypeRegistry" area for all types to be minted
+- Yufei: work on ASTNodes
+- Young: work on unit tests
+============================================================================================
+*** Meeting Date/Time start/end:
+ 3/11/2022 3:30 PM
+ 3/11/2022 4:00 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: havent had time to work on grammar, will request one more day to flesh it out to
+  the best of my ablility
+- Dhanraj: continuing work on the pass manager and types
+- Yufei: has been drafting ASTNodes and their relationships
+- Young: has been working on more unit tests
+*** Issues:
+- Just need to speed up the work!
+- Pass manager and types require much more work than before, Dhanraj would like to take more time
+  now to set it up properly for Part 1 and Part 2
+- Type system is required for the rest of the project to function
+*** Actions:
+- Rajan: complete grammar by tomorrow
+- Dhanraj: finish up pass manager
+- Yufei: finish up ASTNodes planning and present
+- Young: continue working on unit tests
+============================================================================================
+*** Meeting Date/Time start/end:
+ 8/11/2022 2:00 PM
+ 8/11/2022 2:30 PM
+*** Attendees:
+ Rajan
+ Young
+ Yufei
+ (Dhanraj out of town)
+*** Progress:
+- Rajan: Worked on types for stream ASTs, basic codegen for streams, and all ASTs
+- Yufei: Been completing the ASTBuilder for all types, using new AST nodes
+- Young: Fleshing out what things we need to worry about, to reach spec.
+*** Issues:
+- We are working independently, so merging will be very tough. Will focus on trying to
+  complete as much as possible so as much logic is covered in our own stuff
+- Haven't started on the "meat" of the assignment, just the base boilerplate
+*** Actions:
+- Rajan: have a good idea for functions and their return value checking, will work on that
+- Yufei and Young: will work together on the final ASTNodes with the VisitorPass
+============================================================================================
+*** Meeting Date/Time start/end:
+ 10/11/2022 2:00 PM
+ 10/11/2022 2:30 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: Function flow pass, does all function rule checking, and function flow checking with returns (and started procedures)
+- Yufei: Loop base stuff, explicit casting added, visitor pass constructed
+- Young: Worked with Yufei on VisitorPass
+- Dhanraj: Type system still under construction, holding up the rest of our work
+
+*** Issues:
+- Need to finish type system ASAP
+- These passes do not match up with Dhanraj's passes, but need to get it done ASAP, so logic will be used, will fix on Sat
+*** Actions:
+- Rajan: runtime functions and codegen
+- Yufei: null and type checks, based off of spec
+- Dharnaj: working on passes for checking stuff
+- Young: completing the visitor pass
+============================================================================================
+*** Meeting Date/Time start/end:
+ 16/11/2022 3:30 PM
+ 16/11/2022 4:00 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: most of runtime works okay, full new codegen pushed
+- Dhanraj: frontend checks with procedures/functions, like aliasing
+- Yufei: fix null identity check and type checking, updated work on ExprTypeAnnotatorPass
+- Young: updated tests
+*** Issues:
+- Completely forgot about tuple unpacking, will not have time to complete it
+- Char literals do not work
+- Original passes created over reading week do not work, need to rewrite them
+*** Actions -- all as passes:
+- Dhanraj: Tuple codegen, tuple check member access for procedue (aliasing), declaration at beginning, return procedures
+- Rajan: Char literal fix, Error handling
+- Yufei: Procedure call rules (in basic expressions,)
+- Young: Global no functions check, function I/O rules
+============================================================================================
+*** Meeting Date/Time start/end:
+ 17/11/2022 8:00 PM
+ 17/11/2022 8:30 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: floating point ops with rounding mode fixed, fix char literal, added error handling and context to each AST node
+- Young: added global no functions check, function I/O rules, both as passes
+- Yufei: finished the procedure call rules, Dhanraj to look over it
+- Dhanraj: finished previous work
+*** Issues:
+- Reals with exponents do not parse properly
+- InStream is very error prone, functions are not called properly from llvm IR
+- All tests
+*** Actions:
+- Rajan and Yufei: fix exponential real parsing
+- Rajan: rework InStream to return, global constants
+- Young: check copy pass,
+- Young and Yufei: edge case tests (at least 80) and fix bugs with them
+- Dhanraj: bug fixes, none in particular, just to pass all tests

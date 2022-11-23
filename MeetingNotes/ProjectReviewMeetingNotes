@@ -1,10 +1,118 @@
 ============================================================================================
 *** Meeting Date/Time start/end:
+ 28/10/2022 2:00 PM
+ 28/10/2022 3:30 PM
 *** Attendees:
-*** Late arrivals (Person (time)):
-*** Early departures (Person(time)):
-*** Member's Progress:
+ Dhanraj (left at 3:00 PM)
+ Rajan
+ Young
+ Yufei
 *** Discussion items/agenda:
+- Use this meeting to decide on conventions, major project direction
+- Base project will be based on chen-hira's vcalc implementation
+- Discussion on pass system to be used
+
+1. Conventions
+- LLVM style guide
+- LLVM's programmer manual
+- Use branches/PRs minus the first commits
+- Conflict strategy: majority vote
+- Testing strategy: write tests, but only able to test near the end, we will
+  complete one stage at a time
+- Chair will be Dhanraj
+- Minutes and scrum leader will be Rajan
+- Use GitHub Project Tracker for issues
+
+2. New AST Nodes
+- Will be adding Literals and CastTo
+- Passes will be added to the project to split AST nodes into smaller nodes for final codegen
+
+3. Type System
+- All types will be pointers to a type
+- Ex. int and float will be same pointer
+- Can perform basic pointer operations on types
+
+*** Member's Progress:
+- Dhanraj and Yufei: worked on ASTNodes and Pass manager throughout VCalc
+- Will be spliting up work through GitHub
 *** Actions:
+- Dhanraj: Merge in ASTNodes and Pass manager, finalize it
+- Rajan, Yufei, Young: Work on grammar together
 *** Outstanding Issues:
+- Grammar has to be done ASAP before ASTNodes can be generated
+- Have to come up with a list of ASTNodes we want
+- Hard to split up tasks when we have no code
 *** Round table:
+- Rajan: wants to take on the first bit of the grammar
+- Young: wants to start writing unit tests
+- Dhanraj: will be finishing up the pass manager as required
+- Yufei: will be working on the grammar after Rajan, and finalizing ASTNodes
+============================================================================================
+*** Meeting Date/Time start/end:
+ 4/11/2022 2:00 PM
+ 4/11/2022 3:15 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Member's Progress:
+- Rajan: Finished base grammar
+- Young: Very basic implementation of unit tests
+- Dhanraj: 50% ASTNodes and Pass manager, started working on basic passes
+- Yufei: Started working on ASTBuilder, copy from VCalc
+*** Discussion items/agenda:
+1. Grammar
+- Rajan finished the grammar, still a lot of issues
+- Will be pushing today for everyone to have a look
+- Used C grammar as the base, ANTLR page great resource for grammar
+
+2. Nodes
+- Tuples will probably be the hardest part?
+- Need a node for Casts, Identity and Null
+
+3. Tuples
+- Deconstruct them for all operations
+
+4. Reading Week Plan
+- Discussed and in GitHub Project
+
+*** Outstanding Issues:
+- We have our own work, but we need to combine the conflicts to ensure it works together.
+- All operations depend on eachother
+*** Actions/Round table:
+- Rajan wiil upload a list of ASTs to the repo, to guide the rest of us
+- Dhanraj will upload his pass manager to the repo,
+- Young will come up with basic codegen logic
+- Yufei will work on ASTBuilder
+============================================================================================
+*** Meeting Date/Time start/end:
+ 12/11/2022 2:00 PM
+ 12/11/2022 3:15 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Member's Progress:
+- Rajan: Worked on major runtime functions (output and input streams), compile time errors, codegen for loops/base types/functions, declaration rules
+- Young: Worked on base grammar tests, declaration verification
+- Yufei: Worked on ASTBuilder, ASTNodes, and most importantly the visitor pass, which includes scoping and type checking
+- Dhanraj: Worked on passes, where a lot of these rules should be
+*** Discussion items/agenda:
+1. Project "Rebase"
+- We have been accidentally doing other people's work
+- Need to make sure everything works with (mainly) the type system
+- Dhanraj will take the reigns on organizing the others' work into smaller passes
+
+2. Types and Declarations
+- Come from ExprTypeAnnotationPass
+
+*** Outstanding Issues:
+- Rebase stuff with Dhanraj's work
+- Type system equivalences do not work as intended (with annotated const information), need to add another method
+*** Actions/Round table:
+- Rajan: will continue to take on the CodeGen and stream functions (error checking)
+- Dhanraj: will complete those passes, based on our work and his type system, and will update us
+- Young: will work on compilation error recognition
+- Yufei: will work on the visitor pass, and will ensure scoping is done
