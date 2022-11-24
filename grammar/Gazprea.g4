@@ -46,10 +46,10 @@ identDecl
 assignment : lvalue EQ expr SC;
 
 lvalue
-    : expr LSQRPAREN expr RSQRPAREN     # indexLValue
-    | ID PERIOD (ID | INTLITERAL)       # memAccessLValue
-    | ID COMMA ID (COMMA ID)*           # tupleUnpackLValue
-    | ID                                # identLValue
+    : expr LSQRPAREN expr RSQRPAREN         # indexLValue
+    | ID PERIOD (ID | INTLITERAL)           # memAccessLValue
+    | lvalue COMMA lvalue (COMMA lvalue)*   # tupleUnpackLValue
+    | ID                                    # identLValue
     ;
 
 index : expr LSQRPAREN expr RSQRPAREN;
