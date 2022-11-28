@@ -1,0 +1,15 @@
+procedure main() returns integer {
+  // vector decl
+   integer[1] a;
+   integer[*] a1 = [1,2];
+   integer[3-1] a3 = [1,2];
+   integer[*] a4 = [];
+
+    length(a) -> std_output;
+    length(a1) -> std_output;
+    length(a3) -> std_output;
+    length(a4) -> std_output;
+    
+  /* must have a return */
+  return 0;
+}

@@ -1,0 +1,6 @@
+procedure main() returns integer {
+  // to be done
+    
+  /* must have a return */
+  return 0;
+}

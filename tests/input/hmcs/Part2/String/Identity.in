@@ -1,0 +1,8 @@
+procedure main() returns integer {
+  // vector decl
+    string[4] a = identity;
+    a -> std_output;
+
+  /* must have a return */
+  return 0;
+}
