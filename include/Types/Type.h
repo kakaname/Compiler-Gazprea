@@ -60,6 +60,7 @@ public:
             case T_Bool:
             case T_Real:
             case T_Char:
+            case T_Interval:
                 return T->getKind() == Kind;
             case T_Tuple:
                 return isSameTupleTypeAs(this, T);
@@ -72,11 +73,11 @@ public:
     }
 
     bool isValidForArithOps() const {
-        return T_Int == Kind || T_Real == Kind;
+        return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
     bool isValidForComparisonOp() const {
-        return T_Real == Kind || T_Int == Kind;
+        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
     bool isValidForUnaryNot() const {
@@ -84,7 +85,7 @@ public:
     }
 
     bool isValidForUnaryAddOrSub() const {
-        return T_Real == Kind || T_Int == Kind;
+        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
     bool isValidForEq() const {
@@ -92,11 +93,12 @@ public:
             case T_Real:
             case T_Int:
             case T_Bool:
+            case T_Interval:
                 return true;
             case T_Tuple:
                 return doesTupleSupportEq(this);
         }
-        return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
+        return T_Real == Kind || T_Int == Kind || T_Bool == Kind || T_Interval == Kind;
     }
 
     bool isInputTy() const {
@@ -179,6 +181,8 @@ public:
                 return getFunctionTypeName(this);
             case T_Procedure:
                 return getProcedureTypeName(this);
+            case T_Interval:
+                return TypeName + "interval";
         }
         assert(false);
     }

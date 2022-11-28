@@ -35,6 +35,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitIdentityLiteral(IdentityLiteral *Identity);
     const Type *visitBoolLiteral(BoolLiteral *Bool);
     const Type *visitCharLiteral(CharLiteral *Char);
+    const Type *visitInterval(Interval *Int);
 
 
     void setOpaqueTyCastTargetTy(const Type *Ty) {
