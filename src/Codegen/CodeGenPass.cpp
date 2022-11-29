@@ -122,6 +122,14 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     auto *Val = visit(Assign->getExpr());
     auto *Loc = visit(Assign->getAssignedTo());
+
+
+    // FIXME hotfix for bool assignment into vector
+    auto *ValTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+    if (isa<IndexReference>(Assign->getAssignedTo()) &&
+        ValTy->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+        Val = IR.CreateZExt(Val, LLVMCharTy);
+    }
     return IR.CreateStore(Val, Loc);
 }
 
@@ -352,7 +360,15 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
     llvm::Value *ElementPtr = IR.CreateInBoundsGEP(MallocPtr, Index);
 
     // Get the element
-    return IR.CreateLoad(ElementPtr);
+    llvm::Value *Element = IR.CreateLoad(ElementPtr);
+
+    // Update if the element is a bool
+    // TODO move to casting logic
+    if (dyn_cast<VectorTy>(BaseType)->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+        Element = IR.CreateICmpNE(Element, llvm::ConstantInt::get(LLVMCharTy, 0));
+    }
+
+    return Element;
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
@@ -851,6 +867,8 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
         auto Elem = VecLit->getChildAt(i);
         auto ElemVal = visit(Elem);
         auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        if (VecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
+            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
         IR.CreateStore(ElemVal, ElemPtr);
     }
 
