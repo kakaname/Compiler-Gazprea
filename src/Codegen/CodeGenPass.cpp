@@ -46,6 +46,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     ScanBool = Mod.getOrInsertFunction(
             "rt_scan_bool", llvm::FunctionType::get(
                     LLVMBoolTy, {}, false));
+    Malloc = Mod.getOrInsertFunction(
+            "malloc", llvm::FunctionType::get(
+                    LLVMPtrTy, {LLVMIntTy}, false));
 
     visit(Root);
 
@@ -81,6 +84,8 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
             return getLLVMFunctionType(cast<FunctionTy>(Ty));
         case Type::TypeKind::T_Procedure:
             return getLLVMProcedureType(cast<ProcedureTy>(Ty));
+        case Type::TypeKind::T_Vector:
+            return ConstConv(LLVMVectorTy, Ty->isConst());
         default:
             assert(false && "Unknown type");
     }
@@ -91,6 +96,13 @@ llvm::Type *CodeGenPass::getLLVMTupleType(const TupleTy *Tuple) {
     for (const Type *SubTy : Tuple->getMemberTypes())
         TupleTypes.push_back(getLLVMType(PM->TypeReg.getConstTypeOf(SubTy)));
     return llvm::StructType::get(GlobalCtx, TupleTypes);
+}
+
+llvm::Type *CodeGenPass::getLLVMVectorType(const VectorTy *Vector) {
+    // Deprecated, uses array type
+    return llvm::ArrayType::get(getLLVMType(
+            PM->TypeReg.getConstTypeOf(Vector->getInnerTy())),
+            Vector->getSize());
 }
 
 llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
@@ -322,7 +334,25 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
-    assert(false && "Indexing not implemented");
+    llvm::Value *Vec = visit(Idx->getBaseExpr());
+    llvm::Value *Index = visit(Idx->getIndexExpr());
+
+    // get types of the base expression and the index expression
+    const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
+    const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
+    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
+    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    // TODO Check that the index is within the bounds of the array
+
+    // Get malloc pointer from array struct
+    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+
+    // Get the element pointer
+    llvm::Value *ElementPtr = IR.CreateInBoundsGEP(MallocPtr, Index);
+
+    // Get the element
+    return IR.CreateLoad(ElementPtr);
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
@@ -732,6 +762,27 @@ llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
     return SymbolMap[Ref->getIdentifier()->getReferred()];
 }
 
+llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
+    Value *Vec = visit(Ref->getBaseExpr());
+    Value *Idx = visit(Ref->getIndexExpr());
+
+    // get types of the base expression and the index expression
+    const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
+    const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
+    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
+    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    // TODO Check that the index is within the bounds of the array
+
+    // Get malloc pointer from array struct
+    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+
+    // Get the element pointer
+    return IR.CreateInBoundsGEP(MallocPtr, Idx);
+
+
+}
+
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
     assert(MemIdx && "Only int literals should reach here");
@@ -781,4 +832,92 @@ llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
 llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
     for (auto Child: *Blk)
         visit(Child);
+
+    // TODO free unnecessary vectors
+}
+
+llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
+    auto VecTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
+    assert(VecTy && "Invalid vector type");
+
+    auto VecSize = VecTy->getSize();
+    assert(VecSize >= 0 && "All vector literals should have a size");
+
+    llvm::Value *Result = CreateVectorStruct(VecTy->getInnerTy()->getKind(), VecSize, true);
+    auto MallocPtr = CreateVectorMallocPtrAccess(Result, VecTy);
+
+    // store the elements in the vector
+    for (int i = 0; i < VecSize; i++) {
+        auto Elem = VecLit->getChildAt(i);
+        auto ElemVal = visit(Elem);
+        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        IR.CreateStore(ElemVal, ElemPtr);
+    }
+
+    return Result;
+
+}
+
+llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc) {
+    uint32_t InnerTyEnum;
+    uint32_t InnerTySize;
+    switch (TyKind) {
+        case Type::TypeKind::T_Bool:
+            InnerTyEnum = 0;
+            InnerTySize = 1;
+            break;
+        case Type::TypeKind::T_Char:
+            InnerTyEnum = 1;
+            InnerTySize = 1;
+            break;
+        case Type::TypeKind::T_Int:
+            InnerTyEnum = 2;
+            InnerTySize = 4;
+            break;
+        case Type::TypeKind::T_Real:
+            InnerTyEnum = 3;
+            InnerTySize = 4;
+            break;
+        default:
+            assert(false && "Invalid vector inner type");
+    }
+
+    llvm::Value *Result = llvm::ConstantStruct::get(
+            LLVMVectorTy, {
+                    IR.getInt32(size),
+                    IR.getInt32(0),
+                    IR.getInt32(InnerTyEnum),
+                    llvm::ConstantPointerNull::get(LLVMPtrTy)
+            });
+
+    if (malloc) {
+        // malloc space for the vector
+        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt32(size * InnerTySize)});
+
+        // store the malloced pointer in the vector
+        Result = IR.CreateInsertValue(Result, MallocCall, {3});
+    }
+
+    return Result;
+}
+
+llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind) {
+    // By default, all pointers to the data/malloc area of a vector are of type i8*. This function
+    // casts the pointer to the appropriate type pointer.
+    switch (TyKind) {
+        case Type::TypeKind::T_Bool:
+        case Type::TypeKind::T_Char:
+            return VecPtr;
+        case Type::TypeKind::T_Int:
+            return IR.CreateBitCast(VecPtr, llvm::Type::getInt32PtrTy(GlobalCtx));
+        case Type::TypeKind::T_Real:
+            return IR.CreateBitCast(VecPtr, llvm::Type::getFloatPtrTy(GlobalCtx));
+        default:
+            assert(false && "Invalid vector inner type");
+    }
+}
+
+llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy) {
+    auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
+    MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
 }

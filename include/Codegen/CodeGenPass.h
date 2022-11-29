@@ -21,6 +21,8 @@
 #include "Symbol/Symbol.h"
 
 
+// NOTE: all pointers are stored as i8* in the IR and bitcasted to the correct type when used
+
 struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     using AnnotationT = llvm::Value*;
 
@@ -35,7 +37,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *LLVMCharTy;
     llvm::Type *LLVMRealTy;
     llvm::Type *LLVMVoidTy;
-    llvm::Type *LLVMPtrTy;
+    llvm::PointerType *LLVMPtrTy;
+    llvm::StructType *LLVMVectorTy;
 
     llvm::Function *CurrentFunction{};
     llvm::Function *GlobalFunction{};
@@ -50,6 +53,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee ScanReal;
     llvm::FunctionCallee ScanChar;
     llvm::FunctionCallee ScanBool;
+    llvm::FunctionCallee Malloc;
 
     // Runtime buffer location
     llvm::Value *BufferPtr;
@@ -72,7 +76,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
         LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
         LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
-        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt32PtrTy(GlobalCtx)) {};
+        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)),
+        LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMPtrTy})) {};
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
@@ -114,14 +119,20 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitOutStream(OutStream *OutStream);
     llvm::Value *visitInStream(InStream *InStream);
     llvm::Value *visitIdentReference(IdentReference *Ref);
+    llvm::Value *visitIndexReference(IndexReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
+    llvm::Value *visitVectorLiteral(VectorLiteral *VecLit);
     llvm::Value *visitBlock(Block *Blk);
 
     llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc = false);
+    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
+    llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
     llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
     llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
     llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
+    llvm::Type *getLLVMVectorType(const VectorTy *VecTy);
     llvm::Type *getLLVMType(const Type *Ty);
     llvm::Value *declareGlobal(const string &Name, const Type *Ty);
     void assignGlobals();
