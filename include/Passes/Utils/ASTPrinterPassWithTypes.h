@@ -48,6 +48,10 @@ public:
         std::cout << "Block" << "\n";
     }
 
+    void visitInterval(Interval *Int) {
+        std::cout << "Interval" << "\n";
+    }
+
     void visitIdentReference(IdentReference *Ref) {
         std::cout << "Ident Reference(Ty: "
                   << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";

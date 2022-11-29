@@ -52,8 +52,6 @@ lvalue
     | ID                                    # identLValue
     ;
 
-index : expr LSQRPAREN expr RSQRPAREN;
-
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
 
@@ -82,6 +80,7 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
+     | INTEGER INTERVAL                                 #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
      | BOOLEANA                                         #booleanType

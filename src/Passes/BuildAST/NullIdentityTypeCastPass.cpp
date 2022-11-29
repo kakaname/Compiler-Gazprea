@@ -15,6 +15,7 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
 
     bool IsNull = isa<NullTy>(ExprTy);
     auto IsTupleTy = isa<TupleTy>(Cast->getTargetType());
+    auto IsIntervalTy = isa<IntervalTy>(Cast->getTargetType());
     if (IsTupleTy) {
         auto TupleLit = PM->Builder.build<TupleLiteral>();
         TupleLit->copyCtx(Cast);
@@ -28,6 +29,19 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
             TupleLit->setExprAtPos(ExprAtPos, I);
         }
         Cast->getParent()->replaceChildWith(Cast, TupleLit);
+        return;
+    } else if (IsIntervalTy) {
+        auto IntervalLit = PM->Builder.build<Interval>();
+        IntervalLit->copyCtx(Cast);
+
+        auto IntervalType = cast<IntervalTy>(Cast->getTargetType());
+        auto LowerBound = getScalarLiteral(IntervalType->getKind(), IsNull);
+        LowerBound->copyCtx(Cast);
+        auto UpperBound = getScalarLiteral(IntervalType->getKind(), IsNull);
+        UpperBound->copyCtx(Cast);
+        IntervalLit->setLowerExpr(LowerBound);
+        IntervalLit->setUpperExpr(UpperBound);
+        Cast->getParent()->replaceChildWith(Cast, IntervalLit);
         return;
     }
     // Scalar Types
@@ -52,6 +66,7 @@ ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type::TypeKind Kind, bool I
             return CharLit;
         }
         case Type::T_Int:
+        case Type::T_Interval:
         {
             auto IntLit = PM->Builder.build<IntLiteral>();
             IntLit->setIntVal(!IsNull);

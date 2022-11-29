@@ -37,6 +37,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *LLVMVoidTy;
     llvm::Type *LLVMPtrTy;
 
+    llvm::StructType *LLVMIntervalTy;
+
     llvm::Function *CurrentFunction{};
     llvm::Function *GlobalFunction{};
     llvm::Function *MainFunction{};
@@ -72,7 +74,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
         LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
         LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
-        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt32PtrTy(GlobalCtx)) {};
+        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt32PtrTy(GlobalCtx)),
+        LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})) {}
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
@@ -116,6 +119,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIdentReference(IdentReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
     llvm::Value *visitBlock(Block *Blk);
+    llvm::Value *visitInterval(Interval *Interval);
 
     llvm::Value *createAlloca(const Type *Ty);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
