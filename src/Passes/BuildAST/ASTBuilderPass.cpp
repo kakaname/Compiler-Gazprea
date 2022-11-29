@@ -257,9 +257,20 @@ std::any ASTBuilderPass::visitResolvedType(GazpreaParser::ResolvedTypeContext *c
     return TypeSym->getType();
 }
 
-// Ignore for part1
 std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+
+    // determine type of inner
+    auto Type = castToTypeVisit(ctx->type());
+
+    // determine if we have a known size or wildcard
+    auto Size = ctx->expressionOrWildcard();
+    if (Size->MUL()){
+        return PM->TypeReg.getVectorType(Type);
+    } else {
+        // TODO constant fold integer expressions if known
+        // for the time being, we are using a wildcard
+        return PM->TypeReg.getVectorType(Type);
+    }
 }
 
 // Ignore for part1
@@ -760,7 +771,17 @@ std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx
 
 // ignored for part1
 std::any ASTBuilderPass::visitIndexExpr(GazpreaParser::IndexExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto IndexExpr = PM->Builder.build<Index>();
+    IndexExpr->setCtx(ctx);
+
+    // Set the left expression.
+    IndexExpr->setBaseExpr(castToNodeVisit(ctx->expr(0)));
+
+    // Set the right expression.
+    IndexExpr->setIndexExpr(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(IndexExpr);
+
 }
 
 
@@ -771,8 +792,17 @@ std::any ASTBuilderPass::visitTupleLiteral(GazpreaParser::TupleLiteralContext *c
     for (auto *Child : ctx->expr())
         TupleLit->addChild(castToNodeVisit(Child));
 
-    // std::any shenanigans.
     return cast<ASTNodeT>(TupleLit);;
+}
+
+std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext *ctx) {
+    auto VectorLit = PM->Builder.build<VectorLiteral>();
+    VectorLit->setCtx(ctx);
+
+    for (auto *Child : ctx->expr())
+        VectorLit->addChild(castToNodeVisit(Child));
+
+    return cast<ASTNodeT>(VectorLit);;
 }
 
 // ignored for part1
@@ -936,7 +966,11 @@ std::any ASTBuilderPass::visitIdentLValue(GazpreaParser::IdentLValueContext *ctx
 }
 
 std::any ASTBuilderPass::visitIndexLValue(GazpreaParser::IndexLValueContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto IdxRef = PM->Builder.build<IndexReference>();
+    IdxRef->setCtx(ctx);
+    IdxRef->setBaseExpr(castToNodeVisit(ctx->expr(0)));
+    IdxRef->setIndexExpr(castToNodeVisit(ctx->expr(1)));
+    return cast<ASTNodeT>(IdxRef);
 }
 
 std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueContext *ctx) {
