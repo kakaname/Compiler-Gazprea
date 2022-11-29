@@ -378,6 +378,29 @@ const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
     return PM->TypeReg.getCharTy();
 }
 
+const Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
+    auto BaseTy = visit(Ref->getBaseExpr());
+    if (!BaseTy)
+        throw runtime_error("Base type not set for index reference.");
+    if (BaseTy->getKind() != Type::TypeKind::T_Vector)
+        throw runtime_error("Base type is not a vector.");
+    // TODO check if baseexpr is simply an ID?
+    auto VecTy = dyn_cast<VectorTy>(BaseTy);
+
+    auto IdxTy = visit(Ref->getIndexExpr());
+    if (!IdxTy)
+        throw runtime_error("Index type not set for index reference.");
+    // TODO run pass to convert vector indexing to simple loop
+    if (!IdxTy->isSameTypeAs(PM->TypeReg.getIntegerTy()))
+        throw runtime_error("Index type is not an integer.");
+
+    auto ResultTy = VecTy->getInnerTy();
+    ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+    return ResultTy;
+
+}
+
 const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     auto BaseTy = visit(Ref->getIdentifier());
     assert(BaseTy && "Type not assigned to identifier.");
@@ -428,4 +451,56 @@ const Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
     auto RetTy = ProcTy->getRetTy();
     PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
     return RetTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
+    const Type *VecTy = nullptr;
+    // Pass 1: Check if all elements are of the same or promotable type (get the highest type)
+    for (auto *ChildExpr : *VecLit) {
+        const Type *ChildTy = visit(ChildExpr);
+
+        if (!ChildTy->isScalarTy())
+            throw std::runtime_error("Vector literal can only contain scalar types");
+
+        if (!VecTy) {
+            VecTy = ChildTy;
+            continue;
+        }
+
+        VecTy = ChildTy->getPromotedType(VecTy);
+        if (!VecTy)
+            throw std::runtime_error("Vector literal can only contain scalar types of the same or promotable types");
+    }
+
+    // Pass 2: Promote all elements to the highest type
+    for (auto *ChildExpr : *VecLit) {
+        auto ChildTy = visit(ChildExpr);
+        if (ChildTy->canPromoteTo(VecTy)) {
+            wrapWithCastTo(ChildExpr, VecTy);
+        }
+    }
+
+    // Get the vector type
+    VecTy = PM->TypeReg.getVectorType(VecTy, VecLit->numOfChildren());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, VecTy);
+    return VecTy;
+
+}
+
+const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
+    auto BaseTy = visit(Idx->getBaseExpr());
+    auto VecTy = dyn_cast<VectorTy>(BaseTy);
+
+    if (!VecTy)
+        throw std::runtime_error("Indexing can only be done on vector types");
+
+    auto IdxTy = visit(Idx->getIndexExpr());
+    auto IntTy = dyn_cast<IntegerTy>(IdxTy);
+    if (!IntTy)
+        throw std::runtime_error("Indexing can only be done with integer types");
+
+    auto ResultTy = VecTy->getInnerTy();
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+    return ResultTy;
+
 }

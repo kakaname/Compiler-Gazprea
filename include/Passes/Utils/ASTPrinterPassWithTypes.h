@@ -146,6 +146,10 @@ public:
         std::cout << "TupleLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(TupleLit)->getTypeName() << ")" << "\n";
     }
 
+    void visitVectorLiteral(VectorLiteral *Vec) {
+        std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
+    }
+
     void visitMemberAccess(MemberAccess *MemberAcc) {
         std::cout << "MemberAccess(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(MemberAcc)->getTypeName() << ")" << "\n";
     }

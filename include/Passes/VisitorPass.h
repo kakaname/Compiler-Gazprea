@@ -74,6 +74,12 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitIndexReference(IndexReference *Ref) {
+        visit(Ref->getBaseExpr());
+        visit(Ref->getIndexExpr());
+        return RetT();
+    }
+
     RetT visitInfiniteLoop(InfiniteLoop *Loop) {
         visit(Loop->getBlock());
         return RetT();
@@ -236,6 +242,12 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
         return visit(ExplicitCast->getExpr());
+    }
+
+    RetT visitVectorLiteral(VectorLiteral *Vector) {
+        for (auto *child : *Vector)
+            visit(child);
+        return RetT();
     }
 
 
@@ -407,6 +419,17 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitExplicitCast(C);
     }
 
+    RetT callVisitVectorLiteralImpl(VectorLiteral *V) {
+        return static_cast<DerivedT*>(this)->visitVectorLiteral(V);
+    }
+
+    RetT callVisitIndexImpl(Index *I) {
+        return static_cast<DerivedT*>(this)->visitIndex(I);
+    }
+
+    RetT callVisitIndexReferenceImpl(IndexReference *I) {
+        return static_cast<DerivedT*>(this)->visitIndexReference(I);
+    }
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
@@ -442,7 +465,10 @@ public:
             return callVisitArithmeticOpImpl(ArithOp);
 
         if (auto *Idx = dyn_cast<Index>(Node))
-            throw std::runtime_error("Unimplemented");
+            return callVisitIndexImpl(Idx);
+
+        if (auto *IdxRef = dyn_cast<IndexReference>(Node))
+            return callVisitIndexReferenceImpl(IdxRef);
 
         if (auto *InfLoop = dyn_cast<InfiniteLoop>(Node))
             return callVisitInfiniteLoopImpl(InfLoop);
@@ -543,6 +569,9 @@ public:
 
         if (auto *Cast = dyn_cast<ExplicitCast>(Node))
             return callVisitExplicitCastImpl(Cast);
+
+        if (auto *Vec = dyn_cast<VectorLiteral>(Node))
+            return callVisitVectorLiteralImpl(Vec);
 
         assert(false && "Should be unreachable");
     }
