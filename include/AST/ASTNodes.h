@@ -1126,4 +1126,14 @@ struct MemberReference : public TreeNode {
     MemberReference() : TreeNode(TreeNodeKind::N_AST_MemberReference) {}
 };
 
+
+struct FreeNode : public TreeNode {
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_FreeNode;
+    }
+
+    FreeNode() : TreeNode(TreeNodeKind::N_AST_FreeNode) {}
+};
+
 #endif //GAZPREABASE_ASTNODES_H

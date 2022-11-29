@@ -66,6 +66,7 @@ public:
         N_AST_InStream,
         N_AST_ExplicitCast,
         N_AST_Interval,
+        N_AST_FreeNode,
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
     };

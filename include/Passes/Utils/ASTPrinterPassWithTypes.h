@@ -234,6 +234,10 @@ public:
         std::cout << "ExplicitCast(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast)->getTypeName() << ")" << "\n";
     }
 
+    void visitFreeNode(FreeNode *FreeNode) {
+        std::cout << "FreeNode" << "\n";
+    }
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;

@@ -42,6 +42,10 @@ public:
         std::cout << "Block" << "\n";
     }
 
+    void visitInterval(Interval *Int) {
+        std::cout << "Interval" << "\n";
+    }
+
     void visitComparisonOp(ComparisonOp *Op);
 
     void visitArithmeticOp(ArithmeticOp *Op);
@@ -222,6 +226,9 @@ public:
         std::cout << "ExplicitCast" << "\n";
     }
 
+    void visitFreeNode(FreeNode *FreeNode) {
+        std::cout << "FreeNode" << "\n";
+    }
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
