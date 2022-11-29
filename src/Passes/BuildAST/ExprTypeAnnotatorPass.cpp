@@ -473,10 +473,12 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     }
 
     // Pass 2: Promote all elements to the highest type
-    for (auto *ChildExpr : *VecLit) {
+    for (int i = 0; i < VecLit->numOfChildren(); i++) {
+        auto ChildExpr = VecLit->getChildAt(i);
         auto ChildTy = visit(ChildExpr);
-        if (ChildTy->canPromoteTo(VecTy)) {
-            wrapWithCastTo(ChildExpr, VecTy);
+        if (!ChildTy->isSameTypeAs(VecTy) && ChildTy->canPromoteTo(VecTy)) {
+            auto NewChildExpr = wrapWithCastTo(ChildExpr, VecTy);
+            VecLit->setExprAtPos(NewChildExpr, i);
         }
     }
 

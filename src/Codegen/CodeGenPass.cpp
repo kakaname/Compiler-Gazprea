@@ -938,4 +938,5 @@ llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum T
 llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy) {
     auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
     MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
+    return MallocPtr;
 }
