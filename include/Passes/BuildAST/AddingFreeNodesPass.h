@@ -13,7 +13,6 @@
 struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
     ASTPassManager *PM;
 
-
     
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
