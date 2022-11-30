@@ -1,0 +1,8 @@
+procedure main() returns integer {
+  // interval decl
+    integer interval iv;
+
+
+  /* must have a return */
+  return 0;
+}

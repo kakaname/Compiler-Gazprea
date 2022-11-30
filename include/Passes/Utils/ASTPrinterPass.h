@@ -230,6 +230,10 @@ public:
         std::cout << "FreeNode" << "\n";
     }
 
+    void visitVectorLiteral(VectorLiteral *Vec) {
+        std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
+    }
+
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
         this->Root = Root;

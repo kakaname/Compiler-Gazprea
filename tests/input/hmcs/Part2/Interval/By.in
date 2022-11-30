@@ -1,0 +1,39 @@
+procedure main() returns integer {
+  // check by op
+    integer interval iv = 3..6;
+    integer[1] v1;
+    integer[2] v2;
+    integer[3] v3;
+    integer[4] v4;
+
+    v1 = iv by 1;
+    v2 = iv by 2;
+    v3 = iv by 3;
+    v4 = iv by 4;
+
+    v1 -> std_output;
+    '\n' -> std_output;
+    v2 -> std_output;
+    '\n' -> std_output;
+    v3 -> std_output;
+    '\n' -> std_output;
+    v4 -> std_output; 
+    '\n' -> std_output;
+
+    v1 = 3..6 by 1;
+    v2 = 3..6 by 2;
+    v3 = 3..6 by 3;
+    v4 = 3..6 by 4;
+
+    v1 -> std_output;
+    '\n' -> std_output;
+    v2 -> std_output;
+    '\n' -> std_output;
+    v3 -> std_output;
+    '\n' -> std_output;
+    v4 -> std_output;
+
+
+  /* must have a return */
+  return 0;
+}

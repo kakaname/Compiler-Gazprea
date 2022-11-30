@@ -1,0 +1,38 @@
+procedure main() returns integer {
+  // vector dot product
+   integer[4] a = [1,2,3,4];
+    boolean c = [false, true, false];
+   real[4] d = [1.0,2.0,3.0,4.0];
+
+    // integer
+    a + a -> std_output; 
+    '\n' -> std_output;
+    [1,2,3,4] + [1,2,3,4] -> std_output;
+    '\n' -> std_output;
+    a + 1 -> std_output;
+    '\n' -> std_output;
+    [1,2,3,4] + 1 -> std_output;
+    '\n' -> std_output;
+
+    //real
+    d + d -> std_output;
+    '\n' -> std_output;
+    [1.0,2.0,3.0,4.0] + [1.0,2.0,3.0,4.0] -> std_output;
+    '\n' -> std_output;
+    [1.0,2.0,3.0,4.0] + 1.0 -> std_output;
+    '\n' -> std_output;
+    d + 1.0 -> std_output;
+    '\n' -> std_output;
+    
+    // type promotion
+    a + d -> std_output;
+    '\n' -> std_output;
+    [1,2,3,4] + [1.0,2.0,3.0,4.0] -> std_output;
+    '\n' -> std_output;
+    [1,2,3,4] + 1.0 -> std_output;
+    '\n' -> std_output;
+    a + 1.0 -> std_output;
+
+  /* must have a return */
+  return 0;
+}

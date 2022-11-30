@@ -1,0 +1,15 @@
+procedure main() returns integer {
+  // interval size check
+    integer z;
+    integer interval a;
+    integer x;
+
+    z = 1; 
+    a = (-5) .. 2147483647;
+    x = 2;
+
+    z -> std_output;
+    x -> std_output;
+  /* must have a return */
+  return 0;
+}

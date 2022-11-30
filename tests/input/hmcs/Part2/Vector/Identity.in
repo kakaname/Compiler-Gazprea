@@ -1,0 +1,18 @@
+procedure main() returns integer {
+  // vector identity
+   integer[1] a = identity;
+   boolean[1] b = identity;
+   character[1] c = identity;
+   real[1] d = identity;
+
+   a -> std_output;
+   '\n' -> std_output;
+   b -> std_output;
+   '\n' -> std_output;
+   c -> std_output;
+   '\n' -> std_output;
+   d -> std_output;
+
+  /* must have a return */
+  return 0;
+}

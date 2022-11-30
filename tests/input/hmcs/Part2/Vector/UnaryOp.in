@@ -1,0 +1,19 @@
+procedure main() returns integer {
+  // elemntary operations
+   integer[4] a = [1,2,3,4];
+    boolean c = [false, true, false];
+
+    // boolean
+    not c -> std_output;
+    '\n' -> std_output;
+
+    // neg
+    -a -> std_output;
+    
+    '\n' -> std_output;
+    // pos
+    +a -> std_output;
+
+  /* must have a return */
+  return 0;
+}
