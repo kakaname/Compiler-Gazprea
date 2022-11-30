@@ -11,6 +11,8 @@
 
 using llvm::dyn_cast;
 
+
+
 bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
     auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
@@ -44,6 +46,20 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
     return true;
 }
 
+bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
+    auto BaseTy = cast<VectorTy>(BaseType);
+    auto TargetTyVec = dyn_cast<VectorTy>(TargetTy);
+
+    if (!TargetTyVec)
+        return false;
+
+    if (BaseTy->getSize() != TargetTyVec->getSize() &&
+        BaseTy->getSize() != -1 && TargetTyVec->getSize() != -1)
+        return false;
+
+    return BaseTy->getInnerTy()->isSameTypeAs(TargetTyVec->getInnerTy());
+}
+
 bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
     auto BaseTuple = cast<TupleTy>(BaseTy);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
@@ -61,6 +77,17 @@ bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
     return true;
 }
 
+const Type *getPromotedScalarType(const Type *BaseTy, const Type *TargetTy) {
+    if (BaseTy->isSameTypeAs(TargetTy))
+        return BaseTy;
+    if (BaseTy->canPromoteTo(TargetTy))
+        return TargetTy;
+    if (TargetTy->canPromoteTo(BaseTy))
+        return BaseTy;
+    return nullptr;
+}
+
+
 bool doesTupleSupportEq(const Type *Tup) {
     auto Members = cast<TupleTy>(Tup)->getMemberTypes();
     auto Pred = [&](const Type* T) { return T->isValidForEq();};
@@ -77,6 +104,20 @@ std::string getTupleTypeName(const Type *Ty) {
         TypeName += TupleType->getMemberTypeAt(I)->getTypeName();
     }
     TypeName += ")";
+    return TypeName;
+}
+
+std::string getVectorTypeName(const Type *Ty) {
+    auto VectorType = cast<VectorTy>(Ty);
+    std::string TypeName = "vector(";
+    TypeName += VectorType->getInnerTy()->getTypeName();
+    TypeName += "[";
+    int NumOfElements = VectorType->getSize();
+    if (NumOfElements < 0)
+        TypeName += "*";
+    else
+        TypeName += std::to_string(NumOfElements);
+    TypeName += "])";
     return TypeName;
 }
 
