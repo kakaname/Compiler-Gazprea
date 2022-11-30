@@ -1,0 +1,14 @@
+procedure main() returns integer {
+  // vector dot product
+   integer[4] a = [1,2,3,4];
+   real[4] d = [1.0,2.0,3.0,4.0];
+
+    a**a -> std_output;
+    '\n' -> std_output;
+    d**d -> std_output;
+    '\n' -> std_output;
+    a**d -> std_output;
+
+  /* must have a return */
+  return 0;
+}

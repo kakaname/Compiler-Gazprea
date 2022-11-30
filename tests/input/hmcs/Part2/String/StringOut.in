@@ -1,0 +1,14 @@
+procedure main() returns integer {
+  // vector decl
+    string a = "lorem\nipsum is";
+    string[*] b = "\nstupid";
+    string c = "i said \"line break\"\nyou See?";
+
+    a -> std_output;
+    b -> std_output;
+    '\n' -> std_output;
+    c -> std_output;
+
+  /* must have a return */
+  return 0;
+}

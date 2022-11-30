@@ -1,0 +1,15 @@
+procedure main() returns integer {
+  // vector decl
+    string a = "long live";
+    character[*] chars = a;
+    string a2 = chars || [' ', 'v', 'i', 'r', 'g', 'i', 'l'];
+
+    a -> std_output;
+    '\n' -> std_output;
+    chars -> std_output;
+    '\n' -> std_output;
+    a2 -> std_output;
+
+  /* must have a return */
+  return 0;
+}

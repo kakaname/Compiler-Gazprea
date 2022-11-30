@@ -1,0 +1,11 @@
+procedure main() returns integer {
+  // vector decl
+   integer[1] a = [1];
+   integer[4] a1 = [1,2,3,4];
+
+    reverse(a) -> std_output;
+    reverse(a1) -> std_output;
+    
+  /* must have a return */
+  return 0;
+}

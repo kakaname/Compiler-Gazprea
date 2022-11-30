@@ -1,0 +1,44 @@
+procedure main() returns integer {
+  // vector identity
+   integer[*] a1 = [1,2,3];
+   integer[*] a2 = [4,5];
+
+   boolean[*] b1 = [true,false];
+   boolean[*] b2 = [true];
+
+   character[*] c1 = ['a','b'];
+   character[*] c2 = ['c','d'];
+
+   real[*] d1 = [1.0,2.0,3.0];
+   real[*] d2 = [4.0,5.0];
+
+  // same type concat
+
+  a1 || a2 -> std_output;
+  '\n' -> std_output;
+  b1 || b2 -> std_output;
+  '\n' -> std_output;
+  c1 || c2 -> std_output;
+  '\n' -> std_output;
+  d1 || d2 -> std_output;
+  '\n' -> std_output;
+
+  // vector scalar concat
+
+  a1 || 4 -> std_output;
+  '\n' -> std_output;
+  b1 || true -> std_output;
+  '\n' -> std_output;
+  c1 || 'c' -> std_output;
+  '\n' -> std_output;
+  d1 || 4.0 -> std_output;
+  '\n' -> std_output;
+
+  // type promotion
+  a1 || d2 -> std_output;
+  '\n' -> std_output;
+  d1 || a2 -> std_output;
+
+  /* must have a return */
+  return 0;
+}

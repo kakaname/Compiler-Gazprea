@@ -1,0 +1,21 @@
+procedure main() returns integer {
+  // interval unary op check
+    integer interval a;
+    integer interval b;
+    integer interval c;
+
+    a = - 1 .. 5;
+    a -> std_output;
+    '\n' -> std_output;
+
+    b = + 1 .. 5;
+    b -> std_output;
+    '\n' -> std_output;
+
+    c = 2 .. (1+4);
+    c -> std_output;
+
+
+  /* must have a return */
+  return 0;
+}

@@ -1,0 +1,29 @@
+procedure main() returns integer {
+  // vector dot product
+   integer[4] a = [1,2,3,4];
+   integer[4] a1 = [1,2,3,4];
+   real[4] d = [1.0,2.0,3.0,4.0];
+   real[4] d1 = [1.0,2.0,3.0,4.0];
+
+    // integer
+    a1 == a -> std_output;
+    '\n' -> std_output;
+    a != a1 -> std_output;
+    '\n' -> std_output;
+    a + 1 > a1 -> std_output;
+    '\n' -> std_output;
+    a - 1 < std_output;
+    '\n' -> std_output;
+
+    d == d1 -> std_output;
+    '\n' -> std_output;
+    d != d1 -> std_output;
+    '\n' -> std_output;
+    d + 1 > d1 -> std_output;
+    '\n' -> std_output;
+    d - 1 < d1 -> std_output;
+
+
+  /* must have a return */
+  return 0;
+}

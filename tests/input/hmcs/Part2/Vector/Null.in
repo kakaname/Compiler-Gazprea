@@ -1,0 +1,18 @@
+procedure main() returns integer {
+  // vector decl
+   integer[1] a = null;
+   boolean[1] b = null;
+   character[1] c = null;
+   real[1] d = null;
+
+   a -> std_output;
+   '\n' -> std_output;
+   b -> std_output;
+   '\n' -> std_output;
+   c -> std_output;
+   '\n' -> std_output;
+   d -> std_output;
+
+  /* must have a return */
+  return 0;
+}
