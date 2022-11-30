@@ -56,6 +56,17 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee ScanChar;
     llvm::FunctionCallee ScanBool;
     llvm::FunctionCallee Malloc;
+    llvm::FunctionCallee VectorConcat;
+    llvm::FunctionCallee VectorDotProductInt;
+    llvm::FunctionCallee VectorDotProductReal;
+    llvm::FunctionCallee VectorBy;
+    llvm::FunctionCallee VectorNot;
+    llvm::FunctionCallee VectorSub;
+    llvm::FunctionCallee PrintVector;
+    llvm::FunctionCallee VectorLogical;
+    llvm::FunctionCallee VectorEq;
+    llvm::FunctionCallee VectorArith;
+    llvm::FunctionCallee VectorComp;
 
     // Runtime buffer location
     llvm::Value *BufferPtr;
@@ -126,6 +137,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitVectorLiteral(VectorLiteral *VecLit);
     llvm::Value *visitBlock(Block *Blk);
     llvm::Value *visitInterval(Interval *Interval);
+    llvm::Value *visitConcat(Concat *Con);
+    llvm::Value *visitDotProduct(DotProduct *Dot);
+    llvm::Value *visitByOp(ByOp *By);
 
     llvm::Value *createAlloca(const Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc = false);
