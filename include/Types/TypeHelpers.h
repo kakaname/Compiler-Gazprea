@@ -94,6 +94,18 @@ bool doesTupleSupportEq(const Type *Tup) {
     return std::all_of(Members.begin(), Members.end(), Pred);
 }
 
+bool doesVectorSupportEq(const Type *Vec) {
+    return cast<VectorTy>(Vec)->getInnerTy()->isValidForEq();
+}
+
+bool doesVectorSupportArithOps(const Type *Vec) {
+    return cast<VectorTy>(Vec)->getInnerTy()->isValidForArithOps();
+}
+
+bool doesVectorSupportComparisonOps(const Type *Vec) {
+    return cast<VectorTy>(Vec)->getInnerTy()->isValidForComparisonOp();
+}
+
 std::string getTupleTypeName(const Type *Ty) {
     auto TupleType = cast<TupleTy>(Ty);
     std::string TypeName = "tuple(";
