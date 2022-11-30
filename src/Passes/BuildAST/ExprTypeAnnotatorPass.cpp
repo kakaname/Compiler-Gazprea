@@ -28,8 +28,8 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
         Op->setLeftExpr(LeftCast);
         Op->setRightExpr(RightCast);
-        annotateWithConst(Op, OpaqueTyCastTarget);
-        return OpaqueTyCastTarget;
+        annotateWithConst(Op, PM->TypeReg.getBooleanTy());
+        return PM->TypeReg.getBooleanTy();
     }
 
     // At least one of them is opaque.
@@ -85,7 +85,7 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
         if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
 
-        if (!OpaqueTyCastTarget->isValidForComparisonOp())
+        if (!OpaqueTyCastTarget->isValidForArithOps())
             throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
 
         auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
