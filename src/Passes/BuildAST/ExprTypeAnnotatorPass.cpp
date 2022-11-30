@@ -53,9 +53,18 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         throw InvalidComparisonOpError(Op, RightType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
+
+        if (LeftType->getKind() == Type::TypeKind::T_Vector) {
+            auto LeftVec = dyn_cast<VectorTy>(LeftType);
+            auto ResType = PM->TypeReg.getVectorType(LeftVec->getInnerTy(), LeftVec->getSize());
+            annotate(Op, ResType);
+            return ResType;
+        }
+
         annotate(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
     }
+
 
     if (LeftType->canPromoteTo(RightType)) {
         auto Cast = wrapWithCastTo(LeftExpr, RightType);
@@ -243,6 +252,22 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
     } else {
         // All other "logical ops" are only supported for booleans.
+
+        if (LeftType->getKind() == Type::TypeKind::T_Vector && RightType->getKind() == Type::TypeKind::T_Vector) {
+            auto LeftVecTy = cast<VectorTy>(LeftType);
+            auto RightVecTy = cast<VectorTy>(RightType);
+            if (!LeftVecTy->getInnerTy()->isSameTypeAs(RightVecTy->getInnerTy())) {
+                throw runtime_error("Vector types must be of the same type");
+            }
+
+            if (!LeftVecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+                throw InvalidComparisonOpError(Op, LeftVecTy->getInnerTy()->getTypeName());
+            }
+
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
+            return LeftType;
+        }
+
         if (!isa<BoolTy>(LeftType))
             throw InvalidLogicalOpError(Op, LeftType->getTypeName());
 
@@ -266,14 +291,21 @@ TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Targ
 const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     auto ChildType = visit(Op->getExpr());
     if (Op->getOpKind() == UnaryOp::NOT) {
-        if (!ChildType->isValidForUnaryNot())
+        if (!ChildType->isValidForUnaryNot()) {
+            if (ChildType->getKind() == Type::TypeKind::T_Vector && dyn_cast<VectorTy>(ChildType)->getInnerTy()->isValidForUnaryNot()) {
+                auto NewVecTy = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), dyn_cast<VectorTy>(ChildType)->getSize());
+                annotate(Op, NewVecTy);
+                return NewVecTy;
+            }
             throw InvalidUnaryNotError(Op, ChildType->getTypeName());
+        }
         annotate(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
     }
 
-    if (!ChildType->isValidForUnaryAddOrSub())
+    if (!ChildType->isValidForUnaryAddOrSub() && ChildType->getKind() != Type::TypeKind::T_Vector) {
         throw InvalidUnaryAddOrSubError(Op, ChildType->getTypeName());
+    }
     annotateWithConst(Op, ChildType);
     return PM->TypeReg.getConstTypeOf(ChildType);
 }
@@ -533,3 +565,105 @@ const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntervalTy());
     return PM->TypeReg.getIntervalTy();
 }
+
+const Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
+    auto LHS = visit(By->getLHS());
+
+    if (!LHS->isSameTypeAs(PM->TypeReg.getIntervalTy()) && LHS->getKind() != Type::TypeKind::T_Vector)
+        throw std::runtime_error("By operator can only be applied to interval or vector types");
+
+    auto RHS = visit(By->getRHS());
+
+    if (!RHS->isSameTypeAs(PM->TypeReg.getIntegerTy()))
+        throw std::runtime_error("By operator can only be applied to integer types");
+
+    // TODO set size of vector using future const folding pass
+    // right now, it assumes the only expression is an integer literal
+
+    long SizeOfBase = -1;
+    long Stride = -1;
+
+    auto RHSExpr = dyn_cast<IntLiteral>(By->getRHS());
+    if (RHSExpr) {
+        // if the right hand side is an integer literal or has been constant folded
+        Stride = RHSExpr->getVal();
+        if (LHS->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+            // check if the left hand side contains only purely literal values
+            // this is the only case for intervals that we will handle at compile
+            // time
+            if (isa<Interval>(By->getLHS())
+                && isa<IntLiteral>(dyn_cast<Interval>(By->getLHS())->getLowerExpr())
+                && isa<IntLiteral>(dyn_cast<Interval>(By->getLHS())->getUpperExpr())) {
+                    SizeOfBase = dyn_cast<IntLiteral>(dyn_cast<Interval>(By->getLHS())->getUpperExpr())->getVal()
+                        - dyn_cast<IntLiteral>(dyn_cast<Interval>(By->getLHS())->getLowerExpr())->getVal() + 1;
+            }
+        } else {
+            // for vectors, we have more information as to the vector size in the type definition
+            SizeOfBase = dyn_cast<VectorTy>(LHS)->getSize();
+        }
+    }
+
+    const Type *VecType;
+    if (SizeOfBase != -1 && Stride != -1) {
+        // if we have both the size of the base and the stride, we can calculate the size of the vector
+        // and create the vector type
+        VecType = PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy(), (SizeOfBase + Stride - 1 ) / Stride);
+    } else {
+        // otherwise, we will just create a vector of size 1
+        VecType = PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy(), 1);
+    }
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(By, VecType);
+    return VecType;
+
+}
+
+const Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
+    auto LHS = visit(Dot->getLHS());
+    auto RHS = visit(Dot->getRHS());
+
+    if (LHS->getKind() != Type::TypeKind::T_Vector || RHS->getKind() != Type::TypeKind::T_Vector)
+        throw std::runtime_error("Dot product can only be applied to vector types");
+
+    // TODO ensure vector isSameTypeAs ignores size of -1
+    // TODO casting logic
+    if (!LHS->isSameTypeAs(RHS))
+        throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
+
+    auto ResTy = dyn_cast<VectorTy>(LHS)->getInnerTy();
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Dot, ResTy);
+    return ResTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
+    auto LHS = visit(Concat->getLHS());
+    auto RHS = visit(Concat->getRHS());
+
+    if (LHS->getKind() != Type::TypeKind::T_Vector || RHS->getKind() != Type::TypeKind::T_Vector)
+        throw std::runtime_error("Concatenation can only be applied to vector types");
+
+    auto LHSInner = dyn_cast<VectorTy>(LHS)->getInnerTy();
+    auto RHSInner = dyn_cast<VectorTy>(RHS)->getInnerTy();
+
+    if (!LHSInner->isSameTypeAs(RHSInner)) {
+        // TODO check if the inner types can be promoted to the same type
+        throw std::runtime_error("Concatenation can only be applied to vectors of the same type");
+    }
+
+    long SizeOfLHS = dyn_cast<VectorTy>(LHS)->getSize();
+    long SizeOfRHS = dyn_cast<VectorTy>(RHS)->getSize();
+    long SizeOfRes = -1;
+
+    if (SizeOfLHS != -1 && SizeOfRHS != -1) {
+        SizeOfRes = SizeOfLHS + SizeOfRHS;
+    }
+
+
+    auto ResTy = PM->TypeReg.getVectorType(dyn_cast<VectorTy>(LHS)->getInnerTy(),
+        SizeOfRes);
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Concat, ResTy);
+    return ResTy;
+}
+
