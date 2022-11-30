@@ -247,6 +247,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitVectorLiteral(VectorLiteral *Vector) {
         for (auto *child : *Vector)
             visit(child);
+    }
+
+    RetT visitInterval(Interval *Interval) {
+        visit(Interval->getUpperExpr());
+        visit(Interval->getLowerExpr());
         return RetT();
     }
 
@@ -430,9 +435,14 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT callVisitIndexReferenceImpl(IndexReference *I) {
         return static_cast<DerivedT*>(this)->visitIndexReference(I);
     }
+    RetT callVisitIntervalImpl(Interval *I) {
+        return static_cast<DerivedT*>(this)->visitInterval(I);
+    }
+
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
+
 
         if (auto *Prog = dyn_cast<Program>(Node))
             return callVisitProgramImpl(Prog);
@@ -469,6 +479,9 @@ public:
 
         if (auto *IdxRef = dyn_cast<IndexReference>(Node))
             return callVisitIndexReferenceImpl(IdxRef);
+
+        if (auto *Int = dyn_cast<Interval>(Node))
+            return callVisitIntervalImpl(Int);
 
         if (auto *InfLoop = dyn_cast<InfiniteLoop>(Node))
             return callVisitInfiniteLoopImpl(InfLoop);

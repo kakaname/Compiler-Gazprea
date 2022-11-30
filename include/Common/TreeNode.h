@@ -68,8 +68,9 @@ public:
         N_AST_ExplicitCast,
         N_AST_VectorLiteral,
 
+        N_AST_Interval,
         // Split AST nodes from tree node.
-        N_ScopeTreeNode
+        N_ScopeTreeNode,
     };
 
     TreeNodeKind getKind() const {

@@ -77,6 +77,8 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
             return ConstConv(LLVMRealTy, Ty->isConst());
         case Type::TypeKind::T_Char:
             return ConstConv(LLVMCharTy, Ty->isConst());
+        case Type::TypeKind::T_Interval:
+            return ConstConv(LLVMIntervalTy, Ty->isConst());
         case Type::TypeKind::T_Tuple:
             return ConstConv(getLLVMTupleType(
                     cast<TupleTy>(Ty)), Ty->isConst());
@@ -235,7 +237,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto ExceptionMD = llvm::MetadataAsValue::get(GlobalCtx, ExceptionMDS);
 
     const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
-    if (!isa<RealTy>(ResultType)) {
+    if (isa<IntegerTy>(ResultType)) {
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
                 return IR.CreateAdd(LeftOperand, RightOperand);
@@ -259,7 +261,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                 return IR.CreateFPToSI(RetVal, LLVMIntTy);
 
         }
-    } else {
+    } else if (isa<RealTy>(ResultType)) {
         llvm::Intrinsic::ID IntrinsicID;
 
         switch (Op->getOpKind()) {
@@ -291,6 +293,52 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
         return IR.CreateConstrainedFPBinOp(
                 IntrinsicID, LeftOperand, RightOperand, nullptr, "", nullptr,
                 llvm::fp::rmDynamic, llvm::fp::ebStrict);
+    } else if (isa<IntervalTy>(ResultType)) {
+        llvm::Value *Left1, *Left2, *Right1, *Right2;
+        llvm::Value *Mul1, *Mul2, *Mul3, *Mul4;
+        llvm::Value *MulArray;
+        llvm::Value *Result1, *Result2;
+        Left1 = IR.CreateExtractValue(LeftOperand, {0});
+        Left2 = IR.CreateExtractValue(LeftOperand, {1});
+        Right1 = IR.CreateExtractValue(RightOperand, {0});
+        Right2 = IR.CreateExtractValue(RightOperand, {1});
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                Result1 = IR.CreateAdd(Left1, Right1);
+                Result2 = IR.CreateAdd(Left2, Right2);
+                break;
+            case ArithmeticOp::SUB:
+                Result1 = IR.CreateSub(Left1, Right2);
+                Result2 = IR.CreateSub(Left2, Right1);
+                break;
+            case ArithmeticOp::MUL:
+                Mul1 = IR.CreateMul(Left1, Right1);
+                Mul2 = IR.CreateMul(Left1, Right2);
+                Mul3 = IR.CreateMul(Left2, Right1);
+                Mul4 = IR.CreateMul(Left2, Right2);
+                MulArray = llvm::ConstantVector::get(
+{IR.getInt32(0), IR.getInt32(0), IR.getInt32(0),
+                         IR.getInt32(0)});
+                MulArray = IR.CreateInsertElement(MulArray, Mul1, IR.getInt32(0));
+                MulArray = IR.CreateInsertElement(MulArray, Mul2, IR.getInt32(1));
+                MulArray = IR.CreateInsertElement(MulArray, Mul3, IR.getInt32(2));
+                MulArray = IR.CreateInsertElement(MulArray, Mul4, IR.getInt32(3));
+                Result1 = IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_vector_reduce_smin,
+                        {llvm::VectorType::get(LLVMIntTy, 4)},
+                        {MulArray});
+                Result2 = IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_vector_reduce_smax,
+                        {llvm::VectorType::get(LLVMIntTy, 4)},
+                        {MulArray});
+                break;
+            default:
+                assert(false && "Not implemented");
+        }
+        llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+        Result = IR.CreateInsertValue(Result, Result1, {0});
+        Result = IR.CreateInsertValue(Result, Result2, {1});
+        return Result;
     }
 }
 
@@ -303,7 +351,7 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
     assert( RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
-    if (LeftType->isSameTypeAs(PM->TypeReg.getRealTy())) {
+    if (isa<RealTy>(LeftType)) {
         switch (Op->getOpKind()) {
             case LogicalOp::EQ:
                 return IR.CreateFCmpOEQ(LeftOperand, RightOperand);
@@ -311,6 +359,25 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
                 return IR.CreateFCmpONE(LeftOperand, RightOperand);
             default:
                 assert(false && "Invalid logical operation for real type");
+        }
+    } else if (isa<IntervalTy>(LeftType)) {
+        llvm::Value *Left1, *Left2, *Right1, *Right2;
+        llvm::Value *Result1, *Result2;
+        Left1 = IR.CreateExtractValue(LeftOperand, {0});
+        Left2 = IR.CreateExtractValue(LeftOperand, {1});
+        Right1 = IR.CreateExtractValue(RightOperand, {0});
+        Right2 = IR.CreateExtractValue(RightOperand, {1});
+        switch (Op->getOpKind()) {
+            case LogicalOp::EQ:
+                Result1 = IR.CreateICmpEQ(Left1, Right1);
+                Result2 = IR.CreateICmpEQ(Left2, Right2);
+                return IR.CreateAnd(Result1, Result2);
+            case LogicalOp::NEQ:
+                Result1 = IR.CreateICmpNE(Left1, Right1);
+                Result2 = IR.CreateICmpNE(Left2, Right2);
+                return IR.CreateOr(Result1, Result2);
+            default:
+                assert(false && "Invalid logical operation for interval type");
         }
     }
 
@@ -330,6 +397,27 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
 
 llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
     Value *Operand = visit(Op->getExpr());
+
+    const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getExpr());
+
+    if (isa<IntervalTy>(ResultType)) {
+        llvm::Value *Result;
+        switch (Op->getOpKind()) {
+            case UnaryOp::SUB:
+                // TODO ask Deric about semantics
+                llvm::Value *Left, *Right;
+                Left = IR.CreateExtractValue(Operand, {0});
+                Right = IR.CreateExtractValue(Operand, {1});
+                Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+                Result = IR.CreateInsertValue(Result, Right, {0});
+                Result = IR.CreateInsertValue(Result, Left, {1});
+                return Result;
+            case UnaryOp::ADD:
+                return Operand;
+            default:
+                assert(false && "Invalid unary operation for interval type");
+        }
+    }
 
     switch (Op->getOpKind()) {
         case UnaryOp::NOT:
@@ -939,4 +1027,16 @@ llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const
     auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
     MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
     return MallocPtr;
+}
+
+llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
+    llvm::Value *Lower = visit(Interval->getLowerExpr());
+    llvm::Value *Upper = visit(Interval->getUpperExpr());
+
+    // TODO bound check
+
+    llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+    Result = IR.CreateInsertValue(Result, Lower, {0});
+    Result = IR.CreateInsertValue(Result, Upper, {1});
+    return Result;
 }

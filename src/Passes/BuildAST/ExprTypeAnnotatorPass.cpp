@@ -504,5 +504,32 @@ const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto ResultTy = VecTy->getInnerTy();
     PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
     return ResultTy;
+}
 
+const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
+    auto Lower = visit(Int->getLowerExpr());
+    auto Upper = visit(Int->getUpperExpr());
+
+    auto IntTy = PM->TypeReg.getIntegerTy();
+
+    // Check that lower and upper both evaluate to the integer type, otherwise
+    // cast it to the integer type if valid
+    if (!Lower->isSameTypeAs(IntTy)) {
+        if (!Lower->canPromoteTo(IntTy))
+            throw std::runtime_error("Lower bound of interval must be of type integer");
+
+        auto Cast = wrapWithCastTo(Int->getLowerExpr(), IntTy);
+        Int->setLowerExpr(Cast);
+    }
+
+    if (!Upper->isSameTypeAs(IntTy)) {
+        if (!Upper->canPromoteTo(IntTy))
+            throw std::runtime_error("Upper bound of interval must be of type integer");
+
+        auto Cast = wrapWithCastTo(Int->getUpperExpr(), IntTy);
+        Int->setUpperExpr(Cast);
+    }
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntervalTy());
+    return PM->TypeReg.getIntervalTy();
 }

@@ -967,6 +967,48 @@ struct ProcedureCall: public TreeNode {
     ProcedureCall(): TreeNode(TreeNodeKind::N_AST_ProcedureCall) {}
 };
 
+struct Interval: public TreeNode {
+    static constexpr size_t LowerExprIdx = 0;
+    static constexpr size_t UpperExprIdx = 1;
+
+    // This represents the number of range bound checks we have to do.
+    // These checks are emitted into the codegen
+    uint32_t CheckCount;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Interval;
+    }
+
+    void setLowerExpr(ASTNodeT *Expr) {
+        setChildAt(LowerExprIdx, Expr);
+    }
+
+    void setUpperExpr(ASTNodeT *Expr) {
+        setChildAt(UpperExprIdx, Expr);
+    }
+
+    void addCheck(ASTNodeT *Expr) {
+        addChild(Expr);
+        CheckCount++;
+    }
+
+    void copyChecksFrom(Interval *Other) {
+        for (size_t i = 0; i < Other->CheckCount; i++) {
+            addCheck(Other->getChildAt(i+2));
+        }
+    }
+
+    ASTNodeT *getLowerExpr() {
+        return getChildAt(LowerExprIdx);
+    }
+
+    ASTNodeT *getUpperExpr() {
+        return getChildAt(UpperExprIdx);
+    }
+
+    Interval(): TreeNode(TreeNodeKind::N_AST_Interval) {}
+};
+
 struct Return: public TreeNode {
     static constexpr size_t ReturnExprIdx = 0;
 
