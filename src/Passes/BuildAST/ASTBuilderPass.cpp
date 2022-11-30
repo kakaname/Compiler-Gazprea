@@ -267,6 +267,11 @@ std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) 
     throw std::runtime_error("Unimplemented");
 }
 
+
+std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *ctx) {
+    return PM->TypeReg.getIntervalTy(false);
+}
+
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {
     return PM->TypeReg.getIntegerTy(false);
 }
@@ -786,7 +791,28 @@ std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {
 
 // ignored for part1
 std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto IntInterval = PM->Builder.build<Interval>();
+    IntInterval->setCtx(ctx);
+
+    auto Upper = castToNodeVisit(ctx->expr(0));
+    auto Lower = castToNodeVisit(ctx->expr(1));
+
+    IntInterval->setLowerExpr(Upper);
+    IntInterval->setUpperExpr(Lower);
+
+    // Add the check for the intervals to be equal
+//    auto Check = PM->Builder.build<ComparisonOp>();
+//    Check->setCtx(ctx);
+//    Check->setOp(ComparisonOp::GTEQ);
+//    Check->setLeftExpr(Lower);
+//    Check->setRightExpr(Upper);
+//    Check->setParent(IntInterval);
+//    IntInterval->addCheck(Check);
+
+    if (ctx->BY())
+        throw std::runtime_error("Unimplemented");
+
+    return cast<ASTNodeT>(IntInterval);
 }
 
 
@@ -862,6 +888,7 @@ std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclCont
     auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
     auto Expr = castToNodeVisit(ctx->expr());
     auto Decl = PM->Builder.build<Declaration>();
+    // TODO intervals here too
     Decl->setCtx(ctx);
     Decl->setIdentType(Type);
     Decl->setInitExpr(Expr);

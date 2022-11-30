@@ -55,6 +55,7 @@ class TypeRegistry {
     array<CharTy, 2> CharacterTypes;
     array<IntegerTy, 2> IntegerTypes;
     array<RealTy, 2> RealTypes;
+    array<IntervalTy, 2> IntervalTypes;
 
     VectorTyContainer VectorTypes;
     MatrixTyContainer MatrixTypes;
@@ -68,7 +69,8 @@ public:
                              BooleanTypes{BoolTy(false), BoolTy(true)},
                              CharacterTypes{CharTy(false), CharTy(true)},
                              IntegerTypes{IntegerTy(false), IntegerTy(true)},
-                             RealTypes{RealTy(false), RealTy(true)} {};
+                             RealTypes{RealTy(false), RealTy(true)},
+                             IntervalTypes{IntervalTy(false, 1), IntervalTy(true, 1)} {};
 
     const Type *getNullTy() {
         return &NullType;
@@ -92,6 +94,10 @@ public:
 
     const Type *getRealTy(bool Const = true) {
         return &RealTypes[Const];
+    }
+
+    const Type *getIntervalTy(bool Const = true) {
+        return &IntervalTypes[Const];
     }
 
     const Type *getVectorType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
@@ -179,6 +185,9 @@ public:
         if (isa<RealTy>(Ty))
             return getRealTy(true);
 
+        if (isa<IntervalTy>(Ty))
+            return getIntervalTy(true);
+
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
             return getVectorType(Vec->getInnerTy(), Vec->getSize(), true);
 
@@ -214,6 +223,9 @@ public:
 
         if (isa<RealTy>(Ty))
             return getRealTy(false);
+
+        if (isa<IntervalTy>(Ty))
+            return getIntervalTy(false);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
             return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
