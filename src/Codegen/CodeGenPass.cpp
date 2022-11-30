@@ -46,6 +46,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     ScanBool = Mod.getOrInsertFunction(
             "rt_scan_bool", llvm::FunctionType::get(
                     LLVMBoolTy, {}, false));
+    Malloc = Mod.getOrInsertFunction(
+            "malloc", llvm::FunctionType::get(
+                    LLVMPtrTy, {LLVMIntTy}, false));
 
     visit(Root);
 
@@ -74,6 +77,8 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
             return ConstConv(LLVMRealTy, Ty->isConst());
         case Type::TypeKind::T_Char:
             return ConstConv(LLVMCharTy, Ty->isConst());
+        case Type::TypeKind::T_Interval:
+            return ConstConv(LLVMIntervalTy, Ty->isConst());
         case Type::TypeKind::T_Tuple:
             return ConstConv(getLLVMTupleType(
                     cast<TupleTy>(Ty)), Ty->isConst());
@@ -81,6 +86,8 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
             return getLLVMFunctionType(cast<FunctionTy>(Ty));
         case Type::TypeKind::T_Procedure:
             return getLLVMProcedureType(cast<ProcedureTy>(Ty));
+        case Type::TypeKind::T_Vector:
+            return ConstConv(LLVMVectorTy, Ty->isConst());
         default:
             assert(false && "Unknown type");
     }
@@ -91,6 +98,13 @@ llvm::Type *CodeGenPass::getLLVMTupleType(const TupleTy *Tuple) {
     for (const Type *SubTy : Tuple->getMemberTypes())
         TupleTypes.push_back(getLLVMType(PM->TypeReg.getConstTypeOf(SubTy)));
     return llvm::StructType::get(GlobalCtx, TupleTypes);
+}
+
+llvm::Type *CodeGenPass::getLLVMVectorType(const VectorTy *Vector) {
+    // Deprecated, uses array type
+    return llvm::ArrayType::get(getLLVMType(
+            PM->TypeReg.getConstTypeOf(Vector->getInnerTy())),
+            Vector->getSize());
 }
 
 llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
@@ -110,6 +124,14 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     auto *Val = visit(Assign->getExpr());
     auto *Loc = visit(Assign->getAssignedTo());
+
+
+    // FIXME hotfix for bool assignment into vector
+    auto *ValTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+    if (isa<IndexReference>(Assign->getAssignedTo()) &&
+        ValTy->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+        Val = IR.CreateZExt(Val, LLVMCharTy);
+    }
     return IR.CreateStore(Val, Loc);
 }
 
@@ -215,7 +237,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto ExceptionMD = llvm::MetadataAsValue::get(GlobalCtx, ExceptionMDS);
 
     const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op);
-    if (!isa<RealTy>(ResultType)) {
+    if (isa<IntegerTy>(ResultType)) {
         switch (Op->getOpKind()) {
             case ArithmeticOp::ADD:
                 return IR.CreateAdd(LeftOperand, RightOperand);
@@ -239,7 +261,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                 return IR.CreateFPToSI(RetVal, LLVMIntTy);
 
         }
-    } else {
+    } else if (isa<RealTy>(ResultType)) {
         llvm::Intrinsic::ID IntrinsicID;
 
         switch (Op->getOpKind()) {
@@ -271,6 +293,52 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
         return IR.CreateConstrainedFPBinOp(
                 IntrinsicID, LeftOperand, RightOperand, nullptr, "", nullptr,
                 llvm::fp::rmDynamic, llvm::fp::ebStrict);
+    } else if (isa<IntervalTy>(ResultType)) {
+        llvm::Value *Left1, *Left2, *Right1, *Right2;
+        llvm::Value *Mul1, *Mul2, *Mul3, *Mul4;
+        llvm::Value *MulArray;
+        llvm::Value *Result1, *Result2;
+        Left1 = IR.CreateExtractValue(LeftOperand, {0});
+        Left2 = IR.CreateExtractValue(LeftOperand, {1});
+        Right1 = IR.CreateExtractValue(RightOperand, {0});
+        Right2 = IR.CreateExtractValue(RightOperand, {1});
+        switch (Op->getOpKind()) {
+            case ArithmeticOp::ADD:
+                Result1 = IR.CreateAdd(Left1, Right1);
+                Result2 = IR.CreateAdd(Left2, Right2);
+                break;
+            case ArithmeticOp::SUB:
+                Result1 = IR.CreateSub(Left1, Right2);
+                Result2 = IR.CreateSub(Left2, Right1);
+                break;
+            case ArithmeticOp::MUL:
+                Mul1 = IR.CreateMul(Left1, Right1);
+                Mul2 = IR.CreateMul(Left1, Right2);
+                Mul3 = IR.CreateMul(Left2, Right1);
+                Mul4 = IR.CreateMul(Left2, Right2);
+                MulArray = llvm::ConstantVector::get(
+{IR.getInt32(0), IR.getInt32(0), IR.getInt32(0),
+                         IR.getInt32(0)});
+                MulArray = IR.CreateInsertElement(MulArray, Mul1, IR.getInt32(0));
+                MulArray = IR.CreateInsertElement(MulArray, Mul2, IR.getInt32(1));
+                MulArray = IR.CreateInsertElement(MulArray, Mul3, IR.getInt32(2));
+                MulArray = IR.CreateInsertElement(MulArray, Mul4, IR.getInt32(3));
+                Result1 = IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_vector_reduce_smin,
+                        {llvm::VectorType::get(LLVMIntTy, 4)},
+                        {MulArray});
+                Result2 = IR.CreateIntrinsic(
+                        llvm::Intrinsic::experimental_vector_reduce_smax,
+                        {llvm::VectorType::get(LLVMIntTy, 4)},
+                        {MulArray});
+                break;
+            default:
+                assert(false && "Not implemented");
+        }
+        llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+        Result = IR.CreateInsertValue(Result, Result1, {0});
+        Result = IR.CreateInsertValue(Result, Result2, {1});
+        return Result;
     }
 }
 
@@ -283,7 +351,7 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
     assert( RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
                                      " have reached the code gen");
 
-    if (LeftType->isSameTypeAs(PM->TypeReg.getRealTy())) {
+    if (isa<RealTy>(LeftType)) {
         switch (Op->getOpKind()) {
             case LogicalOp::EQ:
                 return IR.CreateFCmpOEQ(LeftOperand, RightOperand);
@@ -291,6 +359,25 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
                 return IR.CreateFCmpONE(LeftOperand, RightOperand);
             default:
                 assert(false && "Invalid logical operation for real type");
+        }
+    } else if (isa<IntervalTy>(LeftType)) {
+        llvm::Value *Left1, *Left2, *Right1, *Right2;
+        llvm::Value *Result1, *Result2;
+        Left1 = IR.CreateExtractValue(LeftOperand, {0});
+        Left2 = IR.CreateExtractValue(LeftOperand, {1});
+        Right1 = IR.CreateExtractValue(RightOperand, {0});
+        Right2 = IR.CreateExtractValue(RightOperand, {1});
+        switch (Op->getOpKind()) {
+            case LogicalOp::EQ:
+                Result1 = IR.CreateICmpEQ(Left1, Right1);
+                Result2 = IR.CreateICmpEQ(Left2, Right2);
+                return IR.CreateAnd(Result1, Result2);
+            case LogicalOp::NEQ:
+                Result1 = IR.CreateICmpNE(Left1, Right1);
+                Result2 = IR.CreateICmpNE(Left2, Right2);
+                return IR.CreateOr(Result1, Result2);
+            default:
+                assert(false && "Invalid logical operation for interval type");
         }
     }
 
@@ -311,6 +398,27 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
 llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
     Value *Operand = visit(Op->getExpr());
 
+    const Type *ResultType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getExpr());
+
+    if (isa<IntervalTy>(ResultType)) {
+        llvm::Value *Result;
+        switch (Op->getOpKind()) {
+            case UnaryOp::SUB:
+                // TODO ask Deric about semantics
+                llvm::Value *Left, *Right;
+                Left = IR.CreateExtractValue(Operand, {0});
+                Right = IR.CreateExtractValue(Operand, {1});
+                Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+                Result = IR.CreateInsertValue(Result, Right, {0});
+                Result = IR.CreateInsertValue(Result, Left, {1});
+                return Result;
+            case UnaryOp::ADD:
+                return Operand;
+            default:
+                assert(false && "Invalid unary operation for interval type");
+        }
+    }
+
     switch (Op->getOpKind()) {
         case UnaryOp::NOT:
             return IR.CreateNot(Operand);
@@ -322,7 +430,33 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
-    assert(false && "Indexing not implemented");
+    llvm::Value *Vec = visit(Idx->getBaseExpr());
+    llvm::Value *Index = visit(Idx->getIndexExpr());
+
+    // get types of the base expression and the index expression
+    const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
+    const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
+    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
+    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    // TODO Check that the index is within the bounds of the array
+
+    // Get malloc pointer from array struct
+    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+
+    // Get the element pointer
+    llvm::Value *ElementPtr = IR.CreateInBoundsGEP(MallocPtr, Index);
+
+    // Get the element
+    llvm::Value *Element = IR.CreateLoad(ElementPtr);
+
+    // Update if the element is a bool
+    // TODO move to casting logic
+    if (dyn_cast<VectorTy>(BaseType)->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+        Element = IR.CreateICmpNE(Element, llvm::ConstantInt::get(LLVMCharTy, 0));
+    }
+
+    return Element;
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
@@ -732,6 +866,27 @@ llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
     return SymbolMap[Ref->getIdentifier()->getReferred()];
 }
 
+llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
+    Value *Vec = visit(Ref->getBaseExpr());
+    Value *Idx = visit(Ref->getIndexExpr());
+
+    // get types of the base expression and the index expression
+    const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
+    const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
+    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
+    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    // TODO Check that the index is within the bounds of the array
+
+    // Get malloc pointer from array struct
+    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+
+    // Get the element pointer
+    return IR.CreateInBoundsGEP(MallocPtr, Idx);
+
+
+}
+
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
     assert(MemIdx && "Only int literals should reach here");
@@ -781,4 +936,107 @@ llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
 llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
     for (auto Child: *Blk)
         visit(Child);
+
+    // TODO free unnecessary vectors
+}
+
+llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
+    auto VecTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
+    assert(VecTy && "Invalid vector type");
+
+    auto VecSize = VecTy->getSize();
+    assert(VecSize >= 0 && "All vector literals should have a size");
+
+    llvm::Value *Result = CreateVectorStruct(VecTy->getInnerTy()->getKind(), VecSize, true);
+    auto MallocPtr = CreateVectorMallocPtrAccess(Result, VecTy);
+
+    // store the elements in the vector
+    for (int i = 0; i < VecSize; i++) {
+        auto Elem = VecLit->getChildAt(i);
+        auto ElemVal = visit(Elem);
+        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        if (VecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
+            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
+        IR.CreateStore(ElemVal, ElemPtr);
+    }
+
+    return Result;
+
+}
+
+llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc) {
+    uint32_t InnerTyEnum;
+    uint32_t InnerTySize;
+    switch (TyKind) {
+        case Type::TypeKind::T_Bool:
+            InnerTyEnum = 0;
+            InnerTySize = 1;
+            break;
+        case Type::TypeKind::T_Char:
+            InnerTyEnum = 1;
+            InnerTySize = 1;
+            break;
+        case Type::TypeKind::T_Int:
+            InnerTyEnum = 2;
+            InnerTySize = 4;
+            break;
+        case Type::TypeKind::T_Real:
+            InnerTyEnum = 3;
+            InnerTySize = 4;
+            break;
+        default:
+            assert(false && "Invalid vector inner type");
+    }
+
+    llvm::Value *Result = llvm::ConstantStruct::get(
+            LLVMVectorTy, {
+                    IR.getInt32(size),
+                    IR.getInt32(0),
+                    IR.getInt32(InnerTyEnum),
+                    llvm::ConstantPointerNull::get(LLVMPtrTy)
+            });
+
+    if (malloc) {
+        // malloc space for the vector
+        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt32(size * InnerTySize)});
+
+        // store the malloced pointer in the vector
+        Result = IR.CreateInsertValue(Result, MallocCall, {3});
+    }
+
+    return Result;
+}
+
+llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind) {
+    // By default, all pointers to the data/malloc area of a vector are of type i8*. This function
+    // casts the pointer to the appropriate type pointer.
+    switch (TyKind) {
+        case Type::TypeKind::T_Bool:
+        case Type::TypeKind::T_Char:
+            return VecPtr;
+        case Type::TypeKind::T_Int:
+            return IR.CreateBitCast(VecPtr, llvm::Type::getInt32PtrTy(GlobalCtx));
+        case Type::TypeKind::T_Real:
+            return IR.CreateBitCast(VecPtr, llvm::Type::getFloatPtrTy(GlobalCtx));
+        default:
+            assert(false && "Invalid vector inner type");
+    }
+}
+
+llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy) {
+    auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
+    MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
+    return MallocPtr;
+}
+
+llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
+    llvm::Value *Lower = visit(Interval->getLowerExpr());
+    llvm::Value *Upper = visit(Interval->getUpperExpr());
+
+    // TODO bound check
+
+    llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+    Result = IR.CreateInsertValue(Result, Lower, {0});
+    Result = IR.CreateInsertValue(Result, Upper, {1});
+    return Result;
 }

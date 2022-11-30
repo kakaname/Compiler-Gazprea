@@ -21,8 +21,11 @@ bool canPromoteTupleTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
+bool isSameVectorAs(const Type*, const Type*);
 
+const Type *getPromotedScalarType(const Type*, const Type*);
 
+string getVectorTypeName(const Type* Ty);
 string getTupleTypeName(const Type *Ty);
 string getFunctionTypeName(const Type *Ty);
 string getProcedureTypeName(const Type *Ty);
@@ -60,6 +63,7 @@ public:
             case T_Bool:
             case T_Real:
             case T_Char:
+            case T_Interval:
                 return T->getKind() == Kind;
             case T_Tuple:
                 return isSameTupleTypeAs(this, T);
@@ -67,16 +71,19 @@ public:
                 return isSameFuncAs(this, T);
             case T_Procedure:
                 return isSameProcAs(this, T);
+            case T_Vector:
+                return isSameVectorAs(this, T);
+            default:
+                return T->getKind() == Kind;
         }
-        return T->getKind() == Kind;
     }
 
     bool isValidForArithOps() const {
-        return T_Int == Kind || T_Real == Kind;
+        return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
     bool isValidForComparisonOp() const {
-        return T_Real == Kind || T_Int == Kind;
+        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
     bool isValidForUnaryNot() const {
@@ -84,7 +91,7 @@ public:
     }
 
     bool isValidForUnaryAddOrSub() const {
-        return T_Real == Kind || T_Int == Kind;
+        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
     bool isValidForEq() const {
@@ -92,11 +99,13 @@ public:
             case T_Real:
             case T_Int:
             case T_Bool:
+            case T_Interval:
                 return true;
             case T_Tuple:
                 return doesTupleSupportEq(this);
+            default:
+                return T_Real == Kind || T_Int == Kind || T_Bool == Kind || T_Interval == Kind;
         }
-        return T_Real == Kind || T_Int == Kind || T_Bool == Kind;
     }
 
     bool isInputTy() const {
@@ -127,8 +136,9 @@ public:
                 return Ty == T_Int || Ty == T_Real;
             case T_Tuple:
                 return isValidTupleCast(this, T);
+            default:
+                return false;
         }
-        return false;
     }
 
     bool canPromoteTo(const Type *T) const {
@@ -146,6 +156,10 @@ public:
             default:
                 return false;
         }
+    }
+
+    const Type * getPromotedType(const Type *T) const {
+        return getPromotedScalarType(this, T);
     }
 
     bool isOpaqueTy() const {
@@ -179,8 +193,13 @@ public:
                 return getFunctionTypeName(this);
             case T_Procedure:
                 return getProcedureTypeName(this);
+            case T_Vector:
+                return getVectorTypeName(this);
+            case T_Interval:
+                return TypeName + "interval";
+            default:
+                assert(false);
         }
-        assert(false);
     }
 
     Type() = delete;

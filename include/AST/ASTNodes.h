@@ -265,6 +265,33 @@ struct Index: public TreeNode {
     Index() : TreeNode(TreeNodeKind::N_AST_Index) {};
 };
 
+struct IndexReference: public TreeNode {
+    static constexpr int BaseExprIdx = 0;
+    static constexpr int IndexExprIdx = 1;
+
+    void setBaseExpr(ASTNodeT *Expr) {
+        setChildAt(BaseExprIdx, Expr);
+    }
+
+    void setIndexExpr(ASTNodeT *Expr) {
+        setChildAt(IndexExprIdx, Expr);
+    }
+
+    ASTNodeT *getBaseExpr() {
+        return getChildAt(BaseExprIdx);
+    }
+
+    ASTNodeT *getIndexExpr() {
+        return getChildAt(IndexExprIdx);
+    }
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_IndexReference;
+    }
+
+    IndexReference() : TreeNode(TreeNodeKind::N_AST_IndexReference) {};
+};
+
 struct InfiniteLoop: public TreeNode {
     static constexpr int BlockIdx = 0;
 
@@ -940,6 +967,48 @@ struct ProcedureCall: public TreeNode {
     ProcedureCall(): TreeNode(TreeNodeKind::N_AST_ProcedureCall) {}
 };
 
+struct Interval: public TreeNode {
+    static constexpr size_t LowerExprIdx = 0;
+    static constexpr size_t UpperExprIdx = 1;
+
+    // This represents the number of range bound checks we have to do.
+    // These checks are emitted into the codegen
+    uint32_t CheckCount;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Interval;
+    }
+
+    void setLowerExpr(ASTNodeT *Expr) {
+        setChildAt(LowerExprIdx, Expr);
+    }
+
+    void setUpperExpr(ASTNodeT *Expr) {
+        setChildAt(UpperExprIdx, Expr);
+    }
+
+    void addCheck(ASTNodeT *Expr) {
+        addChild(Expr);
+        CheckCount++;
+    }
+
+    void copyChecksFrom(Interval *Other) {
+        for (size_t i = 0; i < Other->CheckCount; i++) {
+            addCheck(Other->getChildAt(i+2));
+        }
+    }
+
+    ASTNodeT *getLowerExpr() {
+        return getChildAt(LowerExprIdx);
+    }
+
+    ASTNodeT *getUpperExpr() {
+        return getChildAt(UpperExprIdx);
+    }
+
+    Interval(): TreeNode(TreeNodeKind::N_AST_Interval) {}
+};
+
 struct Return: public TreeNode {
     static constexpr size_t ReturnExprIdx = 0;
 
@@ -1084,4 +1153,24 @@ struct MemberReference : public TreeNode {
     MemberReference() : TreeNode(TreeNodeKind::N_AST_MemberReference) {}
 };
 
+struct VectorLiteral: public TreeNode {
+    const Type *MemType;
+    int vecSize;    
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_VectorLiteral;
+    }
+
+
+    void setExprAtPos(ASTNodeT *Member, size_t location) {
+        setChildAt(location, Member);
+    } 
+
+    ASTNodeT *getExprAtPos(size_t location) {
+        return getChildAt(location);
+    }
+
+    VectorLiteral() : TreeNode(TreeNodeKind::N_AST_VectorLiteral) {};
+    
+};
 #endif //GAZPREABASE_ASTNODES_H

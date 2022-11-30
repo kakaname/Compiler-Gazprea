@@ -34,6 +34,7 @@ public:
         N_AST_ComparisonOp,
         N_AST_ArithmeticOp,
         N_AST_Index,
+        N_AST_IndexReference,
         N_AST_ConditionalLoop,
         N_AST_DomainLoop,
         N_AST_IntLiteral,
@@ -65,9 +66,11 @@ public:
         N_AST_OutStream,
         N_AST_InStream,
         N_AST_ExplicitCast,
+        N_AST_VectorLiteral,
 
+        N_AST_Interval,
         // Split AST nodes from tree node.
-        N_ScopeTreeNode
+        N_ScopeTreeNode,
     };
 
     TreeNodeKind getKind() const {

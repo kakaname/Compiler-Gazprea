@@ -48,6 +48,10 @@ public:
         std::cout << "Block" << "\n";
     }
 
+    void visitInterval(Interval *Int) {
+        std::cout << "Interval" << "\n";
+    }
+
     void visitIdentReference(IdentReference *Ref) {
         std::cout << "Ident Reference(Ty: "
                   << PM->getAnnotation<ExprTypeAnnotatorPass>(Ref)->getTypeName() << ")\n";
@@ -144,6 +148,10 @@ public:
 
     void visitTupleLiteral(TupleLiteral *TupleLit) {
         std::cout << "TupleLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(TupleLit)->getTypeName() << ")" << "\n";
+    }
+
+    void visitVectorLiteral(VectorLiteral *Vec) {
+        std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
     }
 
     void visitMemberAccess(MemberAccess *MemberAcc) {

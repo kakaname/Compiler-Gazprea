@@ -378,6 +378,29 @@ const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
     return PM->TypeReg.getCharTy();
 }
 
+const Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
+    auto BaseTy = visit(Ref->getBaseExpr());
+    if (!BaseTy)
+        throw runtime_error("Base type not set for index reference.");
+    if (BaseTy->getKind() != Type::TypeKind::T_Vector)
+        throw runtime_error("Base type is not a vector.");
+    // TODO check if baseexpr is simply an ID?
+    auto VecTy = dyn_cast<VectorTy>(BaseTy);
+
+    auto IdxTy = visit(Ref->getIndexExpr());
+    if (!IdxTy)
+        throw runtime_error("Index type not set for index reference.");
+    // TODO run pass to convert vector indexing to simple loop
+    if (!IdxTy->isSameTypeAs(PM->TypeReg.getIntegerTy()))
+        throw runtime_error("Index type is not an integer.");
+
+    auto ResultTy = VecTy->getInnerTy();
+    ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+    return ResultTy;
+
+}
+
 const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     auto BaseTy = visit(Ref->getIdentifier());
     assert(BaseTy && "Type not assigned to identifier.");
@@ -428,4 +451,85 @@ const Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
     auto RetTy = ProcTy->getRetTy();
     PM->setAnnotation<ExprTypeAnnotatorPass>(Call, RetTy);
     return RetTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
+    const Type *VecTy = nullptr;
+    // Pass 1: Check if all elements are of the same or promotable type (get the highest type)
+    for (auto *ChildExpr : *VecLit) {
+        const Type *ChildTy = visit(ChildExpr);
+
+        if (!ChildTy->isScalarTy())
+            throw std::runtime_error("Vector literal can only contain scalar types");
+
+        if (!VecTy) {
+            VecTy = ChildTy;
+            continue;
+        }
+
+        VecTy = ChildTy->getPromotedType(VecTy);
+        if (!VecTy)
+            throw std::runtime_error("Vector literal can only contain scalar types of the same or promotable types");
+    }
+
+    // Pass 2: Promote all elements to the highest type
+    for (int i = 0; i < VecLit->numOfChildren(); i++) {
+        auto ChildExpr = VecLit->getChildAt(i);
+        auto ChildTy = visit(ChildExpr);
+        if (!ChildTy->isSameTypeAs(VecTy) && ChildTy->canPromoteTo(VecTy)) {
+            auto NewChildExpr = wrapWithCastTo(ChildExpr, VecTy);
+            VecLit->setExprAtPos(NewChildExpr, i);
+        }
+    }
+
+    // Get the vector type
+    VecTy = PM->TypeReg.getVectorType(VecTy, VecLit->numOfChildren());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, VecTy);
+    return VecTy;
+
+}
+
+const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
+    auto BaseTy = visit(Idx->getBaseExpr());
+    auto VecTy = dyn_cast<VectorTy>(BaseTy);
+
+    if (!VecTy)
+        throw std::runtime_error("Indexing can only be done on vector types");
+
+    auto IdxTy = visit(Idx->getIndexExpr());
+    auto IntTy = dyn_cast<IntegerTy>(IdxTy);
+    if (!IntTy)
+        throw std::runtime_error("Indexing can only be done with integer types");
+
+    auto ResultTy = VecTy->getInnerTy();
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+    return ResultTy;
+}
+
+const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
+    auto Lower = visit(Int->getLowerExpr());
+    auto Upper = visit(Int->getUpperExpr());
+
+    auto IntTy = PM->TypeReg.getIntegerTy();
+
+    // Check that lower and upper both evaluate to the integer type, otherwise
+    // cast it to the integer type if valid
+    if (!Lower->isSameTypeAs(IntTy)) {
+        if (!Lower->canPromoteTo(IntTy))
+            throw std::runtime_error("Lower bound of interval must be of type integer");
+
+        auto Cast = wrapWithCastTo(Int->getLowerExpr(), IntTy);
+        Int->setLowerExpr(Cast);
+    }
+
+    if (!Upper->isSameTypeAs(IntTy)) {
+        if (!Upper->canPromoteTo(IntTy))
+            throw std::runtime_error("Upper bound of interval must be of type integer");
+
+        auto Cast = wrapWithCastTo(Int->getUpperExpr(), IntTy);
+        Int->setUpperExpr(Cast);
+    }
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntervalTy());
+    return PM->TypeReg.getIntervalTy();
 }

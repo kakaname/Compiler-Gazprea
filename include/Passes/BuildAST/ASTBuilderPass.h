@@ -101,6 +101,8 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) override;
 
+    std::any visitIntervalType(GazpreaParser::IntervalTypeContext *ctx) override;
+
     std::any visitIntType(GazpreaParser::IntTypeContext *ctx) override;
 
     std::any visitCharType(GazpreaParser::CharTypeContext *ctx) override;
@@ -164,6 +166,8 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
     std::any visitIndexExpr(GazpreaParser::IndexExprContext *ctx) override;
 
     std::any visitTupleLiteral(GazpreaParser::TupleLiteralContext *ctx) override;
+
+    std::any visitVectorLiteral(GazpreaParser::VectorLiteralContext *ctx) override;
 
     std::any visitAppendOp(GazpreaParser::AppendOpContext *ctx) override;
 

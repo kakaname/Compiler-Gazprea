@@ -82,6 +82,7 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
+     | INTEGER INTERVAL                                 #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
      | BOOLEANA                                         #booleanType
@@ -161,6 +162,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
+    | LSQRPAREN expr (COMMA expr)* RSQRPAREN        #vectorLiteral
     | ID                                    # identifier
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
