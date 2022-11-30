@@ -20,6 +20,8 @@ struct VectorScalarOpTransformationPass: public VisitorPass<VectorScalarOpTransf
 
     void visitLogicalOp(LogicalOp *Op);
 
+    bool isScalarTy(const Type *Ty);
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");
