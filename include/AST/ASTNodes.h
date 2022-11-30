@@ -1173,4 +1173,87 @@ struct VectorLiteral: public TreeNode {
     VectorLiteral() : TreeNode(TreeNodeKind::N_AST_VectorLiteral) {};
     
 };
+
+struct DotProduct: public TreeNode {
+    static constexpr size_t LHSIdx = 0;
+    static constexpr size_t RHSIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_DotProduct;
+    }
+
+    void setLHS(ASTNodeT *LHS) {
+        setChildAt(LHSIdx, LHS);
+    }
+
+    void setRHS(ASTNodeT *RHS) {
+        setChildAt(RHSIdx, RHS);
+    }
+
+    ASTNodeT *getLHS() {
+        return getChildAt(LHSIdx);
+    }
+
+    ASTNodeT *getRHS() {
+        return getChildAt(RHSIdx);
+    }
+
+    DotProduct() : TreeNode(TreeNodeKind::N_AST_DotProduct) {}
+};
+
+struct Concat: public TreeNode {
+    static constexpr size_t LHSIdx = 0;
+    static constexpr size_t RHSIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Concat;
+    }
+
+    void setLHS(ASTNodeT *LHS) {
+        setChildAt(LHSIdx, LHS);
+    }
+
+    void setRHS(ASTNodeT *RHS) {
+        setChildAt(RHSIdx, RHS);
+    }
+
+    ASTNodeT *getLHS() {
+        return getChildAt(LHSIdx);
+    }
+
+    ASTNodeT *getRHS() {
+        return getChildAt(RHSIdx);
+    }
+
+    Concat() : TreeNode(TreeNodeKind::N_AST_Concat) {}
+};
+
+struct ByOp: public TreeNode {
+    static constexpr size_t LHSIdx = 0;
+    static constexpr size_t RHSIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_ByOp;
+    }
+
+    void setLHS(ASTNodeT *LHS) {
+        setChildAt(LHSIdx, LHS);
+    }
+
+    void setRHS(ASTNodeT *RHS) {
+        setChildAt(RHSIdx, RHS);
+    }
+
+    ASTNodeT *getLHS() {
+        return getChildAt(LHSIdx);
+    }
+
+    ASTNodeT *getRHS() {
+        return getChildAt(RHSIdx);
+    }
+
+    ByOp() : TreeNode(TreeNodeKind::N_AST_ByOp) {}
+};
+
+
 #endif //GAZPREABASE_ASTNODES_H

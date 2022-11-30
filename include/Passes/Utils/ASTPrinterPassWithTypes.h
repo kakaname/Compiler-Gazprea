@@ -238,6 +238,18 @@ public:
         std::cout << "ExplicitCast(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast)->getTypeName() << ")" << "\n";
     }
 
+    void visitConcat(Concat *Con) {
+        std::cout << "Concat(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Con)->getTypeName() << ")\n";
+    }
+
+    void visitDotProduct(DotProduct *Dot) {
+        std::cout << "DotProduct(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Dot)->getTypeName() << ")\n";
+    }
+
+    void visitByOp(ByOp *By) {
+        std::cout << "ByOp(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(By)->getTypeName() << ")\n";
+    }
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
