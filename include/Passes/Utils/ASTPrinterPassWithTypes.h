@@ -242,7 +242,9 @@ public:
         std::cout << "FreeNode" << "\n";
     }
 
-
+    void visitGenerator(Generator *Gen) {
+        std:: cout << "Gen" << "\n";
+    }
 
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {

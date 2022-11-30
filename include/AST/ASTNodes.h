@@ -1183,4 +1183,42 @@ struct VectorLiteral: public TreeNode {
     VectorLiteral() : TreeNode(TreeNodeKind::N_AST_VectorLiteral) {};
     
 };
+
+
+struct Generator : public TreeNode {
+    static constexpr int DomainVarIdx = 0;
+    static constexpr int DomainIdx = 1;
+    static constexpr int ExprIdx = 2;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Generator;
+    }
+
+    void setDomainVariable(Identifier *Ident) {
+        setChildAt(DomainVarIdx, Ident);
+    }
+
+    void setDomain(ASTNodeT *Domain) {
+        setChildAt(DomainIdx, Domain);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    Identifier *getDomainVar() {
+        return getChildAtAs<Identifier>(DomainVarIdx);
+    }
+
+    ASTNodeT *getDomain() {
+        return getChildAt(DomainIdx);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
+    }
+
+    Generator() : TreeNode(TreeNodeKind::N_AST_Generator) {};
+};
+
 #endif //GAZPREABASE_ASTNODES_H

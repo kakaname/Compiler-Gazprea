@@ -261,6 +261,12 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitGenerator(Generator *Gen) {
+        visit(Gen->getDomainVar());
+        visit(Gen->getDomain());
+        visit(Gen->getExpr());
+        return RetT();
+    }
 
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
@@ -449,6 +455,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitFreeNode(N);
     }
 
+    RetT callVisitGeneratorImpl(Generator *G) {
+        return static_cast<DerivedT*>(this)->visitGenerator(G);
+    }
+
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
@@ -598,6 +608,9 @@ public:
 
         if (auto *Vec = dyn_cast<VectorLiteral>(Node))
             return callVisitVectorLiteralImpl(Vec);
+
+        if (auto *Gen = dyn_cast<Generator>(Node))
+            return callVisitGeneratorImpl(Gen);
 
         assert(false && "Should be unreachable");
     }

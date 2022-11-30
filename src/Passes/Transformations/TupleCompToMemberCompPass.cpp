@@ -1,5 +1,5 @@
 //
-// Created by 陈 on 2022-11-14.
+// Created by Chen on 2022-11-14.
 //
 
 #include "Passes/Transformations/TupleCompToMemberCompPass.h"
@@ -28,7 +28,7 @@ void TupleCompToMemberCompPass::visitLogicalOp(LogicalOp *Op) {
         auto LeftMemberAccess = buildMemberAccess(LeftExpr, I+1);
         auto RightMemberAccess = buildMemberAccess(RightExpr, I+1);
 
-        // Setup the comparison
+        // Set up the comparison
         auto EqualOp = buildLogicalOp(
                 LeftMemberAccess, RightMemberAccess, Op->getOpKind());
         EqualOps.push_back(EqualOp);

@@ -234,6 +234,10 @@ public:
         std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
     }
 
+    void visitGenerator(Generator *Gen) {
+        std:: cout << "Gen" << "\n";
+    }
+
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
         this->Root = Root;
