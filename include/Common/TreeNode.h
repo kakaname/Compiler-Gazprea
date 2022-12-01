@@ -71,7 +71,8 @@ public:
         N_AST_FreeNode,
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
-        N_AST_Generator
+        N_AST_Generator,
+        N_AST_AppendNode
     };
 
     TreeNodeKind getKind() const {

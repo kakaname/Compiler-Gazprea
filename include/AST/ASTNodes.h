@@ -1221,4 +1221,31 @@ struct Generator : public TreeNode {
     Generator() : TreeNode(TreeNodeKind::N_AST_Generator) {};
 };
 
+struct AppendNode : public TreeNode {
+    static constexpr int LeftExprIdx = 0;
+    static constexpr int RightExprIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_AppendNode;
+    }
+
+    void setLeftExpr(ASTNodeT *Expr) {
+        setChildAt(LeftExprIdx, Expr);
+    }
+
+    void setRightExpr(ASTNodeT *Expr) {
+        setChildAt(RightExprIdx, Expr);
+    }
+
+    ASTNodeT *getLeftExpr() {
+        return getChildAt(LeftExprIdx);
+    }
+
+    ASTNodeT *getRightExpr() {
+        return getChildAt(RightExprIdx);
+    }
+
+    AppendNode() : TreeNode(TreeNodeKind::N_AST_AppendNode) {};
+};
+
 #endif //GAZPREABASE_ASTNODES_H

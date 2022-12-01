@@ -812,7 +812,16 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
 
 // ignored for part1
 std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+   auto AppendOp = PM->Builder.build<AppendNode>();
+   AppendOp->setCtx(ctx);
+
+   // Set the left expression
+   AppendOp->setLeftExpr(castToNodeVisit(ctx->expr(0)));
+
+   // Set the right expression
+   AppendOp->setRightExpr(castToNodeVisit(ctx->expr(1)));
+
+   return cast<ASTNodeT>(AppendOp);
 }
 
 std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {

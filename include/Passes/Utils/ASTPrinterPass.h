@@ -238,6 +238,10 @@ public:
         std:: cout << "Gen" << "\n";
     }
 
+    void visitAppendNode(AppendNode *Concat) {
+        std:: cout << "Append" << "\n";
+    }
+
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
         this->Root = Root;
