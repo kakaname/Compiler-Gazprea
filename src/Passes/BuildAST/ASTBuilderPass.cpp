@@ -676,6 +676,21 @@ std::any ASTBuilderPass::visitIntLiteral(GazpreaParser::IntLiteralContext *ctx) 
 }
 
 std::any ASTBuilderPass::visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotProdExprContext *ctx) {
+
+    if (ctx->DOTPROD()) {
+        auto DotProd = PM->Builder.build<DotProduct>();
+        DotProd->setCtx(ctx);
+
+        // Set the left expression.
+        DotProd->setLHS(castToNodeVisit(ctx->expr(0)));
+
+        // Set the right expression.
+        DotProd->setRHS(castToNodeVisit(ctx->expr(1)));
+
+        return cast<ASTNodeT>(DotProd);
+    }
+
+
     auto Expr = PM->Builder.build<ArithmeticOp>();
     Expr->setCtx(ctx);
 
@@ -700,7 +715,16 @@ std::any ASTBuilderPass::visitMulDivModDotProdExpr(GazpreaParser::MulDivModDotPr
 
 // ignored for part1
 std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto ByExpr = PM->Builder.build<ByOp>();
+    ByExpr->setCtx(ctx);
+
+    // Set the left expression.
+    ByExpr->setLHS(castToNodeVisit(ctx->expr(0)));
+
+    // Set the right expression.
+    ByExpr->setRHS(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(ByExpr);
 }
 
 std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
@@ -813,7 +837,17 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
 
 // ignored for part1
 std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto ConcatOp = PM->Builder.build<Concat>();
+    ConcatOp->setCtx(ctx);
+
+    // Set the left expression.
+    ConcatOp->setLHS(castToNodeVisit(ctx->expr(0)));
+
+    // Set the right expression.
+    ConcatOp->setRHS(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(ConcatOp);
+
 }
 
 std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {

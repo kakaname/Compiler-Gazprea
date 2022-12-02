@@ -162,7 +162,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
-    | LSQRPAREN expr (COMMA expr)* RSQRPAREN        #vectorLiteral
+    | LSQRPAREN (expr (COMMA expr)*)? RSQRPAREN        #vectorLiteral
     | ID                                    # identifier
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral

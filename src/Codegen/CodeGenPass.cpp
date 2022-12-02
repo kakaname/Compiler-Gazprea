@@ -49,6 +49,39 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
+    VectorConcat = Mod.getOrInsertFunction(
+            "rt_vector_concat", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorDotProductInt = Mod.getOrInsertFunction(
+            "rt_vector_dotproduct_int", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorDotProductReal = Mod.getOrInsertFunction(
+            "rt_vector_dotproduct_real", llvm::FunctionType::get(
+                    LLVMRealTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorBy = Mod.getOrInsertFunction(
+            "rt_vector_by", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorNot = Mod.getOrInsertFunction(
+            "rt_vector_not", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+    VectorSub = Mod.getOrInsertFunction(
+            "rt_vector_sub", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+    PrintVector = Mod.getOrInsertFunction(
+            "rt_print_vector", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorTy->getPointerTo()}, false));
+    VectorEq = Mod.getOrInsertFunction(
+            "rt_vector_eq", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorLogical = Mod.getOrInsertFunction(
+            "rt_vector_logical", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorArith = Mod.getOrInsertFunction(
+            "rt_vector_arith", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorComp = Mod.getOrInsertFunction(
+            "rt_vector_comp", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
 
     visit(Root);
 
@@ -204,6 +237,15 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
                 Pred = llvm::CmpInst::Predicate::FCMP_OGE;
         }
         return IR.CreateFCmp(Pred, LeftOperand, RightOperand);
+    } else if (isa<VectorTy>(LTy)) {
+        // TODO temporary alloc
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+
+        return IR.CreateCall(VectorComp, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+
     }
     switch (Op->getOpKind()) {
         case ComparisonOp::GT:
@@ -339,6 +381,12 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
         Result = IR.CreateInsertValue(Result, Result1, {0});
         Result = IR.CreateInsertValue(Result, Result2, {1});
         return Result;
+    } else if (isa<VectorTy>(ResultType)) {
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+        return IR.CreateCall(VectorArith, {LeftVec, RightVec, IR.getInt32(Op->getOpKind())});
     }
     throw std::runtime_error("Unknown type in arithmetic expression");
 }
@@ -381,6 +429,25 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
             default:
                 throw std::runtime_error("Invalid logical operation for interval type");
         }
+    } else if (isa<VectorTy>(LeftType)) {
+        // TODO temporary story for vector type
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+        llvm::Value *Result;
+
+        switch (Op->getOpKind()) {
+            case LogicalOp::EQ:
+            case LogicalOp::NEQ:
+                Result = IR.CreateCall(VectorEq, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+                return IR.CreateICmpNE(Result, llvm::ConstantInt::get(LLVMCharTy, 0));
+            case LogicalOp::AND:
+            case LogicalOp::OR:
+            case LogicalOp::XOR:
+                return IR.CreateCall(VectorLogical, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+        }
+
     }
 
     switch (Op->getOpKind()) {
@@ -418,6 +485,23 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
                 return Operand;
             default:
                 throw std::runtime_error("Invalid unary operation for interval type");
+        }
+    } else if (isa<VectorTy>(ResultType)) {
+        llvm::Value *Result;
+
+        // TODO fix temporary store
+        llvm::Value *Temp = IR.CreateAlloca(Operand->getType());
+        IR.CreateStore(Operand, Temp);
+
+        switch (Op->getOpKind()) {
+            case UnaryOp::NOT:
+                return IR.CreateCall(VectorNot, {Temp});
+            case UnaryOp::ADD:
+                return Operand;
+            case UnaryOp::SUB:
+                return IR.CreateCall(VectorSub, {Temp});
+            default:
+                assert(false && "Invalid unary operation for vector type");
         }
     }
 
@@ -810,8 +894,13 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     Value *ValToOut = visit(Stream->getOutStreamExpr());
     const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
-    if (!ValType->isOutputTy())
-        throw std::runtime_error("Invalid output stream type");
+    assert(ValType->isOutputTy() && "Invalid output stream type");
+    if (ValType->getKind() == Type::T_Vector) {
+        // TODO temporary store
+        auto Vec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(ValToOut, Vec);
+        return IR.CreateCall(PrintVector, {Vec});
+    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -1056,4 +1145,49 @@ llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
     Result = IR.CreateInsertValue(Result, Lower, {0});
     Result = IR.CreateInsertValue(Result, Upper, {1});
     return Result;
+}
+
+llvm::Value *CodeGenPass::visitConcat(Concat *Con) {
+    llvm::Value *Left = visit(Con->getLHS());
+    llvm::Value *Right = visit(Con->getRHS());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+    IR.CreateStore(Right, RightPtr);
+
+    llvm::Value *Result = IR.CreateCall(VectorConcat, {LeftPtr, RightPtr});
+    return Result;
+}
+
+llvm::Value *CodeGenPass::visitDotProduct(DotProduct *DP) {
+    llvm::Value *Left = visit(DP->getLHS());
+    llvm::Value *Right = visit(DP->getRHS());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+    IR.CreateStore(Right, RightPtr);
+
+    // Determine type of the result
+    auto LeftTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS()));
+    if (LeftTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
+        return IR.CreateCall(VectorDotProductReal, {LeftPtr, RightPtr});
+    else
+        return IR.CreateCall(VectorDotProductInt, {LeftPtr, RightPtr});
+}
+
+llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
+    llvm::Value *Left = visit(By->getLHS());
+    llvm::Value *Right = visit(By->getRHS());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+
+    // Determine type of the result
+    return IR.CreateCall(VectorBy, {LeftPtr, Right});
+
 }

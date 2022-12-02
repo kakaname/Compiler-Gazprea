@@ -240,6 +240,24 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return visit(InStream->getTarget());
     }
 
+    RetT visitConcat(Concat *Concat) {
+        visit(Concat->getLHS());
+        visit(Concat->getRHS());
+        return RetT();
+    }
+
+    RetT visitDotProduct(DotProduct *DotProduct) {
+        visit(DotProduct->getLHS());
+        visit(DotProduct->getRHS());
+        return RetT();
+    }
+
+    RetT visitByOp(ByOp *ByOp) {
+        visit(ByOp->getLHS());
+        visit(ByOp->getRHS());
+        return RetT();
+    }
+
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
         return visit(ExplicitCast->getExpr());
     }
@@ -433,6 +451,18 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitIndex(I);
     }
 
+    RetT callVisitConcatImpl(Concat *C) {
+        return static_cast<DerivedT*>(this)->visitConcat(C);
+    }
+
+    RetT callVisitDotProductImpl(DotProduct *D) {
+        return static_cast<DerivedT*>(this)->visitDotProduct(D);
+    }
+
+    RetT callVisitByOpImpl(ByOp *B) {
+        return static_cast<DerivedT*>(this)->visitByOp(B);
+    }
+
     RetT callVisitIndexReferenceImpl(IndexReference *I) {
         return static_cast<DerivedT*>(this)->visitIndexReference(I);
     }
@@ -579,6 +609,15 @@ public:
 
         if (auto *InS = dyn_cast<InStream>(Node))
             return callVisitInStreamImpl(InS);
+
+        if (auto *Conc = dyn_cast<Concat>(Node))
+            return callVisitConcatImpl(Conc);
+
+        if (auto *DP = dyn_cast<DotProduct>(Node))
+            return callVisitDotProductImpl(DP);
+
+        if (auto *By = dyn_cast<ByOp>(Node))
+            return callVisitByOpImpl(By);
 
         if (auto *Cast = dyn_cast<ExplicitCast>(Node))
             return callVisitExplicitCastImpl(Cast);

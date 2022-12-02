@@ -19,6 +19,9 @@ bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
+bool doesVectorSupportEq(const Type*);
+bool doesVectorSupportArithOps(const Type*);
+bool doesVectorSupportComparisonOps(const Type*);
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
@@ -79,10 +82,16 @@ public:
     }
 
     bool isValidForArithOps() const {
+        if (Kind == T_Vector) {
+            return doesVectorSupportArithOps(this);
+        }
         return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
     bool isValidForComparisonOp() const {
+        if (Kind == T_Vector) {
+            return doesVectorSupportComparisonOps(this);
+        }
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
@@ -103,6 +112,8 @@ public:
                 return true;
             case T_Tuple:
                 return doesTupleSupportEq(this);
+            case T_Vector:
+                return doesVectorSupportEq(this);
             default:
                 return T_Real == Kind || T_Int == Kind || T_Bool == Kind || T_Interval == Kind;
         }
