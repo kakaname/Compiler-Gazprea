@@ -139,7 +139,8 @@ std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *c
     if (!isa<Block>(Body)) {
         auto Blk = wrapStmtInBlock(Body);
         Blk->setCtx(ctx);
-        return cast<ASTNodeT>(Blk);
+        Loop->setBlock(Blk);
+        return cast<ASTNodeT>(Loop);
     }
     Loop->setBlock(cast<Block>(Body));
     return cast<ASTNodeT>(Loop);

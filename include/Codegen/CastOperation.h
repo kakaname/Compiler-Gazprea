@@ -26,8 +26,8 @@ template<> struct CastOperation<Type::TypeKind::T_Char> {
             case Type::T_Bool:
                 return IR.CreateZExt(Val, IR.getInt8Ty());
             default:
-                assert("Tried to cast some type to char that can't be"
-                       " casted to char" && false);
+                throw std::runtime_error("Tried to cast some type to char that can't be"
+                       " casted to char");
         }
     }
 };
@@ -41,7 +41,7 @@ template<> struct CastOperation<Type::TypeKind::T_Int> {
             case Type::TypeKind::T_Real:
                 return IR.CreateFPToSI(Val, IR.getInt32Ty());
             default:
-                assert("Tried to cast some type to integer that can't be"
+                throw std::runtime_error("Tried to cast some type to integer that can't be"
                        " casted to integer");
         }
     }
@@ -56,7 +56,7 @@ template<> struct CastOperation<Type::TypeKind::T_Real> {
             case Type::TypeKind::T_Bool:
                 return IR.CreateUIToFP(Val, IR.getFloatTy());
             default:
-                assert("Tried to cast some type to real that can't be"
+                throw std::runtime_error("Tried to cast some type to real that can't be"
                        " casted to real");
         }
     }
