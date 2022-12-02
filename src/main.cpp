@@ -77,36 +77,21 @@ int main(int argc, char **argv) {
   // Get the root of the parse tree. Use your base rule name.
   antlr4::tree::ParseTree *tree = parser.file();
 
-
-  // HOW TO USE A VISITOR
-  // Make the visitor
-//   ASTBuilderPass visitor;
-  // Visit the tree
-//   visitor.visit(tree);
-
-  // HOW TO WRITE OUT.
-  // std::ofstream out(argv[2]);
-  // out << "This is out...\n";
-
-//    Type *T = &Vec;
-
-//    auto *V = dyn_cast<VectorTy>(T);
-//    std::cout << V->isConst() << std::endl;
-//    TreeNodeBuilder Builder;
-//    auto *Assign = Builder.build<Assignment>();
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
-            SubExpressionCacheSet());
+        SubExpressionCacheSet());
 
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
+    Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
@@ -117,12 +102,10 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
-    Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
 
-    //
     Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
@@ -138,10 +121,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
-//
     auto CG = CodeGenPass(argv[2]);
-    auto *Root = Manager.getRoot();
-    CG.runOnAST(Manager, Root);
+    CG.runOnAST(Manager, Manager.getRoot());
     return 0;
 
 }

@@ -55,7 +55,7 @@ bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
 
     if (BaseTy->getSize() != TargetTyVec->getSize() &&
         BaseTy->getSize() != -1 && TargetTyVec->getSize() != -1)
-        return false;
+        return false;   
 
     return BaseTy->getInnerTy()->isSameTypeAs(TargetTyVec->getInnerTy());
 }
@@ -175,6 +175,7 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
 
     if (!OtherProc)
         return false;
+
     if (ProcTy->getNumOfArgs() != OtherProc->getNumOfArgs())
         return false;
 

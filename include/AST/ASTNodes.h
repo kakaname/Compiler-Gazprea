@@ -663,7 +663,7 @@ struct ArgsList: public TreeNode {
         setChildAt(Pos, Expr);
     }
 
-    ASTNodeT *getExprAtPos(long Pos) {
+    ASTNodeT *getExprAtPos(size_t Pos) {
         return getChildAt(Pos);
     }
 
@@ -718,7 +718,7 @@ struct ParameterList: public TreeNode {
         addChild(I);
     }
 
-    Identifier *getParamAt(long Pos) {
+    Identifier *getParamAt(size_t Pos) {
         return getChildAtAs<Identifier>(Pos);
     }
 
@@ -860,7 +860,7 @@ struct FunctionCall: public TreeNode {
 struct ProcedureDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
 
-    const Type *RetTy;
+    const Type *RetTy{nullptr};
     vector<const Type*> ParamTypes;
 
     static bool classof(const TreeNode *N) {

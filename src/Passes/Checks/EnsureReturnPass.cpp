@@ -7,13 +7,13 @@
 
 
 bool EnsureReturnPass::visitFunctionDef(FunctionDef *FuncDef) {
-
     if (!visit(FuncDef->getBlock()))
         throw FunctionReturnError(FuncDef, FuncDef->getIdentifier()->getName());
+    return false;
 }
 
 bool EnsureReturnPass::visitBlock(Block *Blk) {
-    for (auto *Child : *Blk) {
+    for (auto Child : *Blk) {
         if (isa<Return>(Child))
             return true;
 
@@ -33,8 +33,13 @@ bool EnsureReturnPass::visitProcedureDef(ProcedureDef *ProcDef) {
         ProcDef->getBlock()->addChild(RetStmt);
         return true;
     }
-    if (!visit(ProcDef->getBlock()))
+    if (!visit(ProcDef->getBlock())) {
+        std::cout << ProcDef->getIdentifier()->getName() << std::endl;
+        std::cout << ProcDef->getKind() << ProcDef->getBlock()->getKind() << ProcDef->getBlock()->numOfChildren() << std::endl;
         throw ProcedureReturnError(ProcDef, ProcDef->getIdentifier()->getName());
+    }
+
+    return false;
 
 }
 

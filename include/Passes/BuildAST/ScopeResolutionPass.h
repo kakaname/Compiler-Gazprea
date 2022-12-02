@@ -281,7 +281,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (ParamTypes.size() != Args->numOfChildren())
             throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
 
-        for (auto I = 0; I < ParamTypes.size(); I++)
+        for (unsigned long I = 0; I < ParamTypes.size(); I++)
             runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
     }
@@ -306,7 +306,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (ParamTypes.size() != Args->numOfChildren())
             throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
 
-        for (auto I = 0; I < ParamTypes.size(); I++)
+        for (size_t I = 0; I < ParamTypes.size(); I++)
             runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
     }
