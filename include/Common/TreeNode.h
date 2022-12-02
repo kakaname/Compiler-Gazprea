@@ -126,20 +126,24 @@ public:
     }
 
     TreeNode *getChildAt(size_t Pos) {
-        assert(Pos < Children.size());
+        if(Pos >= Children.size())
+            throw std::runtime_error("Tried to access a child that does not exist");
         auto I = Children.begin();
         advance(I, Pos);
         return *I;
     }
 
 
-    size_t numOfChildren() {
+    [[gnu::noinline]] size_t numOfChildren() {
         return Children.size();
     }
 
     void replaceChildWith(const TreeNode *Old, TreeNode *New) {
         auto Loc = std::find(Children.begin(), Children.end(), Old);
-        assert(Loc != Children.end() && "Tried to replace a non existent child");
+
+        if(Loc == Children.end())
+            throw std::runtime_error("Tried to replace a non existent child");
+
         if (New)
             New->setParent(this);
         *Loc = New;

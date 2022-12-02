@@ -11,46 +11,46 @@ void ExprTypeAnnotatorPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
-    auto LeftExpr = Op->getLeftExpr();
-    auto RightExpr = Op->getRightExpr();
-    auto LeftType = visit(LeftExpr);
-    auto RightType = visit(RightExpr);
+    auto LExpr = Op->getLeftExpr();
+    auto RExpr = Op->getRightExpr();
+    auto LType = visit(LExpr);
+    auto RType = visit(RExpr);
 
     // If both of them are opaque types, we cast them to the opaque type target.
-    if (LeftType->isOpaqueTy() && RightType->isOpaqueTy()) {
+    if (LType->isOpaqueTy() && RType->isOpaqueTy()) {
         if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
 
         if (!OpaqueTyCastTarget->isValidForComparisonOp())
             throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
 
-        auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
-        auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
+        auto LeftCast = wrapWithCastTo(LExpr, OpaqueTyCastTarget);
+        auto RightCast = wrapWithCastTo(RExpr, OpaqueTyCastTarget);
         Op->setLeftExpr(LeftCast);
         Op->setRightExpr(RightCast);
-        annotateWithConst(Op, OpaqueTyCastTarget);
-        return OpaqueTyCastTarget;
+        annotateWithConst(Op, PM->TypeReg.getBooleanTy());
+        return PM->TypeReg.getBooleanTy();
     }
 
     // At least one of them is opaque.
-    if (LeftType->isOpaqueTy() || RightType->isOpaqueTy()) {
+    if (LType->isOpaqueTy() || RType->isOpaqueTy()) {
         //
-        if (LeftType->isOpaqueTy()) {
-            auto Cast = wrapWithCastTo(LeftExpr, RightType);
+        if (LType->isOpaqueTy()) {
+            auto Cast = wrapWithCastTo(LExpr, RType);
             Op->setLeftExpr(Cast);
-            LeftType = RightType;
+            LType = RType;
         } else {
-            auto Cast = wrapWithCastTo(RightExpr, LeftType);
+            auto Cast = wrapWithCastTo(RExpr, LType);
             Op->setRightExpr(Cast);
-            RightType = LeftType;
+            RType = LType;
         }
     }
 
-    if (!LeftType->isValidForComparisonOp())
-        throw InvalidComparisonOpError(Op, LeftType->getTypeName());
+    if (!LType->isValidForComparisonOp())
+        throw InvalidComparisonOpError(Op, LType->getTypeName());
 
-    if (!RightType->isValidForComparisonOp())
-        throw InvalidComparisonOpError(Op, RightType->getTypeName());
+    if (!RType->isValidForComparisonOp())
+        throw InvalidComparisonOpError(Op, RType->getTypeName());
 
     if (LeftType->isSameTypeAs(RightType)) {
 
@@ -61,6 +61,8 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return ResType;
         }
 
+
+    if (LType->isSameTypeAs(RType)) {
         annotate(Op, PM->TypeReg.getBooleanTy());
         return PM->TypeReg.getBooleanTy();
     }
@@ -73,14 +75,13 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         return PM->TypeReg.getBooleanTy();
     }
 
-    if (RightType->canPromoteTo(LeftType)) {
-        auto Cast = wrapWithCastTo(RightExpr, LeftType);
-        Op->setRightExpr(Cast);
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-        return PM->TypeReg.getBooleanTy();
-    }
+    auto WiderTy = getWiderType(LType, RType);
+    assert(WiderTy && "Comparison between incompatible types");
 
-    assert(false && "Comparison between incompatible types");
+
+    if (!LType->isSameTypeAs(WiderTy))
+        Op->setLeftExpr(wrapWithCastTo(LExpr, WiderTy));
+
 }
 
 const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
@@ -94,7 +95,7 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
         if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
 
-        if (!OpaqueTyCastTarget->isValidForComparisonOp())
+        if (!OpaqueTyCastTarget->isValidForArithOps())
             throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
 
         auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
@@ -566,6 +567,7 @@ const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
     return PM->TypeReg.getIntervalTy();
 }
 
+
 const Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
     auto LHS = visit(By->getLHS());
 
@@ -667,3 +669,13 @@ const Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     return ResTy;
 }
 
+
+const Type *ExprTypeAnnotatorPass::getWiderType(const Type *Ty1, const Type *Ty2) {
+    if (Ty1->canPromoteTo(Ty2))
+        return Ty2;
+
+    if (Ty2->canPromoteTo(Ty1))
+        return Ty1;
+
+    return nullptr;
+}

@@ -15,8 +15,8 @@ template<typename DerivedT, typename RetT>
 class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProgram(Program *Prog) {
-        for (auto *child : *Prog)
-            visit(child);
+        for (auto Child : *Prog)
+            visit(Child);
         return RetT();
     }
 
@@ -265,6 +265,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitVectorLiteral(VectorLiteral *Vector) {
         for (auto *child : *Vector)
             visit(child);
+        return RetT();
     }
 
     RetT visitInterval(Interval *Interval) {
@@ -576,9 +577,8 @@ public:
         if (auto *FuncDef = dyn_cast<FunctionDef>(Node))
             return callVisitFunctionDefImpl(FuncDef);
 
-        if (auto *ResolType = dyn_cast<ResolvedType>(Node)) {
+        if (auto *ResolType = dyn_cast<ResolvedType>(Node))
             return callVisitResolvedTypeImpl(ResolType);
-        }
 
         if (auto *FuncCall = dyn_cast<FunctionCall>(Node))
             return callVisitFunctionCallImpl(FuncCall);
@@ -626,6 +626,7 @@ public:
             return callVisitVectorLiteralImpl(Vec);
 
         assert(false && "Should be unreachable");
+        return RetT();
     }
 };
 

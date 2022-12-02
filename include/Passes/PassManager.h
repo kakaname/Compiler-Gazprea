@@ -158,10 +158,9 @@ public:
 
     // SFNAE template for passes that have an id and hence may store a result.
     template<typename PassT>
-    void registerPass(PassT Pass) {
+    void registerPass(PassT &&Pass) {
         // Ensure that we are not passing in a reference type to be registered
         // as a pass.
-        static_assert(!std::is_reference_v<decltype(Pass)>);
         IdToIdxMap[PassT::ID()] = Passes.size();
         Passes.push_back(std::forward<PassT>(Pass));
     }
@@ -182,7 +181,8 @@ public:
     template<typename ResourceT>
     ResourceT &getResource() {
         auto Res = Resources.find(ResourceT::ID());
-        assert(Res != Resources.end() && "Attempt to access a resource from the "
+        if (Res == Resources.end())
+            throw runtime_error("Attempt to access a resource from the "
                                        "PassManager before it is set.");
 
         // We just ran the pass, therefore the result should be here.

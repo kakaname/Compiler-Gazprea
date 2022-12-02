@@ -122,7 +122,7 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
         case Type::TypeKind::T_Vector:
             return ConstConv(LLVMVectorTy, Ty->isConst());
         default:
-            assert(false && "Unknown type");
+            throw std::runtime_error("Unknown type in backend");
     }
 }
 
@@ -216,9 +216,9 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
 
     // Just an assertion, not needed for code gen.
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
-                                     " not have reached the code gen");
+//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
+//                                     " not have reached the code gen");
 
     llvm::CmpInst::Predicate Pred;
 
@@ -268,10 +268,10 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
-                                     "not have reached the code gen");
+//    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
+//                                     "not have reached the code gen");
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
     auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
@@ -375,7 +375,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                         {MulArray});
                 break;
             default:
-                assert(false && "Not implemented");
+                throw std::runtime_error("Not implemented");
         }
         llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
         Result = IR.CreateInsertValue(Result, Result1, {0});
@@ -388,6 +388,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
         IR.CreateStore(RightOperand, RightVec);
         return IR.CreateCall(VectorArith, {LeftVec, RightVec, IR.getInt32(Op->getOpKind())});
     }
+    throw std::runtime_error("Unknown type in arithmetic expression");
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
@@ -396,7 +397,8 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
 
     const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert( RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
+    if (!RightType->isSameTypeAs(LeftType))
+        throw std::runtime_error("Operation between different types should not"
                                      " have reached the code gen");
 
     if (isa<RealTy>(LeftType)) {
@@ -406,7 +408,7 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
             case LogicalOp::NEQ:
                 return IR.CreateFCmpONE(LeftOperand, RightOperand);
             default:
-                assert(false && "Invalid logical operation for real type");
+                throw std::runtime_error("Invalid logical operation for real type");
         }
     } else if (isa<IntervalTy>(LeftType)) {
         llvm::Value *Left1, *Left2, *Right1, *Right2;
@@ -425,7 +427,7 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
                 Result2 = IR.CreateICmpNE(Left2, Right2);
                 return IR.CreateOr(Result1, Result2);
             default:
-                assert(false && "Invalid logical operation for interval type");
+                throw std::runtime_error("Invalid logical operation for interval type");
         }
     } else if (isa<VectorTy>(LeftType)) {
         // TODO temporary story for vector type
@@ -482,7 +484,7 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
             case UnaryOp::ADD:
                 return Operand;
             default:
-                assert(false && "Invalid unary operation for interval type");
+                throw std::runtime_error("Invalid unary operation for interval type");
         }
     } else if (isa<VectorTy>(ResultType)) {
         llvm::Value *Result;
@@ -520,8 +522,11 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
     // get types of the base expression and the index expression
     const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
     const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
-    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
-    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+    if (!IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()))
+        throw std::runtime_error("Index must be an integer");
+
+    if (BaseType->getKind() != Type::TypeKind::T_Vector)
+        throw std::runtime_error("Base must be a vector");
 
     // TODO Check that the index is within the bounds of the array
 
@@ -605,15 +610,16 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 }
 
 llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
-    return IR.getInt32(IntLit->getVal());
+    auto Val =  IR.getInt32(IntLit->getVal());
+    return Val;
 }
 
-llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral *NullLit) {
-    assert(false && "Should not have reached the codegen");
+llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral*) {
+    throw runtime_error("Should not have reached the codegen");
 }
 
-llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral *IdentityLit) {
-    assert(false && "Should not have reached the codegen");
+llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral*) {
+    throw runtime_error("Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitRealLiteral(RealLiteral *RealLit) {
@@ -766,7 +772,7 @@ llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
-    for (auto I = 0; I < ParamList->numOfChildren(); I++) {
+    for (size_t I = 0; I < ParamList->numOfChildren(); I++) {
         auto Param = ParamList->getParamAt(I);
         SymbolMap[Param->getReferred()] = Func->getArg(I);
     }
@@ -787,7 +793,8 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 
     // Get the function
     llvm::Function *Func = Mod.getFunction(FuncCall->getIdentifier()->getName());
-    assert(Func && "Function not found");
+    if (!Func)
+        throw std::runtime_error("Function not found");
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
@@ -799,7 +806,6 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 }
 
 llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
-
     auto ProcName = Def->getIdentifier()->getName();
     auto ProcTy = Def->getIdentifier()->getIdentType();
     auto Proc = getOrInsertFunction(ProcTy, ProcName);
@@ -811,7 +817,6 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
             GlobalCtx, "proc_body", Proc);
 
     IR.SetInsertPoint(Body);
-
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
@@ -840,7 +845,8 @@ llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
     // TODO: Handle stream_state;
     // Get the function
     llvm::Function *Func = Mod.getFunction(Call->getIdentifier()->getName());
-    assert(Func && "Function not found");
+    if (!Func)
+        throw std::runtime_error("Function not found");
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
@@ -850,16 +856,17 @@ llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
     return IR.CreateCall(Func, Args);
 }
 
-llvm::Value *CodeGenPass::visitReturn(Return *Return) {
+llvm::Value *CodeGenPass::visitReturn(Return *Ret) {
     // No-op means that the procedure does not have a return type.
-    if (isa<NoOp>(Return->getReturnExpr()))
+    if (isa<NoOp>(Ret->getReturnExpr()))
         IR.CreateRetVoid();
     else
-        IR.CreateRet(visit(Return->getReturnExpr()));
+        IR.CreateRet(visit(Ret->getReturnExpr()));
 
     llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(
             GlobalCtx, "after_ret", CurrentFunction);
     IR.SetInsertPoint(AfterRet);
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
@@ -905,13 +912,14 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
         case Type::TypeKind::T_Real:
             return IR.CreateCall(PrintReal, {ValToOut});
         default:
-            assert(false && "Invalid type for out-stream");
+            throw runtime_error("Invalid type for out-stream");
     }
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
-    assert(IdentTy->isInputTy() && "Invalid input stream type");
+    if(!IdentTy->isInputTy())
+        throw std::runtime_error("Invalid input stream type");
     Value *StoreLoc = visit(InStream->getTarget());
     Value *ReadVal;
 
@@ -929,7 +937,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             ReadVal = IR.CreateCall(ScanReal);
             break;
         default:
-            assert(false && "Invalid type for in-stream");
+            throw std::runtime_error("Invalid type for in-stream");
     }
     IR.CreateStore(ReadVal, StoreLoc);
     return nullptr;
@@ -964,8 +972,12 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
     // get types of the base expression and the index expression
     const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
     const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
-    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
-    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    if (!isa<IntegerTy>(IndexType))
+        throw std::runtime_error("Index must be an integer");
+
+    if (!isa<VectorTy>(BaseType))
+        throw std::runtime_error("Base must be a vector");
 
     // TODO Check that the index is within the bounds of the array
 
@@ -974,13 +986,12 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // Get the element pointer
     return IR.CreateInBoundsGEP(MallocPtr, Idx);
-
-
 }
 
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
-    assert(MemIdx && "Only int literals should reach here");
+    if (!MemIdx)
+        throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
     return IR.CreateGEP(StructLoc, {
         IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
@@ -994,7 +1005,8 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty,
 
     auto FuncTy = dyn_cast<FunctionTy>(Ty);
     auto ProcTy = dyn_cast<ProcedureTy>(Ty);
-    assert(ProcTy || FuncTy);
+    if (!(ProcTy || FuncTy))
+        throw std::runtime_error("Tried to insert something that is not a function");
 
     auto ParamTys = FuncTy ? FuncTy->getParamTypes()
             : ProcTy->getParamTypes();
@@ -1025,9 +1037,12 @@ llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
 }
 
 llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
-    for (auto Child: *Blk)
+    size_t ChildCount = Blk->numOfChildren();
+    for (size_t I = 0; I < ChildCount; I++) {
+        auto Child = Blk->getChildAt(I);
         visit(Child);
-
+    }
+    return nullptr;
     // TODO free unnecessary vectors
 }
 
@@ -1076,7 +1091,7 @@ llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_
             InnerTySize = 4;
             break;
         default:
-            assert(false && "Invalid vector inner type");
+            throw std::runtime_error("Invalid vector inner type");
     }
 
     llvm::Value *Result = llvm::ConstantStruct::get(

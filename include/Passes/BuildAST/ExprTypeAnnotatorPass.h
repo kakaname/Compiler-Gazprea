@@ -58,6 +58,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
+    static const Type *getWiderType(const Type *Ty1, const Type *Ty2) ;
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 

@@ -58,7 +58,6 @@ public:
 
     template<typename NodeT,
             typename = std::enable_if_t<std::is_base_of_v<TreeNode, NodeT>>>
-
     NodeT *build() {
         std::pair Key{++CurrentId, TreeNodeObject(NodeT())};
         auto I = Nodes.insert(std::move(Key));
@@ -67,6 +66,14 @@ public:
         assert(Res && "Somehow dynamic cast failed?");
         return Res->getPointerToNode();
     }
+//    NodeT *build() {
+//        static std::unordered_map<unsigned, unique_ptr<NodeT>> Nodes;
+////        std::pair Key{CurrentId, std::make_unique<NodeT>()};
+////        Nodes.insert(Key);
+////        Nodes[CurrentId] = std::make_unique<NodeT>();
+////        return Nodes[CurrentId++].get();
+//        return new NodeT();
+//    }
 
     template<typename NodeT,
             typename = std::enable_if_t<std::is_base_of_v<TreeNode, NodeT>>>

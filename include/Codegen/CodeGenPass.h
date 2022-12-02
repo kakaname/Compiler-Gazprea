@@ -68,9 +68,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorArith;
     llvm::FunctionCallee VectorComp;
 
-    // Runtime buffer location
-    llvm::Value *BufferPtr;
-
     // Use to keep track of which llvm values represents which symbols in the
     // program.
     map<const Symbol*, llvm::Value*> SymbolMap;
@@ -86,11 +83,17 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     // The file to dump the outputs to.
     const char *OutputFile;
 
-    explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
-        LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
-        LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
-        LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)),
-        LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMPtrTy})), LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})) {}
+    CodeGenPass() = delete;
+
+    CodeGenPass(CodeGenPass&&) = default;
+
+    CodeGenPass(const CodeGenPass&) = delete;
+
+    explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)),
+        LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)), LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)),
+        LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)), LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)),
+        LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)), LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMPtrTy})),
+        LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})), OutputFile(OutFile) {}
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
@@ -108,8 +111,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     // ignored for part1
     llvm::Value *visitDomainLoop(DomainLoop *Loop);
     llvm::Value *visitIntLiteral(IntLiteral *IntLit);
-    llvm::Value *visitNullLiteral(NullLiteral *NullLit);
-    llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
+    static llvm::Value *visitNullLiteral(NullLiteral *NullLit);
+    static llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
     llvm::Value *visitRealLiteral(RealLiteral *RealLit);
     llvm::Value *visitBoolLiteral(BoolLiteral *BoolLit);
     llvm::Value *visitCharLiteral(CharLiteral *CharLit);
