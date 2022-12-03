@@ -69,7 +69,10 @@ void AddingFreeNodesPass::visitBlock(Block *Blk) {
             FreeN->addFreedIdentifier(Node);
         }
     }
-    
+
+    // Add the Free Node to the end of the block
+    Blk->addChild(FreeN);
+
     for (int I = 0; I < NumOfFreedIdentifiers; I++) {
         FuncFreedIdentifiers.pop_back();
     }
