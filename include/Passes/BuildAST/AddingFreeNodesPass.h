@@ -9,9 +9,19 @@
 #include "Passes/PassManager.h"
 #include "Passes/BuildAST/ExprTypeAnnotatorPass.h"
 #include "ErrorHandling/exceptions.h"
+#include <vector>
+using std::vector;
 
 struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
     ASTPassManager *PM;
+
+    vector<Identifier *> FuncFreedIdentifiers;
+
+    void visitFunctionDef(FunctionDef *FuncDef);
+
+    void visitProcedureDef(ProcedureDef *ProcedureDef);
+
+    void visitBlock(Block *Blk);
 
     
 
