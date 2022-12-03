@@ -191,12 +191,12 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
 
 // Ignore for part1
 std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Domain Loop");
 }
 
 // Ignore for part1
 std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: IterDomain");
 }
 
 
@@ -276,7 +276,7 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
 // Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: MatrixType");
 }
 
 
@@ -305,7 +305,7 @@ std::any ASTBuilderPass::visitRealType(GazpreaParser::RealTypeContext *ctx) {
 
 // Ignore for part1
 std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Expression or wildcard");
 }
 
 std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext *ctx) {
@@ -547,7 +547,7 @@ std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
 
 // Ignore for part1
 std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Generators");
 }
 
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
@@ -719,10 +719,10 @@ std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
     ByExpr->setCtx(ctx);
 
     // Set the left expression.
-    ByExpr->setLHS(castToNodeVisit(ctx->expr(0)));
+    ByExpr->setBaseExpr(castToNodeVisit(ctx->expr(0)));
 
     // Set the right expression.
-    ByExpr->setRHS(castToNodeVisit(ctx->expr(1)));
+    ByExpr->setByExpr(castToNodeVisit(ctx->expr(1)));
 
     return cast<ASTNodeT>(ByExpr);
 }
@@ -748,7 +748,7 @@ std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
 
 // ignored for part1
 std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Filters");
 }
 
 
@@ -875,7 +875,7 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 //    IntInterval->addCheck(Check);
 
     if (ctx->BY())
-        throw std::runtime_error("Unimplemented");
+        throw std::runtime_error("Unimplemented: By");
 
     return cast<ASTNodeT>(IntInterval);
 }
@@ -1060,7 +1060,7 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 }
 
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: TupleUnpack");
 }
 
 std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {

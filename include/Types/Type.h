@@ -18,10 +18,13 @@ class Type;
 bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
+bool canPromoteIntegerTo(const Type*);
+bool canPromoteRealTo(const Type*);
+bool canPromoteVectorTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
 bool doesVectorSupportEq(const Type*);
 bool doesVectorSupportArithOps(const Type*);
-bool doesVectorSupportComparisonOps(const Type*);
+bool isVectorValidForComparisonOps(const Type *Vec);
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
@@ -60,6 +63,10 @@ public:
                T_Int == Kind || T_Real == Kind;
     }
 
+    bool isCompositeTy() const {
+        return T_Vector == Kind || T_Matrix == Kind;
+    }
+
     bool isSameTypeAs(const Type *T) const {
         switch (Kind) {
             case T_Int:
@@ -89,9 +96,8 @@ public:
     }
 
     bool isValidForComparisonOp() const {
-        if (Kind == T_Vector) {
-            return doesVectorSupportComparisonOps(this);
-        }
+        if (Kind == T_Vector)
+            return isVectorValidForComparisonOps(this);
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
@@ -161,9 +167,13 @@ public:
             case T_Identity:
                 return true;
             case T_Int:
-                return T->getKind() == T_Real;
+                return canPromoteIntegerTo(T);
+            case T_Real:
+                return canPromoteRealTo(T);
             case T_Tuple:
                 return canPromoteTupleTo(this, T);
+            case T_Vector:
+                return canPromoteVectorTo(this, T);
             default:
                 return false;
         }
@@ -179,6 +189,10 @@ public:
 
     TypeKind getKind() const {
         return Kind;
+    }
+
+    bool isValidForBy() const {
+        return T_Interval == Kind || T_Vector == Kind;
     }
 
     std::string getTypeName() const {

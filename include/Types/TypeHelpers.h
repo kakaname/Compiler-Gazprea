@@ -8,9 +8,10 @@
 #include <algorithm>
 
 #include "CompositeTypes.h"
+#include "ScalarTypes.h"
 
 using llvm::dyn_cast;
-
+using llvm::isa;
 
 
 bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
@@ -48,16 +49,23 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
 
 bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
     auto BaseTy = cast<VectorTy>(BaseType);
-    auto TargetTyVec = dyn_cast<VectorTy>(TargetTy);
+    auto TargetVecTy = dyn_cast<VectorTy>(TargetTy);
 
-    if (!TargetTyVec)
+    if (!TargetVecTy)
         return false;
 
-    if (BaseTy->getSize() != TargetTyVec->getSize() &&
-        BaseTy->getSize() != -1 && TargetTyVec->getSize() != -1)
-        return false;   
+    // The inner type must be the same.
+    if (!BaseTy->getInnerTy()->isSameTypeAs(TargetVecTy->getInnerTy()))
+        return false;
 
-    return BaseTy->getInnerTy()->isSameTypeAs(TargetTyVec->getInnerTy());
+    // If any of the sizes are not known, we assume they are the same type.
+    // In this case the program will fail at runtime is this is not the case.
+    if (!BaseTy->isSizeKnown() || !TargetVecTy->isSizeKnown())
+        return true;
+
+    // Sizes of both vectors are known. If they are different, the types are
+    // different.
+    return BaseTy->getSize() == TargetVecTy->getSize();
 }
 
 bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
@@ -102,7 +110,7 @@ bool doesVectorSupportArithOps(const Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForArithOps();
 }
 
-bool doesVectorSupportComparisonOps(const Type *Vec) {
+bool isVectorValidForComparisonOps(const Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForComparisonOp();
 }
 
@@ -203,6 +211,42 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
         return false;
 
     return ProcTy->getRetTy()->isSameTypeAs(OtherProc->getRetTy());
-};
+}
+
+bool canPromoteIntegerTo(const Type *TargetTy) {
+    if (auto MatTy = dyn_cast<MatrixTy>(TargetTy))
+        return canPromoteIntegerTo(MatTy->getInnerTy());
+
+    if (auto VecTy = dyn_cast<VectorTy>(TargetTy))
+        return canPromoteIntegerTo(VecTy->getInnerTy());
+
+    return isa<RealTy>(TargetTy);
+}
+
+bool canPromoteRealTo(const Type* TargetTy) {
+    if (auto MatTy = dyn_cast<MatrixTy>(TargetTy))
+        return canPromoteRealTo(MatTy->getInnerTy());
+
+    if (auto VecTy = dyn_cast<VectorTy>(TargetTy))
+        return canPromoteRealTo(VecTy->getInnerTy());
+
+    return isa<RealTy>(TargetTy);
+}
+
+bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
+    auto BaseVec = cast<VectorTy>(BaseTy);
+    auto TargetVec = dyn_cast<VectorTy>(TargetTy);
+
+    if (!TargetVec)
+        return false;
+
+    auto CanInnerPromote = BaseVec->getInnerTy()->canPromoteTo(TargetVec->getInnerTy());
+
+    if (TargetVec->isSizeKnown() && BaseVec->isSizeKnown())
+        return (TargetVec->getSize() == BaseVec->getSize()) && CanInnerPromote;
+
+    return CanInnerPromote;
+}
+
 
 #endif //GAZPREABASE_TYPEHELPERS_H

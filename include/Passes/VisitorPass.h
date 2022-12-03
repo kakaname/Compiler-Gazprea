@@ -253,8 +253,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitByOp(ByOp *ByOp) {
-        visit(ByOp->getLHS());
-        visit(ByOp->getRHS());
+        visit(ByOp->getBaseExpr());
+        visit(ByOp->getByExpr());
         return RetT();
     }
 

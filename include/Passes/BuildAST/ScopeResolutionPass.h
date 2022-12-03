@@ -150,8 +150,21 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     }
 
     void visitProcedureDef(ProcedureDef *Def) {
-        auto ParamList = Def->getParamList();
 
+        auto ProcName = Def->getIdentifier()->getName();
+        auto ProcTy = Def->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(ProcName);
+        if (Resolved) {
+            if (!Resolved->getSymbolType()->isSameTypeAs(ProcTy))
+                throw runtime_error("Differing declaration and definition");
+        } else {
+            auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
+            CurrentScope->declareInScope(ProcName, ProcSym);
+            Def->getIdentifier()->setReferred(ProcSym);
+        }
+
+
+        auto ParamList = Def->getParamList();
         // Add a scope for the parameters of the function.
         auto ProcParamScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(ProcParamScope);
@@ -175,21 +188,23 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
         // Go back to the original scope.
         CurrentScope = cast<ScopeTreeNode>(ProcParamScope->getParent());
-
-        auto ProcName = Def->getIdentifier()->getName();
-        auto ProcTy = Def->getIdentifier()->getIdentType();
-        auto Resolved = CurrentScope->resolve(ProcName);
-        if (Resolved) {
-            assert(Resolved->getSymbolType()->isSameTypeAs(ProcTy) &&
-                   "Differing declaration and definition");
-            return;
-        }
-
-        auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
-        CurrentScope->declareInScope(ProcName, ProcSym);
     }
 
     void visitFunctionDef(FunctionDef *Def) {
+
+        auto FuncName = Def->getIdentifier()->getName();
+        auto FuncTy = Def->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(FuncName);
+        if (Resolved) {
+            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
+                   "Differing declaration and definition");
+            Def->getIdentifier()->setReferred(Resolved);
+        } else {
+            auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
+            CurrentScope->declareInScope(FuncName, FuncSym);
+            Def->getIdentifier()->setReferred(FuncSym);
+        }
+
         auto ParamList = Def->getParamList();
 
         // Add a scope for the parameters of the function.
@@ -216,20 +231,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         // Go back to the original scope.
         CurrentScope = cast<ScopeTreeNode>(FuncParamScope->getParent());
 
-        auto FuncName = Def->getIdentifier()->getName();
-        auto FuncTy = Def->getIdentifier()->getIdentType();
-        auto Resolved = CurrentScope->resolve(FuncName);
-        if (Resolved) {
-            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
-            "Differing declaration and definition");
-            Def->getIdentifier()->setReferred(Resolved);
-            return;
-        }
 
-        auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
-        CurrentScope->declareInScope(FuncName, FuncSym);
-        Def->getIdentifier()->setReferred(FuncSym);
-    }
+   }
 
     void visitFunctionDecl(FunctionDecl *Decl) {
         auto FuncName = Decl->getIdentifier()->getName();

@@ -34,6 +34,7 @@
 #include "Passes/BuildAST/ConvertFuncCallNodesToProcCallPass.h"
 #include "Passes/Transformations/SubExpressionCacheSet.h"
 #include "Passes/Transformations/BubbleGlobalDeclarationPass.h"
+#include "Passes/Utils/ASTPrinterPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
+    Manager.registerPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
@@ -87,8 +89,9 @@ int main(int argc, char **argv) {
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
-    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
@@ -118,7 +121,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);

@@ -1236,19 +1236,19 @@ struct ByOp: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_ByOp;
     }
 
-    void setLHS(ASTNodeT *LHS) {
+    void setBaseExpr(ASTNodeT *LHS) {
         setChildAt(LHSIdx, LHS);
     }
 
-    void setRHS(ASTNodeT *RHS) {
+    void setByExpr(ASTNodeT *RHS) {
         setChildAt(RHSIdx, RHS);
     }
 
-    ASTNodeT *getLHS() {
+    ASTNodeT *getBaseExpr() {
         return getChildAt(LHSIdx);
     }
 
-    ASTNodeT *getRHS() {
+    ASTNodeT *getByExpr() {
         return getChildAt(RHSIdx);
     }
 

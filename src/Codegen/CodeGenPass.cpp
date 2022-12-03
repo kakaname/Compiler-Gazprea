@@ -1180,8 +1180,8 @@ llvm::Value *CodeGenPass::visitDotProduct(DotProduct *DP) {
 }
 
 llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
-    llvm::Value *Left = visit(By->getLHS());
-    llvm::Value *Right = visit(By->getRHS());
+    llvm::Value *Left = visit(By->getBaseExpr());
+    llvm::Value *Right = visit(By->getByExpr());
 
     // TODO temporary alloca
     llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);

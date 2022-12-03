@@ -12,6 +12,7 @@
 #include "Passes/VisitorPass.h"
 #include "Passes/PassManager.h"
 #include "Passes/BuildAST/ConvertIdentMemberAccessToIdxPass.h"
+#include "Common/MatchBoolPair.h"
 
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
@@ -58,12 +59,15 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
-    static const Type *getWiderType(const Type *Ty1, const Type *Ty2) ;
+    static const Type *getWiderType(const Type *Ty1, const Type *Ty2);
+
+    static bool isTypeSizeKnown(const Type *Ty);
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
     explicit ExprTypeAnnotatorPass() = default;
 
     ASTPassManager *PM{};
+    TypeRegistry *TypeReg{};
     const Type *OpaqueTyCastTarget{nullptr};
 };
