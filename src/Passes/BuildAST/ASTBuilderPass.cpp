@@ -555,11 +555,6 @@ std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
     return cast<ASTNodeT>(UnaryExpr);
 }
 
-// Ignore for part1
-std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
-    throw std::runtime_error("Unimplemented: Generators");
-}
-
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
     auto ExpExpr = PM->Builder.build<ArithmeticOp>();
     ExpExpr->setCtx(ctx);
@@ -755,13 +750,6 @@ std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
     return cast<ASTNodeT>(OrExpr);
 }
 
-
-// ignored for part1
-std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
-    throw std::runtime_error("Unimplemented: Filters");
-}
-
-
 std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
     auto CharLit = PM->Builder.build<CharLiteral>();
     CharLit->setCtx(ctx);
@@ -857,7 +845,6 @@ std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
     ConcatOp->setRHS(castToNodeVisit(ctx->expr(1)));
 
     return cast<ASTNodeT>(ConcatOp);
-
 }
 
 std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {
@@ -1077,13 +1064,7 @@ std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    string RealString = ctx->INTLITERAL(0)->getText() + ".";
-    if (ctx->INTLITERAL().size() == 2)
-        RealString += ctx->INTLITERAL(1)->getText();
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
-
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral1()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1091,11 +1072,8 @@ std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
 std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText() + ".";
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral2()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1103,13 +1081,97 @@ std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
 std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText();
-    RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral3()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
+
+std::any ASTBuilderPass::visitRealLit4(GazpreaParser::RealLit4Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->ExponentialLiteral4()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->RawReal()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit6(GazpreaParser::RealLit6Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string realVal = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(realVal);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<Generator>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Gen->setDomainVariable(DomainVar);
+
+    Gen->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<MatrixGenerator>();
+
+    auto RowDomainVar = PM->Builder.build<Identifier>();
+    RowDomainVar->setName(ctx->ID(0)->getText());
+    Gen->setRowDomainVariable(RowDomainVar);
+
+    Gen->setRowDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto ColumnDomainVarIdx = PM->Builder.build<Identifier>();
+    ColumnDomainVarIdx->setName(ctx->ID(1)->getText());
+    Gen->setColumnDomainVariable(ColumnDomainVarIdx);
+
+    Gen->setColumnDomain(castToNodeVisit(ctx->expr(1)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(2)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
+    auto Filt = PM->Builder.build<Filter>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Filt->setDomainVariable(DomainVar);
+
+    Filt->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto PredList = PM->Builder.build<PredicatedList>();
+    for (long long int I = 1; I < ctx->expr().size(); I++) {
+        Filt->addChild(castToNodeVisit(ctx->expr(I)));
+    }
+
+    Filt->setPredicatedList(PredList);
+
+    return cast<ASTNodeT>(Filt);
+}
+
+
+
 
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))
@@ -1119,3 +1181,4 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
+

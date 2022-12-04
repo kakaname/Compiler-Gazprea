@@ -70,10 +70,15 @@ public:
         N_AST_ByOp,
         N_AST_ExplicitCast,
         N_AST_VectorLiteral,
-
         N_AST_Interval,
+        N_AST_FreeNode,
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
+        N_AST_Generator,
+        N_AST_MatrixGenerator,
+        N_AST_PredicatedList,
+        N_AST_Filter,
+        N_AST_AppendNode
     };
 
     TreeNodeKind getKind() const {

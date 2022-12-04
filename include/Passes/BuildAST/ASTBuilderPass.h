@@ -136,8 +136,6 @@ struct ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin
 
     std::any visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) override;
 
-    std::any visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) override;
-
     std::any visitExpExpr(GazpreaParser::ExpExprContext *ctx) override;
 
     std::any visitCompExpr(GazpreaParser::CompExprContext *ctx) override;
@@ -161,8 +159,6 @@ struct ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin
     std::any visitByExpr(GazpreaParser::ByExprContext *ctx) override;
 
     std::any visitOrExpr(GazpreaParser::OrExprContext *ctx) override;
-
-    std::any visitFilterExpr(GazpreaParser::FilterExprContext *ctx) override;
 
     std::any visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) override;
 
@@ -197,6 +193,18 @@ struct ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin
     std::any visitRealLit2(GazpreaParser::RealLit2Context *ctx) override;
 
     std::any visitRealLit3(GazpreaParser::RealLit3Context *ctx) override;
+
+    virtual std::any visitRealLit4(GazpreaParser::RealLit4Context *ctx) override;
+
+    virtual std::any visitRealLit5(GazpreaParser::RealLit5Context *ctx) override;
+
+    virtual std::any visitRealLit6(GazpreaParser::RealLit6Context *ctx) override;
+
+    std::any visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) override;
+
+    std::any visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) override;
+
+    std::any visitFilterExpr(GazpreaParser::FilterExprContext *ctx) override;
 
     Block *wrapStmtInBlock(ASTNodeT *Stmt);
 

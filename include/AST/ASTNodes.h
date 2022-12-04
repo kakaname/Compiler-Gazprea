@@ -1153,6 +1153,21 @@ struct MemberReference : public TreeNode {
     MemberReference() : TreeNode(TreeNodeKind::N_AST_MemberReference) {}
 };
 
+
+struct FreeNode : public TreeNode {
+    vector<ASTNodeT *> FreedIdentifiers;
+
+    void addFreedIdentifier(ASTNodeT *Node) {
+        FreedIdentifiers.push_back(Node);
+    }
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_FreeNode;
+    }
+
+    FreeNode() : TreeNode(TreeNodeKind::N_AST_FreeNode) {}
+};
+
 struct VectorLiteral: public TreeNode {
     const Type *MemType;
     int vecSize;    
@@ -1255,5 +1270,170 @@ struct ByOp: public TreeNode {
     ByOp() : TreeNode(TreeNodeKind::N_AST_ByOp) {}
 };
 
+struct Generator : public TreeNode {
+    static constexpr int DomainVarIdx = 0;
+    static constexpr int DomainIdx = 1;
+    static constexpr int ExprIdx = 2;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Generator;
+    }
+
+    void setDomainVariable(Identifier *Ident) {
+        setChildAt(DomainVarIdx, Ident);
+    }
+
+    void setDomain(ASTNodeT *Domain) {
+        setChildAt(DomainIdx, Domain);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    Identifier *getDomainVar() {
+        return getChildAtAs<Identifier>(DomainVarIdx);
+    }
+
+    ASTNodeT *getDomain() {
+        return getChildAt(DomainIdx);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
+    }
+
+    Generator() : TreeNode(TreeNodeKind::N_AST_Generator) {};
+};
+
+struct MatrixGenerator : public TreeNode {
+    static constexpr int RowDomainVarIdx = 0;
+    static constexpr int RowDomainIdx = 1;
+    static constexpr int ColumnDomainVarIdx = 2;
+    static constexpr int ColumnDomainIdx = 3;
+    static constexpr int ExprIdx = 4;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_MatrixGenerator;
+    }
+
+    void setRowDomainVariable(Identifier *Ident) {
+        setChildAt(RowDomainVarIdx, Ident);
+    }
+
+    void setRowDomain(ASTNodeT *Domain) {
+        setChildAt(RowDomainIdx, Domain);
+    }
+
+    void setColumnDomainVariable(Identifier *Ident) {
+        setChildAt(ColumnDomainVarIdx, Ident);
+    }
+
+    void setColumnDomain(ASTNodeT *Domain) {
+        setChildAt(ColumnDomainIdx, Domain);
+    }
+
+    void setExpr(ASTNodeT *Expr) {
+        setChildAt(ExprIdx, Expr);
+    }
+
+    Identifier *getRowDomainVar() {
+        return getChildAtAs<Identifier>(RowDomainVarIdx);
+    }
+
+    ASTNodeT *getRowDomain() {
+        return getChildAt(RowDomainIdx);
+    }
+
+    Identifier *getColumnDomainVar() {
+        return getChildAtAs<Identifier>(ColumnDomainVarIdx);
+    }
+
+    ASTNodeT *getColumnDomain() {
+        return getChildAt(ColumnDomainIdx);
+    }
+
+    ASTNodeT *getExpr() {
+        return getChildAt(ExprIdx);
+    }
+
+    MatrixGenerator() : TreeNode(TreeNodeKind::N_AST_MatrixGenerator) {};
+
+};
+
+
+struct PredicatedList : public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_PredicatedList;
+    }
+
+    PredicatedList() : TreeNode(TreeNodeKind::N_AST_PredicatedList) {};
+};
+
+
+struct Filter : public TreeNode {
+    static constexpr int DomainVarIdx = 0;
+    static constexpr int DomainIdx = 1;
+    static constexpr int PredicatedListIdx = 2;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Filter;
+    }
+
+    void setDomainVariable(Identifier *Ident) {
+        setChildAt(DomainVarIdx, Ident);
+    }
+
+    void setDomain(ASTNodeT *Domain) {
+        setChildAt(DomainIdx, Domain);
+    }
+
+    void setPredicatedList(PredicatedList *PredList) {
+        setChildAt(PredicatedListIdx, PredList);
+    }
+
+    Identifier *getDomainVar() {
+        return getChildAtAs<Identifier>(DomainVarIdx);
+    }
+
+    ASTNodeT *getDomain() {
+        return getChildAt(DomainIdx);
+    }
+
+    PredicatedList *getPredicatedList() {
+        return getChildAtAs<PredicatedList>(PredicatedListIdx);
+    }
+
+    Filter() : TreeNode(TreeNodeKind::N_AST_Filter) {};
+
+};
+
+
+struct AppendNode : public TreeNode {
+    static constexpr int LeftExprIdx = 0;
+    static constexpr int RightExprIdx = 1;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_AppendNode;
+    }
+
+    void setLeftExpr(ASTNodeT *Expr) {
+        setChildAt(LeftExprIdx, Expr);
+    }
+
+    void setRightExpr(ASTNodeT *Expr) {
+        setChildAt(RightExprIdx, Expr);
+    }
+
+    ASTNodeT *getLeftExpr() {
+        return getChildAt(LeftExprIdx);
+    }
+
+    ASTNodeT *getRightExpr() {
+        return getChildAt(RightExprIdx);
+    }
+
+    AppendNode() : TreeNode(TreeNodeKind::N_AST_AppendNode) {};
+};
 
 #endif //GAZPREABASE_ASTNODES_H

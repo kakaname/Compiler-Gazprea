@@ -42,6 +42,10 @@ public:
         std::cout << "Block" << "\n";
     }
 
+    void visitInterval(Interval *Int) {
+        std::cout << "Interval" << "\n";
+    }
+
     void visitComparisonOp(ComparisonOp *Op);
 
     void visitArithmeticOp(ArithmeticOp *Op);
@@ -222,6 +226,33 @@ public:
         std::cout << "ExplicitCast" << "\n";
     }
 
+    void visitFreeNode(FreeNode *FreeNode) {
+        std::cout << "FreeNode" << "\n";
+    }
+
+    void visitVectorLiteral(VectorLiteral *Vec) {
+        std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
+    }
+
+    void visitGenerator(Generator *Gen) {
+        std:: cout << "Gen" << "\n";
+    }
+
+    void visitMatrixGenerator(MatrixGenerator *Gen) {
+        std:: cout << "MatrixGen" << "\n";
+    }
+
+    void visitPredicatedList(PredicatedList *PredList) {
+        std::cout << "PredList" << "\n";
+    }
+
+    void visitFilter(Filter *Filter) {
+        std::cout << "Filter" << "\n";
+    }
+
+    void visitAppendNode(AppendNode *Concat) {
+        std:: cout << "Append" << "\n";
+    }
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;
