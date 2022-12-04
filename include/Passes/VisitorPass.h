@@ -299,6 +299,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitPredicatedList(PredicatedList *PredList) {
         for (auto *child : *PredList)
             visit(child);
+        return RetT();
     }
 
     RetT visitFilter(Filter *Filter) {

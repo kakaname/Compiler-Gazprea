@@ -248,6 +248,7 @@ public:
 
     void visitByOp(ByOp *By) {
         std::cout << "ByOp(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(By)->getTypeName() << ")\n";
+    }
 
     void visitFreeNode(FreeNode *FreeNode) {
         std::cout << "FreeNode" << "\n";
