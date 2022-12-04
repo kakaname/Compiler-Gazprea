@@ -86,6 +86,7 @@ type
      | BOOLEANA                                         #booleanType
      | REAL                                             #realType
      | ID                                               #resolvedType
+     | STRINGATOM                                       #stringType
      ;
 
 expressionOrWildcard: (MUL | expr);
@@ -170,6 +171,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
+    | StringLiteral                         # stringLiteral
     ;
 
 
@@ -182,6 +184,9 @@ realLit : ExponentialLiteral1             #realLit1
         ;
 
 // --- LEXER RULES ---
+StringLiteral: '"' (('\\' '"') | .)*?  '"';
+
+
 RawReal: [0-9]+ '.' [0-9]*;
 ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
