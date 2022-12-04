@@ -1030,13 +1030,7 @@ std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    string RealString = ctx->INTLITERAL(0)->getText() + ".";
-    if (ctx->INTLITERAL().size() == 2)
-        RealString += ctx->INTLITERAL(1)->getText();
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
-
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral1()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1044,11 +1038,8 @@ std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
 std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText() + ".";
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral2()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1056,14 +1047,39 @@ std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
 std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText();
-    RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral3()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
 
+std::any ASTBuilderPass::visitRealLit4(GazpreaParser::RealLit4Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->ExponentialLiteral4()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->RawReal()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit6(GazpreaParser::RealLit6Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string realVal = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(realVal);
+
+    return cast<ASTNodeT>(RealLit);
+}
 
 std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
     auto Gen = PM->Builder.build<Generator>();
