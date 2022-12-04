@@ -173,14 +173,20 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     ;
 
 
-realLit : INTLITERAL? PERIOD INTLITERAL ('e' (ADD | SUB)? INTLITERAL)? #realLit1
-        | INTLITERAL PERIOD ('e' (ADD | SUB)? INTLITERAL)?             #realLit2
-        | INTLITERAL ('e' (ADD | SUB)? INTLITERAL)                     #realLit3
-        | AllIntExponentialLiteral                          #realLit4
+realLit : ExponentialLiteral1             #realLit1
+        | ExponentialLiteral2             #realLit2
+        | ExponentialLiteral3             #realLit3
+        | ExponentialLiteral4             #realLit4
+        | RAWREAL                         #realLit5
+        | '.' INTLITERAL                  #realLit6
         ;
 
 // --- LEXER RULES ---
-AllIntExponentialLiteral: [0-9]+ 'e' (ADD | SUB)? [0-9]+;
+RAWREAL: [0-9]+ '.' [0-9]?;
+ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral3: '.' [0-9]+ 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral4: [0-9]+ '.' [0-9]+ 'e' ('+' | '-')? [0-9]+;
 
 // --- LEXER RULES ---
 
