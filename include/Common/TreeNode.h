@@ -72,6 +72,9 @@ public:
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
         N_AST_Generator,
+        N_AST_MatrixGenerator,
+        N_AST_PredicatedList,
+        N_AST_Filter,
         N_AST_AppendNode
     };
 

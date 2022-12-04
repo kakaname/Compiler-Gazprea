@@ -544,10 +544,6 @@ std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
     return cast<ASTNodeT>(UnaryExpr);
 }
 
-// Ignore for part1
-std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
-}
 
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
     auto ExpExpr = PM->Builder.build<ArithmeticOp>();
@@ -719,13 +715,6 @@ std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
     OrExpr->setRightExpr(castToNodeVisit(ctx->expr(1)));
     return cast<ASTNodeT>(OrExpr);
 }
-
-
-// ignored for part1
-std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
-}
-
 
 std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
     auto CharLit = PM->Builder.build<CharLiteral>();
@@ -1075,6 +1064,65 @@ std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
     return cast<ASTNodeT>(RealLit);
 }
 
+
+std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<Generator>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Gen->setDomainVariable(DomainVar);
+
+    Gen->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<MatrixGenerator>();
+
+    auto RowDomainVar = PM->Builder.build<Identifier>();
+    RowDomainVar->setName(ctx->ID(0)->getText());
+    Gen->setRowDomainVariable(RowDomainVar);
+
+    Gen->setRowDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto ColumnDomainVarIdx = PM->Builder.build<Identifier>();
+    ColumnDomainVarIdx->setName(ctx->ID(1)->getText());
+    Gen->setColumnDomainVariable(ColumnDomainVarIdx);
+
+    Gen->setColumnDomain(castToNodeVisit(ctx->expr(1)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(2)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
+    auto Filt = PM->Builder.build<Filter>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Filt->setDomainVariable(DomainVar);
+
+    Filt->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto PredList = PM->Builder.build<PredicatedList>();
+    for (long long int I = 1; I < ctx->expr().size(); I++) {
+        Filt->addChild(castToNodeVisit(ctx->expr(I)));
+    }
+
+    Filt->setPredicatedList(PredList);
+
+    return cast<ASTNodeT>(Filt);
+}
+
+
+
+
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))
         throw std::runtime_error("Declaration may only occur"
@@ -1083,3 +1131,4 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
+

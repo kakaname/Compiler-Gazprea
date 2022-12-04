@@ -158,6 +158,8 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | AS LT type GT LPAREN expr RPAREN      # explicitCast
     | LSQRPAREN ID IN expr BAR expr RSQRPAREN       # generatorExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
+    | LSQRPAREN ID IN expr COMMA ID IN expr BAR expr RSQRPAREN  #matrixGeneratorExpr
+    | LSQRPAREN ID IN expr AND expr (COMMA expr)* RSQRPAREN #filterExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
     | LSQRPAREN expr (COMMA expr)* RSQRPAREN        #vectorLiteral

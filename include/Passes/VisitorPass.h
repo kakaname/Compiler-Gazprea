@@ -268,6 +268,27 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitMatrixGenerator(MatrixGenerator *Gen) {
+        visit(Gen->getRowDomainVar());
+        visit(Gen->getRowDomain());
+        visit(Gen->getColumnDomainVar());
+        visit(Gen->getColumnDomain());
+        visit(Gen->getExpr());
+        return RetT();
+    }
+
+    RetT visitPredicatedList(PredicatedList *PredList) {
+        for (auto *child : *PredList)
+            visit(child);
+    }
+
+    RetT visitFilter(Filter *Filter) {
+        visit(Filter->getDomainVar());
+        visit(Filter->getDomain());
+        visit(Filter->getPredicatedList());
+        return RetT();
+    }
+
     RetT visitAppendNode(AppendNode *Append) {
         visit(Append->getLeftExpr());
         visit(Append->getRightExpr());
@@ -465,6 +486,18 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitGenerator(G);
     }
 
+    RetT callVisitMatrixGeneratorImpl(MatrixGenerator *G) {
+        return static_cast<DerivedT*>(this)->visitMatrixGenerator(G);
+    }
+
+    RetT callVisitPredicatedListImpl(PredicatedList *PredList) {
+        return static_cast<DerivedT*>(this)->visitPredicatedList(PredList);
+    }
+
+    RetT callVisitFilterImpl(Filter *Filter) {
+        return static_cast<DerivedT*>(this)->visitFilter(Filter);
+    }
+
     RetT callVisitAppendNodeImpl(AppendNode *Append) {
         return static_cast<DerivedT*>(this)->visitAppendNode(Append);
     }
@@ -621,6 +654,17 @@ public:
 
         if (auto *Gen = dyn_cast<Generator>(Node))
             return callVisitGeneratorImpl(Gen);
+
+        if (auto *Gen = dyn_cast<MatrixGenerator>(Node))
+            return callVisitMatrixGeneratorImpl(Gen);
+
+        if (auto *PredList = dyn_cast<PredicatedList>(Node)) {
+            return callVisitPredicatedListImpl(PredList);
+        }
+
+        if (auto *Filt = dyn_cast<Filter>(Node)) {
+            return callVisitFilterImpl(Filt);
+        }
 
         if (auto *Append = dyn_cast<AppendNode>(Node))
             return callVisitAppendNodeImpl(Append);
