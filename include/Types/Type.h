@@ -24,10 +24,18 @@ bool canPromoteVectorTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
 bool doesVectorSupportEq(const Type*);
 bool doesVectorSupportArithOps(const Type*);
-bool isVectorValidForComparisonOps(const Type *Vec);
+bool isVectorValidForComparisonOps(const Type*);
+bool isVectorValidForUnaryNot(const Type*);
+bool isMatrixValidForUnaryNot(const Type*);
+
+bool isVectorValidForUnaryAddSub(const Type*);
+bool isMatrixValidForUnaryAddSub(const Type*);
+
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
+
+bool canCastVectorTo(const Type*, const Type*);
 
 const Type *getPromotedScalarType(const Type*, const Type*);
 
@@ -102,11 +110,31 @@ public:
     }
 
     bool isValidForUnaryNot() const {
-        return T_Bool == Kind;
+        switch (Kind) {
+            case T_Bool:
+                return true;
+            case T_Vector:
+                return isVectorValidForUnaryNot(this);
+            case T_Matrix:
+                return isMatrixValidForUnaryNot(this);
+            default:
+                return false;
+        }
     }
 
     bool isValidForUnaryAddOrSub() const {
-        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
+        switch (Kind) {
+            case T_Real:
+            case T_Int:
+            case T_Interval:
+                return true;
+            case T_Vector:
+                return isVectorValidForUnaryAddSub(this);
+            case T_Matrix:
+                return isMatrixValidForUnaryAddSub(this);
+            default:
+                return false;
+        }
     }
 
     bool isValidForEq() const {
@@ -153,6 +181,8 @@ public:
                 return Ty == T_Int || Ty == T_Real;
             case T_Tuple:
                 return isValidTupleCast(this, T);
+            case T_Vector:
+                return canCastVectorTo(this, T);
             default:
                 return false;
         }

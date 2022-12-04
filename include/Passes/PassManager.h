@@ -147,6 +147,24 @@ public:
         return Annotation->template getConcreteResult<typename PassT::AnnotationT>();
     }
 
+
+    template<class PassT>
+    typename PassT::AnnotationT *getAnnotationUnchecked(ASTNodeT *Node) {
+        std::pair<ASTNodeT*, const PassId*> Key(Node, PassT::ID());
+        auto Res = Annotations.find(Key);
+
+        if (Res == Annotations.end())
+            return nullptr;
+
+        if (InvalidResults.count(PassT::ID()))
+            runPass<PassT>();
+
+        ResultObject *Annotation = Res->second.get();
+        return &Annotation->template getConcreteResult<typename PassT::AnnotationT>();
+    }
+
+
+
     template<typename PassT>
     void setAnnotation(ASTNodeT *Node, typename PassT::AnnotationT Annotation) {
         // Ensure we are not setting a reference as an annotation.

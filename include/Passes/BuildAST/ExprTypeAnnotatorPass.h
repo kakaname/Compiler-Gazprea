@@ -43,6 +43,10 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitByOp(ByOp *By);
     const Type *visitDotProduct(DotProduct *Dot);
     const Type *visitConcat(Concat *Concat);
+    const Type *visitOutStream(OutStream *Out);
+    const Type *visitConditionalLoop(ConditionalLoop *Loop);
+    const Type *visitConditional(Conditional *Cond);
+    const Type *visitConditionalElse(ConditionalElse *Cond);
 
 
     void setOpaqueTyCastTargetTy(const Type *Ty) {

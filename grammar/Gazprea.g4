@@ -82,7 +82,7 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
-     | INTEGER INTERVAL                                 #intervalType
+     | type INTERVAL                                    #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
      | BOOLEANA                                         #booleanType
@@ -178,8 +178,6 @@ realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
         | INTLITERAL ExponentialLiteral                     #realLit3
         ;
 
-// --- LEXER RULES ---
-
 ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
 
 // --- LEXER RULES ---
@@ -262,6 +260,7 @@ XOR : 'xor' ;
 
 INTLITERAL : [0-9]+ ;
 ID : [_a-zA-Z][_a-zA-Z0-9]* ;
+
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;

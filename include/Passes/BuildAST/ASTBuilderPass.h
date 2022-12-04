@@ -11,14 +11,17 @@
 
 using gazprea::GazpreaParser;
 using std::string;
+using std::pair;
 
-class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<ASTBuilderPass> {
+struct ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<ASTBuilderPass> {
 
-    using AnnotationT = map<string, int>;
+    using AnnotationT = pair<ASTNodeT*, ASTNodeT*>;
 
     ASTPassManager *PM{};
 
-    Program *Prog;
+    Program *Prog{};
+
+    ASTNodeT *NodeToMarkForTypeSize{};
 
     antlr4::tree::ParseTree *File;
 

@@ -12,6 +12,7 @@
 #include "Symbol/Symbol.h"
 #include "Passes/VisitorPass.h"
 #include "Passes/BuildAST/ExprTypeAnnotatorPass.h"
+#include "ASTBuilderPass.h"
 
 
 using llvm::isa;
@@ -116,6 +117,62 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->getIdentifier()->setIdentType(ExprType);
         }
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+
+        // Infer the size from the expression type.
+        do {
+            if (!Decl->getIdentType()->isCompositeTy())
+                break;
+
+            if (auto VecTy = dyn_cast<VectorTy>(Decl->getIdentType())) {
+                // If the size is known, we don't change the type and let it
+                // potentially fail when the AssignmentTypeCheckerPass runs.
+                if (VecTy->isSizeKnown())
+                    break;
+
+                // If the size was specified as an expression, we do nothing
+                // and let the AssignmentTypeCheckerPass handle it.
+                if (PM->getAnnotationUnchecked<ASTBuilderPass>(Decl))
+                    break;
+
+                auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
+                assert(ExprVecTy && "Trying to assign non vector to vector with inferred size");
+                auto NewDeclType = PM->TypeReg.getVectorType(
+                        VecTy->getInnerTy(), ExprVecTy->getSize(),
+                        Decl->IsConst);
+
+                Decl->setIdentType(NewDeclType);
+                Decl->getIdentifier()->setIdentType(NewDeclType);
+                break;
+            }
+
+            if (auto MatTy = dyn_cast<MatrixTy>(Decl->getIdentType())) {
+                if (MatTy->isSizeKnown())
+                    break;
+
+                // If the size was specified as an expression, we do nothing
+                // and let the AssignmentTypeCheckerPass handle it.
+                if (PM->getAnnotationUnchecked<ASTBuilderPass>(Decl))
+                    break;
+
+                auto ExprMatTy = dyn_cast<MatrixTy>(ExprType);
+                assert(ExprMatTy && "Trying to assign non matrix to matrix "
+                                    "of unknown size");
+
+                auto NumOfRows = MatTy->isNumOfRowsIsKnown() ?
+                        MatTy->getNumOfRows() : ExprMatTy->getNumOfRows();
+                auto NumOfCols = MatTy->isNumOfColumnsIsKnown() ?
+                        MatTy->getNumOfColumns() : MatTy->getNumOfRows();
+
+                auto NewDeclType = PM->TypeReg.getMatrixType(
+                        MatTy->getInnerTy(),
+                        NumOfRows,
+                        NumOfCols,
+                        Decl->IsConst);
+                Decl->setIdentType(NewDeclType);
+                Decl->getIdentifier()->setIdentType(NewDeclType);
+                break;
+            }
+        } while (false);
 
         auto Sym = PM->SymTable.defineObject(
                 Decl->getIdentifier()->getName(), Decl->getIdentType());

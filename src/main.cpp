@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-    Manager.registerPass(ASTPrinterPass());
+//    Manager.registerPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
 

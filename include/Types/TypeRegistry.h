@@ -197,10 +197,10 @@ public:
             return getIntervalTy(true);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(Vec->getInnerTy(), Vec->getSize(), true);
+            return getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
 
         if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+            return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), true);
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {

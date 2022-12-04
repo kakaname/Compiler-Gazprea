@@ -40,7 +40,9 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 
     // If the type is known, we set it.
     if (ctx->type()) {
+        NodeToMarkForTypeSize = Decl;
         auto DeclType = castToTypeVisit(ctx->type());
+        NodeToMarkForTypeSize = nullptr;
         if (IsConst)
             DeclType = PM->TypeReg.getConstTypeOf(DeclType);
         Decl->setIdentType(DeclType);
@@ -265,16 +267,22 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
-    if (Size->MUL()){
-        return PM->TypeReg.getVectorType(Type);
-    } else {
-        // TODO constant fold integer expressions if known
-        // for the time being, we are using a wildcard
-        return PM->TypeReg.getVectorType(Type);
-    }
+    if (Size->MUL())
+        return PM->TypeReg.getVectorType(Type, -1, false);
+
+    // TODO constant fold integer expressions if known
+    if (/*Size can be constant folded*/ false)
+        return PM->TypeReg.getVectorType(Type, -1);
+
+    // If the size is not given and not inferred, then there must an expression
+    // specifying the size.
+
+    auto SizeTree = castToNodeVisit(Size->expr());
+    PM->setAnnotation<ASTBuilderPass>(NodeToMarkForTypeSize, make_pair(SizeTree, nullptr));
+
+    return PM->TypeReg.getVectorType(Type, -1, false);
 }
 
-// Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
     throw std::runtime_error("Unimplemented: MatrixType");
 }
@@ -505,7 +513,9 @@ std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *c
     auto Cast = PM->Builder.build<ExplicitCast>();
     Cast->setCtx(ctx);
 
+    NodeToMarkForTypeSize = Cast;
     auto TargetType = castToTypeVisit(ctx->type());
+    NodeToMarkForTypeSize = nullptr;
     Cast->setTargetType(TargetType);
 
     // Set expression that is being cast.

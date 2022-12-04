@@ -34,7 +34,7 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
     auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
-    if (!TargetTy)
+    if (!TargetTuple)
         return false;
 
     if (BaseTy->getNumOfMembers() != TargetTuple->getNumOfMembers())
@@ -248,5 +248,28 @@ bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
     return CanInnerPromote;
 }
 
+
+bool isVectorValidForUnaryNot(const Type* T) {
+    return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryNot();
+};
+bool isMatrixValidForUnaryNot(const Type* T) {
+    return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryNot();
+}
+
+bool isVectorValidForUnaryAddSub(const Type *T) {
+    return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
+}
+bool isMatrixValidForUnaryAddSub(const Type *T) {
+    return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
+}
+
+bool canCastVectorTo(const Type *Base, const Type *TargetTy) {
+    auto BaseVec = cast<VectorTy>(Base);
+    auto VecTy = dyn_cast<VectorTy>(TargetTy);
+    if (!VecTy)
+        return false;
+
+    return (BaseVec->getInnerTy()->canCastTo(VecTy->getInnerTy()));
+}
 
 #endif //GAZPREABASE_TYPEHELPERS_H

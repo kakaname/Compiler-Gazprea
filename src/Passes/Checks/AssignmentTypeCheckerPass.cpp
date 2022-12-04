@@ -37,6 +37,9 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
     if (!AssignedType->canPromoteTo(IdentType))
         throw ScalarPromotionError(Decl, AssignedType->getTypeName(), IdentType->getTypeName());
 
+    // TODO: Add the code to cast scalars to composite types here.
+
+
     auto Cast = wrapWithCastTo(Decl->getInitExpr(), IdentType);
     Decl->setInitExpr(Cast);
 }
