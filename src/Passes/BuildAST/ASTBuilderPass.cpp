@@ -831,11 +831,62 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
 std::any ASTBuilderPass::visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) {
     auto StringLit = PM->Builder.build<StringLiteral>();
     StringLit->setCtx(ctx);
-    std::cout << ctx->SCharSequence()->getText();
-    /*
-    for (auto *Child : ctx->SCharSequence()->getText())
-        StringLit->addChild(castToNodeVisit(Child));
-    */
+
+    std::string CharVal = ctx->SCHAR()->getText();
+    long len = CharVal.length();
+    bool escapeSequence = false;
+
+    for(long i=1;i<len-1;i++){
+        char Val;
+        if(escapeSequence == true){ // for special characters
+            switch (CharVal[i]) {
+                case '0':
+                    Val = 0x00;
+                    break;
+                case 'a':
+                    Val = 0x07;
+                    break;
+                case 'b':
+                    Val = 0x08;
+                    break;
+                case 't':
+                    Val = 0x09;
+                    break;
+                case 'n':
+                    Val = 0x0A;
+                    break;
+                case 'r':
+                    Val = 0x0D;
+                    break;
+                case '\"':
+                    Val = 0x22;
+                    break;
+                case '\'':
+                    Val = 0x27;
+                    break;
+                case '\\':
+                    Val = 0x5C;
+                    break;
+                default:
+                    Val = CharVal[i];
+                    break;
+            }
+
+            escapeSequence = false;
+        }else if(CharVal[i] == '\\'){ // next value is special character
+            escapeSequence = true;
+            continue;
+        }else{ // is normal character
+            Val = CharVal[i];
+        }
+
+        auto CharLit = PM->Builder.build<CharLiteral>();
+        CharLit->setCtx(ctx);
+        CharLit->setCharacter(Val);
+        StringLit->addChild(cast<ASTNodeT>(CharLit));
+        
+    }
+
     return cast<ASTNodeT>(StringLit);
 }
 

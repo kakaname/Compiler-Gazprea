@@ -195,6 +195,8 @@ public:
                 return getProcedureTypeName(this);
             case T_Vector:
                 return getVectorTypeName(this);
+            case T_String:
+                return getVectorTypeName(this);
             case T_Interval:
                 return TypeName + "interval";
             default:

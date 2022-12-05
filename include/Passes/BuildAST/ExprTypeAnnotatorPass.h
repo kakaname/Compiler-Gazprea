@@ -32,6 +32,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitRealLiteral(RealLiteral *Real) const ;
     const Type *visitTupleLiteral(TupleLiteral *TupLit);
     const Type *visitVectorLiteral(VectorLiteral *VecLit);
+    const Type *visitStringLiteral(StringLiteral *StrLit);
     const Type *visitTypeCast(TypeCast *Cast);
     const Type *visitExplicitCast(ExplicitCast *Cast);
     const Type *visitNullLiteral(NullLiteral *Null);

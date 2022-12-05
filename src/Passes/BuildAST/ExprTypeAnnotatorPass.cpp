@@ -489,6 +489,24 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
 }
 
+const Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
+    const Type *CharTy = PM->TypeReg.getCharTy();
+;
+
+    // Pass 2: Promote all elements to the highest type
+    for (int i = 0; i < StrLit->numOfChildren(); i++) {
+        auto ChildExpr = StrLit->getChildAt(i);
+        auto ChildTy = visit(ChildExpr);
+        PM->setAnnotation<ExprTypeAnnotatorPass>(ChildExpr, PM->TypeReg.getCharTy());
+    }
+
+    // Get the vector type
+    CharTy = PM->TypeReg.getVectorType(CharTy, StrLit->numOfChildren());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(StrLit, CharTy);
+    return CharTy;
+
+}
+
 const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
     auto VecTy = dyn_cast<VectorTy>(BaseTy);
