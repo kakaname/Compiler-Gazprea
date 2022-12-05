@@ -241,6 +241,7 @@ struct ArithmeticOp: public TreeNode {
 struct Index: public TreeNode {
     static constexpr int BaseExprIdx = 0;
     static constexpr int IndexExprIdx = 1;
+    static constexpr int Index2ExprIdx = 2;
 
     void setBaseExpr(ASTNodeT *Expr) {
         setChildAt(BaseExprIdx, Expr);
@@ -250,12 +251,20 @@ struct Index: public TreeNode {
         setChildAt(IndexExprIdx, Expr);
     }
 
+    void setIndex2Expr(ASTNodeT *Expr) {
+        setChildAt(Index2ExprIdx, Expr);
+    }
+
     ASTNodeT *getBaseExpr() {
         return getChildAt(BaseExprIdx);
     }
 
     ASTNodeT *getIndexExpr() {
         return getChildAt(IndexExprIdx);
+    }
+
+    ASTNodeT *getIndex2Expr() {
+        return getChildAt(Index2ExprIdx);
     }
 
     static bool classof(const TreeNode *N) {
@@ -268,6 +277,7 @@ struct Index: public TreeNode {
 struct IndexReference: public TreeNode {
     static constexpr int BaseExprIdx = 0;
     static constexpr int IndexExprIdx = 1;
+    static constexpr int Index2ExprIdx = 2;
 
     void setBaseExpr(ASTNodeT *Expr) {
         setChildAt(BaseExprIdx, Expr);
@@ -277,12 +287,20 @@ struct IndexReference: public TreeNode {
         setChildAt(IndexExprIdx, Expr);
     }
 
+    void setIndex2Expr(ASTNodeT *Expr) {
+        setChildAt(Index2ExprIdx, Expr);
+    }
+
     ASTNodeT *getBaseExpr() {
         return getChildAt(BaseExprIdx);
     }
 
     ASTNodeT *getIndexExpr() {
         return getChildAt(IndexExprIdx);
+    }
+
+    ASTNodeT *getIndex2Expr() {
+        return getChildAt(Index2ExprIdx);
     }
 
     static bool classof(const TreeNode *N) {
