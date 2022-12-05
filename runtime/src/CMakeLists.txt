@@ -2,7 +2,10 @@
 set(
   gazprea_rt_files
   "${CMAKE_CURRENT_SOURCE_DIR}/runtime.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/matrix.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vectors.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/errors.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/runtime.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/stream_state.h"
 )
 
