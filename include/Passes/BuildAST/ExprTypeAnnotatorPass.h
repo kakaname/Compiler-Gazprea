@@ -12,6 +12,7 @@
 #include "Passes/VisitorPass.h"
 #include "Passes/PassManager.h"
 #include "Passes/BuildAST/ConvertIdentMemberAccessToIdxPass.h"
+#include "Common/MatchBoolPair.h"
 
 struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     using AnnotationT = const Type*;
@@ -40,6 +41,13 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
     const Type *visitBoolLiteral(BoolLiteral *Bool);
     const Type *visitCharLiteral(CharLiteral *Char);
     const Type *visitInterval(Interval *Int);
+    const Type *visitByOp(ByOp *By);
+    const Type *visitDotProduct(DotProduct *Dot);
+    const Type *visitConcat(Concat *Concat);
+    const Type *visitOutStream(OutStream *Out);
+    const Type *visitConditionalLoop(ConditionalLoop *Loop);
+    const Type *visitConditional(Conditional *Cond);
+    const Type *visitConditionalElse(ConditionalElse *Cond);
 
 
     void setOpaqueTyCastTargetTy(const Type *Ty) {
@@ -56,11 +64,15 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
 
+    static const Type *getWiderType(const Type *Ty1, const Type *Ty2);
+
+    static bool isTypeSizeKnown(const Type *Ty);
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
     explicit ExprTypeAnnotatorPass() = default;
 
     ASTPassManager *PM{};
+    TypeRegistry *TypeReg{};
     const Type *OpaqueTyCastTarget{nullptr};
 };

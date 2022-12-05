@@ -49,6 +49,39 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
+    VectorConcat = Mod.getOrInsertFunction(
+            "rt_vector_concat", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorDotProductInt = Mod.getOrInsertFunction(
+            "rt_vector_dotproduct_int", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorDotProductReal = Mod.getOrInsertFunction(
+            "rt_vector_dotproduct_real", llvm::FunctionType::get(
+                    LLVMRealTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    VectorBy = Mod.getOrInsertFunction(
+            "rt_vector_by", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorNot = Mod.getOrInsertFunction(
+            "rt_vector_not", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+    VectorSub = Mod.getOrInsertFunction(
+            "rt_vector_sub", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+    PrintVector = Mod.getOrInsertFunction(
+            "rt_print_vector", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorTy->getPointerTo()}, false));
+    VectorEq = Mod.getOrInsertFunction(
+            "rt_vector_eq", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorLogical = Mod.getOrInsertFunction(
+            "rt_vector_logical", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorArith = Mod.getOrInsertFunction(
+            "rt_vector_arith", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    VectorComp = Mod.getOrInsertFunction(
+            "rt_vector_comp", llvm::FunctionType::get(
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
 
     visit(Root);
 
@@ -89,7 +122,7 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
         case Type::TypeKind::T_Vector:
             return ConstConv(LLVMVectorTy, Ty->isConst());
         default:
-            assert(false && "Unknown type");
+            throw std::runtime_error("Unknown type in backend");
     }
 }
 
@@ -183,9 +216,9 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
 
     // Just an assertion, not needed for code gen.
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
-                                     " not have reached the code gen");
+//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
+//                                     " not have reached the code gen");
 
     llvm::CmpInst::Predicate Pred;
 
@@ -204,6 +237,15 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
                 Pred = llvm::CmpInst::Predicate::FCMP_OGE;
         }
         return IR.CreateFCmp(Pred, LeftOperand, RightOperand);
+    } else if (isa<VectorTy>(LTy)) {
+        // TODO temporary alloc
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+
+        return IR.CreateCall(VectorComp, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+
     }
     switch (Op->getOpKind()) {
         case ComparisonOp::GT:
@@ -226,10 +268,10 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
-                                     "not have reached the code gen");
+//    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
+//                                     "not have reached the code gen");
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
     auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
@@ -333,13 +375,20 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                         {MulArray});
                 break;
             default:
-                assert(false && "Not implemented");
+                throw std::runtime_error("Not implemented");
         }
         llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
         Result = IR.CreateInsertValue(Result, Result1, {0});
         Result = IR.CreateInsertValue(Result, Result2, {1});
         return Result;
+    } else if (isa<VectorTy>(ResultType)) {
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+        return IR.CreateCall(VectorArith, {LeftVec, RightVec, IR.getInt32(Op->getOpKind())});
     }
+    throw std::runtime_error("Unknown type in arithmetic expression");
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
@@ -348,7 +397,8 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
 
     const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-    assert( RightType->isSameTypeAs(LeftType) && "Operation between different types should not"
+    if (!RightType->isSameTypeAs(LeftType))
+        throw std::runtime_error("Operation between different types should not"
                                      " have reached the code gen");
 
     if (isa<RealTy>(LeftType)) {
@@ -358,7 +408,7 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
             case LogicalOp::NEQ:
                 return IR.CreateFCmpONE(LeftOperand, RightOperand);
             default:
-                assert(false && "Invalid logical operation for real type");
+                throw std::runtime_error("Invalid logical operation for real type");
         }
     } else if (isa<IntervalTy>(LeftType)) {
         llvm::Value *Left1, *Left2, *Right1, *Right2;
@@ -377,8 +427,27 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
                 Result2 = IR.CreateICmpNE(Left2, Right2);
                 return IR.CreateOr(Result1, Result2);
             default:
-                assert(false && "Invalid logical operation for interval type");
+                throw std::runtime_error("Invalid logical operation for interval type");
         }
+    } else if (isa<VectorTy>(LeftType)) {
+        // TODO temporary story for vector type
+        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
+        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(LeftOperand, LeftVec);
+        IR.CreateStore(RightOperand, RightVec);
+        llvm::Value *Result;
+
+        switch (Op->getOpKind()) {
+            case LogicalOp::EQ:
+            case LogicalOp::NEQ:
+                Result = IR.CreateCall(VectorEq, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+                return IR.CreateICmpNE(Result, llvm::ConstantInt::get(LLVMCharTy, 0));
+            case LogicalOp::AND:
+            case LogicalOp::OR:
+            case LogicalOp::XOR:
+                return IR.CreateCall(VectorLogical, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+        }
+
     }
 
     switch (Op->getOpKind()) {
@@ -415,7 +484,24 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
             case UnaryOp::ADD:
                 return Operand;
             default:
-                assert(false && "Invalid unary operation for interval type");
+                throw std::runtime_error("Invalid unary operation for interval type");
+        }
+    } else if (isa<VectorTy>(ResultType)) {
+        llvm::Value *Result;
+
+        // TODO fix temporary store
+        llvm::Value *Temp = IR.CreateAlloca(Operand->getType());
+        IR.CreateStore(Operand, Temp);
+
+        switch (Op->getOpKind()) {
+            case UnaryOp::NOT:
+                return IR.CreateCall(VectorNot, {Temp});
+            case UnaryOp::ADD:
+                return Operand;
+            case UnaryOp::SUB:
+                return IR.CreateCall(VectorSub, {Temp});
+            default:
+                assert(false && "Invalid unary operation for vector type");
         }
     }
 
@@ -436,8 +522,11 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
     // get types of the base expression and the index expression
     const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
     const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
-    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
-    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+    if (!IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()))
+        throw std::runtime_error("Index must be an integer");
+
+    if (BaseType->getKind() != Type::TypeKind::T_Vector)
+        throw std::runtime_error("Base must be a vector");
 
     // TODO Check that the index is within the bounds of the array
 
@@ -521,15 +610,16 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 }
 
 llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
-    return IR.getInt32(IntLit->getVal());
+    auto Val =  IR.getInt32(IntLit->getVal());
+    return Val;
 }
 
-llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral *NullLit) {
-    assert(false && "Should not have reached the codegen");
+llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral*) {
+    throw runtime_error("Should not have reached the codegen");
 }
 
-llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral *IdentityLit) {
-    assert(false && "Should not have reached the codegen");
+llvm::Value *CodeGenPass::visitIdentityLiteral(IdentityLiteral*) {
+    throw runtime_error("Should not have reached the codegen");
 }
 
 llvm::Value *CodeGenPass::visitRealLiteral(RealLiteral *RealLit) {
@@ -682,7 +772,7 @@ llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
-    for (auto I = 0; I < ParamList->numOfChildren(); I++) {
+    for (size_t I = 0; I < ParamList->numOfChildren(); I++) {
         auto Param = ParamList->getParamAt(I);
         SymbolMap[Param->getReferred()] = Func->getArg(I);
     }
@@ -703,7 +793,8 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 
     // Get the function
     llvm::Function *Func = Mod.getFunction(FuncCall->getIdentifier()->getName());
-    assert(Func && "Function not found");
+    if (!Func)
+        throw std::runtime_error("Function not found");
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
@@ -715,7 +806,6 @@ llvm::Value *CodeGenPass::visitFunctionCall(FunctionCall *FuncCall) {
 }
 
 llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
-
     auto ProcName = Def->getIdentifier()->getName();
     auto ProcTy = Def->getIdentifier()->getIdentType();
     auto Proc = getOrInsertFunction(ProcTy, ProcName);
@@ -727,7 +817,6 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
             GlobalCtx, "proc_body", Proc);
 
     IR.SetInsertPoint(Body);
-
 
     // Set function arguments and set them in the symbol map
     auto ParamList = Def->getParamList();
@@ -756,7 +845,8 @@ llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
     // TODO: Handle stream_state;
     // Get the function
     llvm::Function *Func = Mod.getFunction(Call->getIdentifier()->getName());
-    assert(Func && "Function not found");
+    if (!Func)
+        throw std::runtime_error("Function not found");
 
     // Get the arguments
     std::vector<llvm::Value *> Args;
@@ -766,16 +856,17 @@ llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
     return IR.CreateCall(Func, Args);
 }
 
-llvm::Value *CodeGenPass::visitReturn(Return *Return) {
+llvm::Value *CodeGenPass::visitReturn(Return *Ret) {
     // No-op means that the procedure does not have a return type.
-    if (isa<NoOp>(Return->getReturnExpr()))
+    if (isa<NoOp>(Ret->getReturnExpr()))
         IR.CreateRetVoid();
     else
-        IR.CreateRet(visit(Return->getReturnExpr()));
+        IR.CreateRet(visit(Ret->getReturnExpr()));
 
     llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(
             GlobalCtx, "after_ret", CurrentFunction);
     IR.SetInsertPoint(AfterRet);
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
@@ -804,6 +895,13 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     Value *ValToOut = visit(Stream->getOutStreamExpr());
     const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
+    if (ValType->getKind() == Type::T_Vector) {
+        // TODO temporary store
+        auto Vec = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(ValToOut, Vec);
+        return IR.CreateCall(PrintVector, {Vec});
+    }
+
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
             return IR.CreateCall(PrintChar, {ValToOut});
@@ -814,13 +912,14 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
         case Type::TypeKind::T_Real:
             return IR.CreateCall(PrintReal, {ValToOut});
         default:
-            assert(false && "Invalid type for out-stream");
+            throw runtime_error("Invalid type for out-stream");
     }
 }
 
 llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
     const Type *IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(InStream->getTarget());
-    assert(IdentTy->isInputTy() && "Invalid input stream type");
+    if(!IdentTy->isInputTy())
+        throw std::runtime_error("Invalid input stream type");
     Value *StoreLoc = visit(InStream->getTarget());
     Value *ReadVal;
 
@@ -838,7 +937,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             ReadVal = IR.CreateCall(ScanReal);
             break;
         default:
-            assert(false && "Invalid type for in-stream");
+            throw std::runtime_error("Invalid type for in-stream");
     }
     IR.CreateStore(ReadVal, StoreLoc);
     return nullptr;
@@ -873,8 +972,12 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
     // get types of the base expression and the index expression
     const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
     const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
-    assert(IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()) && "Index must be an integer");
-    assert(BaseType->getKind() == Type::TypeKind::T_Vector && "Base must be a vector");
+
+    if (!isa<IntegerTy>(IndexType))
+        throw std::runtime_error("Index must be an integer");
+
+    if (!isa<VectorTy>(BaseType))
+        throw std::runtime_error("Base must be a vector");
 
     // TODO Check that the index is within the bounds of the array
 
@@ -883,13 +986,12 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // Get the element pointer
     return IR.CreateInBoundsGEP(MallocPtr, Idx);
-
-
 }
 
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     auto MemIdx = dyn_cast<IntLiteral>(Ref->getMemberExpr());
-    assert(MemIdx && "Only int literals should reach here");
+    if (!MemIdx)
+        throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
     return IR.CreateGEP(StructLoc, {
         IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
@@ -903,7 +1005,8 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty,
 
     auto FuncTy = dyn_cast<FunctionTy>(Ty);
     auto ProcTy = dyn_cast<ProcedureTy>(Ty);
-    assert(ProcTy || FuncTy);
+    if (!(ProcTy || FuncTy))
+        throw std::runtime_error("Tried to insert something that is not a function");
 
     auto ParamTys = FuncTy ? FuncTy->getParamTypes()
             : ProcTy->getParamTypes();
@@ -934,9 +1037,12 @@ llvm::Value *CodeGenPass::visitProcedureDecl(ProcedureDecl *Decl) {
 }
 
 llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
-    for (auto Child: *Blk)
+    size_t ChildCount = Blk->numOfChildren();
+    for (size_t I = 0; I < ChildCount; I++) {
+        auto Child = Blk->getChildAt(I);
         visit(Child);
-
+    }
+    return nullptr;
     // TODO free unnecessary vectors
 }
 
@@ -985,7 +1091,7 @@ llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_
             InnerTySize = 4;
             break;
         default:
-            assert(false && "Invalid vector inner type");
+            throw std::runtime_error("Invalid vector inner type");
     }
 
     llvm::Value *Result = llvm::ConstantStruct::get(
@@ -1039,4 +1145,49 @@ llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
     Result = IR.CreateInsertValue(Result, Lower, {0});
     Result = IR.CreateInsertValue(Result, Upper, {1});
     return Result;
+}
+
+llvm::Value *CodeGenPass::visitConcat(Concat *Con) {
+    llvm::Value *Left = visit(Con->getLHS());
+    llvm::Value *Right = visit(Con->getRHS());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+    IR.CreateStore(Right, RightPtr);
+
+    llvm::Value *Result = IR.CreateCall(VectorConcat, {LeftPtr, RightPtr});
+    return Result;
+}
+
+llvm::Value *CodeGenPass::visitDotProduct(DotProduct *DP) {
+    llvm::Value *Left = visit(DP->getLHS());
+    llvm::Value *Right = visit(DP->getRHS());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+    IR.CreateStore(Right, RightPtr);
+
+    // Determine type of the result
+    auto LeftTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS()));
+    if (LeftTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
+        return IR.CreateCall(VectorDotProductReal, {LeftPtr, RightPtr});
+    else
+        return IR.CreateCall(VectorDotProductInt, {LeftPtr, RightPtr});
+}
+
+llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
+    llvm::Value *Left = visit(By->getBaseExpr());
+    llvm::Value *Right = visit(By->getByExpr());
+
+    // TODO temporary alloca
+    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Left, LeftPtr);
+
+    // Determine type of the result
+    return IR.CreateCall(VectorBy, {LeftPtr, Right});
+
 }

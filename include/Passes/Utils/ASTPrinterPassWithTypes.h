@@ -238,6 +238,42 @@ public:
         std::cout << "ExplicitCast(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(ExplicitCast)->getTypeName() << ")" << "\n";
     }
 
+    void visitConcat(Concat *Con) {
+        std::cout << "Concat(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Con)->getTypeName() << ")\n";
+    }
+
+    void visitDotProduct(DotProduct *Dot) {
+        std::cout << "DotProduct(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Dot)->getTypeName() << ")\n";
+    }
+
+    void visitByOp(ByOp *By) {
+        std::cout << "ByOp(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(By)->getTypeName() << ")\n";
+    }
+
+    void visitFreeNode(FreeNode *FreeNode) {
+        std::cout << "FreeNode" << "\n";
+    }
+
+    void visitGenerator(Generator *Gen) {
+        std:: cout << "Gen" << "\n";
+    }
+
+    void visitMatrixGenerator(MatrixGenerator *Gen) {
+        std:: cout << "MatrixGen" << "\n";
+    }
+
+    void visitPredicatedList(PredicatedList *PredList) {
+        std::cout << "PredList" << "\n";
+    }
+
+    void visitFilter(Filter *Filter) {
+        std::cout << "Filter" << "\n";
+    }
+
+    void visitAppendNode(AppendNode *Append) {
+        std::cout << "Append" << "\n";
+    }
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;

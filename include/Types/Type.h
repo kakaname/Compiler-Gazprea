@@ -18,10 +18,26 @@ class Type;
 bool isValidTupleCast(const Type*, const Type*);
 bool isSameTupleTypeAs(const Type*, const Type*);
 bool canPromoteTupleTo(const Type*, const Type*);
+bool canPromoteIntegerTo(const Type*);
+bool canPromoteRealTo(const Type*);
+bool canPromoteVectorTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
+bool doesVectorSupportEq(const Type*);
+bool doesVectorSupportArithOps(const Type*);
+bool isVectorValidForComparisonOps(const Type*);
+bool isVectorValidForUnaryNot(const Type*);
+bool isMatrixValidForUnaryNot(const Type*);
+
+bool isVectorValidForUnaryAddSub(const Type*);
+bool isMatrixValidForUnaryAddSub(const Type*);
+
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
+
+bool canCastVectorTo(const Type*, const Type*);
+bool canCastBoolCharIntTo(const Type*);
+bool canCastRealTo(const Type*);
 
 const Type *getPromotedScalarType(const Type*, const Type*);
 
@@ -57,6 +73,10 @@ public:
                T_Int == Kind || T_Real == Kind;
     }
 
+    bool isCompositeTy() const {
+        return T_Vector == Kind || T_Matrix == Kind;
+    }
+
     bool isSameTypeAs(const Type *T) const {
         switch (Kind) {
             case T_Int:
@@ -79,19 +99,44 @@ public:
     }
 
     bool isValidForArithOps() const {
+        if (Kind == T_Vector) {
+            return doesVectorSupportArithOps(this);
+        }
         return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
     bool isValidForComparisonOp() const {
+        if (Kind == T_Vector)
+            return isVectorValidForComparisonOps(this);
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
     bool isValidForUnaryNot() const {
-        return T_Bool == Kind;
+        switch (Kind) {
+            case T_Bool:
+                return true;
+            case T_Vector:
+                return isVectorValidForUnaryNot(this);
+            case T_Matrix:
+                return isMatrixValidForUnaryNot(this);
+            default:
+                return false;
+        }
     }
 
     bool isValidForUnaryAddOrSub() const {
-        return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
+        switch (Kind) {
+            case T_Real:
+            case T_Int:
+            case T_Interval:
+                return true;
+            case T_Vector:
+                return isVectorValidForUnaryAddSub(this);
+            case T_Matrix:
+                return isMatrixValidForUnaryAddSub(this);
+            default:
+                return false;
+        }
     }
 
     bool isValidForEq() const {
@@ -103,6 +148,8 @@ public:
                 return true;
             case T_Tuple:
                 return doesTupleSupportEq(this);
+            case T_Vector:
+                return doesVectorSupportEq(this);
             default:
                 return T_Real == Kind || T_Int == Kind || T_Bool == Kind || T_Interval == Kind;
         }
@@ -131,11 +178,13 @@ public:
             case T_Bool:
             case T_Char:
             case T_Int:
-                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
+                return canCastBoolCharIntTo(T);
             case T_Real:
-                return Ty == T_Int || Ty == T_Real;
+                return canCastRealTo(T);
             case T_Tuple:
                 return isValidTupleCast(this, T);
+            case T_Vector:
+                return canCastVectorTo(this, T);
             default:
                 return false;
         }
@@ -150,9 +199,13 @@ public:
             case T_Identity:
                 return true;
             case T_Int:
-                return T->getKind() == T_Real;
+                return canPromoteIntegerTo(T);
+            case T_Real:
+                return canPromoteRealTo(T);
             case T_Tuple:
                 return canPromoteTupleTo(this, T);
+            case T_Vector:
+                return canPromoteVectorTo(this, T);
             default:
                 return false;
         }
@@ -168,6 +221,10 @@ public:
 
     TypeKind getKind() const {
         return Kind;
+    }
+
+    bool isValidForBy() const {
+        return T_Interval == Kind || T_Vector == Kind;
     }
 
     std::string getTypeName() const {

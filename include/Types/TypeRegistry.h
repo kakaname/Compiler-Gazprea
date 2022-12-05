@@ -12,6 +12,7 @@
 #include <cassert>
 #include <string>
 #include <algorithm>
+#include <stdexcept>
 
 
 #include "llvm/Support/Casting.h"
@@ -48,6 +49,7 @@ class TypeRegistry {
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
     using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
     using ProcudureTypeContainer = map<ProcedureTypeId , unique_ptr<ProcedureTy>>;
+    using IntervalTypeContainer = map<int, unique_ptr<IntervalTy>>;
 
     NullTy NullType;
     IdentityTy IdentityType;
@@ -55,13 +57,13 @@ class TypeRegistry {
     array<CharTy, 2> CharacterTypes;
     array<IntegerTy, 2> IntegerTypes;
     array<RealTy, 2> RealTypes;
-    array<IntervalTy, 2> IntervalTypes;
 
     VectorTyContainer VectorTypes;
     MatrixTyContainer MatrixTypes;
     TupleTyContainer TupleTypes;
     FunctionTypeContainer FunctionTypes;
     ProcudureTypeContainer ProcedureTypes;
+    IntervalTypeContainer IntervalTypes;
 
 
 public:
@@ -69,8 +71,7 @@ public:
                              BooleanTypes{BoolTy(false), BoolTy(true)},
                              CharacterTypes{CharTy(false), CharTy(true)},
                              IntegerTypes{IntegerTy(false), IntegerTy(true)},
-                             RealTypes{RealTy(false), RealTy(true)},
-                             IntervalTypes{IntervalTy(false, 1), IntervalTy(true, 1)} {};
+                             RealTypes{RealTy(false), RealTy(true)} {};
 
     const Type *getNullTy() {
         return &NullType;
@@ -96,8 +97,15 @@ public:
         return &RealTypes[Const];
     }
 
-    const Type *getIntervalTy(bool Const = true) {
-        return &IntervalTypes[Const];
+    const Type *getIntervalTy(int Length = -1) {
+        auto Res = IntervalTypes.find(Length);
+        if (Res != IntervalTypes.end())
+            return Res->second.get();
+
+        auto NewIntervalTy = make_unique<IntervalTy>(IntervalTy(Length));
+        auto Inserted = IntervalTypes.insert({Length, std::move(NewIntervalTy)});
+        assert(Inserted.second && "We just checked that type wasn't in the map");
+        return Inserted.first->second.get();
     }
 
     const Type *getVectorType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
@@ -189,10 +197,10 @@ public:
             return getIntervalTy(true);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(Vec->getInnerTy(), Vec->getSize(), true);
+            return getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
 
         if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+            return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), true);
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
@@ -242,6 +250,28 @@ public:
         }
 
         assert(false && "Should not be reachable.");
+    }
+
+    const Type *getCompositeTyWithInner(const Type *OldTy, const Type *InnerTy) {
+        if (auto VecTy = dyn_cast<VectorTy>(OldTy))
+            return getVectorType(InnerTy, VecTy->getSize(), VecTy->isConst());
+
+        if (auto MatTy = dyn_cast<MatrixTy>(OldTy))
+            return getMatrixType(InnerTy, MatTy->getNumOfRows(),
+                                 MatTy->getNumOfColumns(), MatTy->isConst());
+
+        throw std::runtime_error("Only vectors or matrices may be passed as OldTy");
+    }
+
+    static const Type *getInnerTyFromComposite(const Type *Ty) {
+        if (auto VecTy = dyn_cast<VectorTy>(Ty))
+            return VecTy->getInnerTy();
+
+        if (auto MatTy = dyn_cast<MatrixTy>(Ty))
+            return MatTy->getInnerTy();
+
+        throw std::runtime_error("Tried to access the inner type of a non "
+                                 "composite type");
     }
 };
 

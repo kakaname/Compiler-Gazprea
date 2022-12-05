@@ -24,22 +24,15 @@ struct IntervalTy : public Type {
 
     IntervalTy() = delete;
 
-    explicit IntervalTy(bool IsConst, int StepSize):
-        Type(TypeKind::T_Interval, IsConst), StepSize(1) {
-        StepSizeKnown = (StepSize > 0);
-    }
+    explicit IntervalTy(int Length):
+        Type(TypeKind::T_Interval, true), Length(Length) {}
 
-    int getStepSize() const {
-        return StepSize;
-    }
-
-    bool isStepSizeKnown() const {
-        return StepSizeKnown;
+    int isLengthKnown() const {
+        return Length >= 0;
     }
 
 private:
-    bool StepSizeKnown;
-    int StepSize;
+    int Length;
 };
 
 struct VectorTy : public Type {
@@ -96,6 +89,15 @@ struct MatrixTy : public Type {
     bool isNumOfColumnsIsKnown() const {
         return Dimensions.second != -1;
     };
+
+    bool isSizeKnown() const {
+        return isNumOfColumnsIsKnown() && isNumOfRowsIsKnown();
+    }
+
+    bool isSameSizeAs(const MatrixTy *Mat) const {
+        return Mat->getNumOfColumns() == getNumOfColumns() &&
+        Mat->getNumOfRows() == getNumOfRows();
+    }
 
     const Type *getInnerTy() const {
         return InnerTy;

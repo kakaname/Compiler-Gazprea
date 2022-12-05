@@ -147,6 +147,24 @@ public:
         return Annotation->template getConcreteResult<typename PassT::AnnotationT>();
     }
 
+
+    template<class PassT>
+    typename PassT::AnnotationT *getAnnotationUnchecked(ASTNodeT *Node) {
+        std::pair<ASTNodeT*, const PassId*> Key(Node, PassT::ID());
+        auto Res = Annotations.find(Key);
+
+        if (Res == Annotations.end())
+            return nullptr;
+
+        if (InvalidResults.count(PassT::ID()))
+            runPass<PassT>();
+
+        ResultObject *Annotation = Res->second.get();
+        return &Annotation->template getConcreteResult<typename PassT::AnnotationT>();
+    }
+
+
+
     template<typename PassT>
     void setAnnotation(ASTNodeT *Node, typename PassT::AnnotationT Annotation) {
         // Ensure we are not setting a reference as an annotation.
@@ -158,10 +176,9 @@ public:
 
     // SFNAE template for passes that have an id and hence may store a result.
     template<typename PassT>
-    void registerPass(PassT Pass) {
+    void registerPass(PassT &&Pass) {
         // Ensure that we are not passing in a reference type to be registered
         // as a pass.
-        static_assert(!std::is_reference_v<decltype(Pass)>);
         IdToIdxMap[PassT::ID()] = Passes.size();
         Passes.push_back(std::forward<PassT>(Pass));
     }
@@ -182,7 +199,8 @@ public:
     template<typename ResourceT>
     ResourceT &getResource() {
         auto Res = Resources.find(ResourceT::ID());
-        assert(Res != Resources.end() && "Attempt to access a resource from the "
+        if (Res == Resources.end())
+            throw runtime_error("Attempt to access a resource from the "
                                        "PassManager before it is set.");
 
         // We just ran the pass, therefore the result should be here.

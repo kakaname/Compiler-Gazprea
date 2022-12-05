@@ -15,8 +15,8 @@ template<typename DerivedT, typename RetT>
 class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT visitProgram(Program *Prog) {
-        for (auto *child : *Prog)
-            visit(child);
+        for (auto Child : *Prog)
+            visit(Child);
         return RetT();
     }
 
@@ -240,6 +240,24 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return visit(InStream->getTarget());
     }
 
+    RetT visitConcat(Concat *Concat) {
+        visit(Concat->getLHS());
+        visit(Concat->getRHS());
+        return RetT();
+    }
+
+    RetT visitDotProduct(DotProduct *DotProduct) {
+        visit(DotProduct->getLHS());
+        visit(DotProduct->getRHS());
+        return RetT();
+    }
+
+    RetT visitByOp(ByOp *ByOp) {
+        visit(ByOp->getBaseExpr());
+        visit(ByOp->getByExpr());
+        return RetT();
+    }
+
     RetT visitExplicitCast(ExplicitCast *ExplicitCast) {
         return visit(ExplicitCast->getExpr());
     }
@@ -247,6 +265,7 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT visitVectorLiteral(VectorLiteral *Vector) {
         for (auto *child : *Vector)
             visit(child);
+        return RetT();
     }
 
     RetT visitStringLiteral(StringLiteral *String) {
@@ -260,6 +279,46 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitFreeNode(FreeNode *FreeNode) {
+        for (auto *Child : *FreeNode)
+            visit(Child);
+        return RetT();
+    }
+
+    RetT visitGenerator(Generator *Gen) {
+        visit(Gen->getDomainVar());
+        visit(Gen->getDomain());
+        visit(Gen->getExpr());
+        return RetT();
+    }
+
+    RetT visitMatrixGenerator(MatrixGenerator *Gen) {
+        visit(Gen->getRowDomainVar());
+        visit(Gen->getRowDomain());
+        visit(Gen->getColumnDomainVar());
+        visit(Gen->getColumnDomain());
+        visit(Gen->getExpr());
+        return RetT();
+    }
+
+    RetT visitPredicatedList(PredicatedList *PredList) {
+        for (auto *child : *PredList)
+            visit(child);
+        return RetT();
+    }
+
+    RetT visitFilter(Filter *Filter) {
+        visit(Filter->getDomainVar());
+        visit(Filter->getDomain());
+        visit(Filter->getPredicatedList());
+        return RetT();
+    }
+
+    RetT visitAppendNode(AppendNode *Append) {
+        visit(Append->getLeftExpr());
+        visit(Append->getRightExpr());
+        return RetT();
+    }
 
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
@@ -441,11 +500,47 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitIndex(I);
     }
 
+    RetT callVisitConcatImpl(Concat *C) {
+        return static_cast<DerivedT*>(this)->visitConcat(C);
+    }
+
+    RetT callVisitDotProductImpl(DotProduct *D) {
+        return static_cast<DerivedT*>(this)->visitDotProduct(D);
+    }
+
+    RetT callVisitByOpImpl(ByOp *B) {
+        return static_cast<DerivedT*>(this)->visitByOp(B);
+    }
+
     RetT callVisitIndexReferenceImpl(IndexReference *I) {
         return static_cast<DerivedT*>(this)->visitIndexReference(I);
     }
     RetT callVisitIntervalImpl(Interval *I) {
         return static_cast<DerivedT*>(this)->visitInterval(I);
+    }
+
+    RetT callVisitFreeNodeImpl(FreeNode *N) {
+        return static_cast<DerivedT*>(this)->visitFreeNode(N);
+    }
+
+    RetT callVisitGeneratorImpl(Generator *G) {
+        return static_cast<DerivedT*>(this)->visitGenerator(G);
+    }
+
+    RetT callVisitMatrixGeneratorImpl(MatrixGenerator *G) {
+        return static_cast<DerivedT*>(this)->visitMatrixGenerator(G);
+    }
+
+    RetT callVisitPredicatedListImpl(PredicatedList *PredList) {
+        return static_cast<DerivedT*>(this)->visitPredicatedList(PredList);
+    }
+
+    RetT callVisitFilterImpl(Filter *Filter) {
+        return static_cast<DerivedT*>(this)->visitFilter(Filter);
+    }
+
+    RetT callVisitAppendNodeImpl(AppendNode *Append) {
+        return static_cast<DerivedT*>(this)->visitAppendNode(Append);
     }
 
 public:
@@ -555,9 +650,8 @@ public:
         if (auto *FuncDef = dyn_cast<FunctionDef>(Node))
             return callVisitFunctionDefImpl(FuncDef);
 
-        if (auto *ResolType = dyn_cast<ResolvedType>(Node)) {
+        if (auto *ResolType = dyn_cast<ResolvedType>(Node))
             return callVisitResolvedTypeImpl(ResolType);
-        }
 
         if (auto *FuncCall = dyn_cast<FunctionCall>(Node))
             return callVisitFunctionCallImpl(FuncCall);
@@ -589,16 +683,44 @@ public:
         if (auto *InS = dyn_cast<InStream>(Node))
             return callVisitInStreamImpl(InS);
 
+        if (auto *Conc = dyn_cast<Concat>(Node))
+            return callVisitConcatImpl(Conc);
+
+        if (auto *DP = dyn_cast<DotProduct>(Node))
+            return callVisitDotProductImpl(DP);
+
+        if (auto *By = dyn_cast<ByOp>(Node))
+            return callVisitByOpImpl(By);
+
         if (auto *Cast = dyn_cast<ExplicitCast>(Node))
             return callVisitExplicitCastImpl(Cast);
 
+        if (auto *FreeN = dyn_cast<FreeNode>(Node))
+            return callVisitFreeNodeImpl(FreeN);
+
         if (auto *Vec = dyn_cast<VectorLiteral>(Node))
             return callVisitVectorLiteralImpl(Vec);
-
         if (auto *Str = dyn_cast<StringLiteral>(Node))
             return callVisitStringLiteralImpl(Str);
+        if (auto *Gen = dyn_cast<Generator>(Node))
+            return callVisitGeneratorImpl(Gen);
+
+        if (auto *Gen = dyn_cast<MatrixGenerator>(Node))
+            return callVisitMatrixGeneratorImpl(Gen);
+
+        if (auto *PredList = dyn_cast<PredicatedList>(Node)) {
+            return callVisitPredicatedListImpl(PredList);
+        }
+
+        if (auto *Filt = dyn_cast<Filter>(Node)) {
+            return callVisitFilterImpl(Filt);
+        }
+
+        if (auto *Append = dyn_cast<AppendNode>(Node))
+            return callVisitAppendNodeImpl(Append);
 
         assert(false && "Should be unreachable");
+        return RetT();
     }
 };
 
