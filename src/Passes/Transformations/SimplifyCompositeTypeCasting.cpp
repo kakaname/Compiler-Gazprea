@@ -18,30 +18,24 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
         // Don't care when both the types are scalar.
         matchPattern(false, false):
             return;
-        // Invalid, can't cast composite type to scalar.
+            // Invalid, can't cast composite type to scalar.
         matchPattern(false, true):
             throw runtime_error("Can't cast composite type to scalar");
-        // Casting a scalar to a composite type.
+            // Casting a scalar to a composite type.
         matchPattern(true, false): {
             if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
-                // If the size is known, we simply repeat the scalar
-                // that many times.
-                if (VecTy->isSizeKnown()) {
-                    auto Gen = getGenWithUpperBound(
-                            getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
+                auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast);
 
-                // If the size is not known, it must be given as an expression
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find(
-                        {Cast, 0})->second.first;
-                if (!Dimensions)
-                    throw runtime_error("Tried to cast to a vector of undefined"
-                                        " size");
-                auto Gen = getGenWithUpperBound(Dimensions);
+                if (!VecTy->getSizeExpr())
+                    throw runtime_error("Invalid Vector Type has no size expr");
+
+                auto Gen = getGenWithUpperBound(VecTy->getSizeExpr());
+                if (!VecTy->getInnerTy()->isSameTypeAs(ExprTy))
+                    Cast->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                 Gen->setExpr(Cast->getExpr());
+                auto GenTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 Cast->getParent()->replaceChildWith(Cast, Gen);
                 return;
             }
@@ -50,34 +44,18 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
             // Both the target and the inner expr are vectors.
         matchPattern(true, true): {
             if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
-                // If the size is known, we simply repeat the scalar
-                // that many times.
-                if (VecTy->isSizeKnown()) {
-                    auto Gen = getGenWithUpperBound(
-                            getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(Cast->getExpr());
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
-
-                // If the size is not known, check if it is given as an expression.
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find(
-                        {Cast, 0})->second.first;
-                // If the dimensions were given cast to them.
-                if (Dimensions) {
-                    auto Gen = getGenWithUpperBound(Dimensions);
-                    Gen->setExpr(Cast->getExpr());
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
-
                 // If no expression was given, then the size of the resultant
                 // vector must be the same as the size of the inner expression.
                 auto TargetInnerCast = TypeRegistry::getInnerTyFromComposite(
                         TargetTy);
-                auto Gen = getIteratingGenerator(Cast->getExpr());
-                Gen->setExpr(wrapWithCastTo(Gen->getExpr(), TargetInnerCast));
+                auto Gen = getGenWithUpperBound(VecTy->getSizeExpr());
+                auto Idx = buildIndexExpr(Cast->getExpr(), Gen->getExpr());
+                Gen->setExpr(wrapWithCastTo(Idx, TargetInnerCast));
                 Cast->getParent()->replaceChildWith(Cast, Gen);
+
+                auto GenTy = PM->TypeReg.getVectorType(TargetInnerCast, -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 return;
             }
             // TODO: Add matrices here.
@@ -102,11 +80,15 @@ IntLiteral *SimplifyCompositeTypeCasting::getIntLiteralWithVal(long Val) const {
 
 Generator *SimplifyCompositeTypeCasting::getGenWithUpperBound(ASTNodeT *Bound) {
     auto Gen = PM->Builder.build<Generator>();
+    auto DomainVar = getAnonymousIdent(PM->TypeReg.getIntegerTy());
     auto Range = PM->Builder.build<Interval>();
     Range->setLowerExpr(getIntLiteralWithVal(0));
     Range->setUpperExpr(Bound);
     Gen->setDomain(Range);
-    Gen->setDomainVariable(getAnonymousIdent(PM->TypeReg.getIntegerTy()));
+    Gen->setDomainVariable(DomainVar);
+    auto Expr = getAnonymousIdent(PM->TypeReg.getIntegerTy());
+    Expr->setReferred(DomainVar->getReferred());
+    Gen->setExpr(Expr);
     return Gen;
 }
 
@@ -117,14 +99,11 @@ Identifier *SimplifyCompositeTypeCasting::getAnonymousIdent(Type*Ty) {
     return Ident;
 }
 
-Generator *SimplifyCompositeTypeCasting::getIteratingGenerator(ASTNodeT *Domain) {
-    auto DomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Domain);
-    auto DomainInner = TypeRegistry::getInnerTyFromComposite(DomainTy);
-
+Generator *SimplifyCompositeTypeCasting::getIteratingGenerator(ASTNodeT *Bound, Type* DomainVarTy) {
     auto Gen = PM->Builder.build<Generator>();
-    auto DomainVar = getAnonymousIdent(DomainInner);
+    auto DomainVar = getAnonymousIdent(DomainVarTy);
     Gen->setDomainVariable(DomainVar);
-    Gen->setDomain(Domain);
+    Gen->setDomain(Bound);
     auto Expr = PM->Builder.build<Identifier>();
     Expr->setReferred(DomainVar->getReferred());
     Expr->setIdentType(DomainVar->getIdentType());
@@ -146,28 +125,18 @@ void SimplifyCompositeTypeCasting::visitTypeCast(TypeCast *Cast) {
             // Casting a scalar to a composite type.
         matchPattern(true, false): {
             if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
-                // If the size is known, we simply repeat the scalar
-                // that many times.
-                if (VecTy->isSizeKnown()) {
-                    auto Gen = getGenWithUpperBound(
-                            getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
+                auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast);
 
-                // If the size is not known, it must be given as an expression
-                auto Res = PM->getResult<ASTBuilderPass>().find({Cast, 0});
-                if (Res == PM->getResult<ASTBuilderPass>().end())
-                    throw runtime_error("Tried to cast to a vector of undefined"
-                                        " size");
+                if (!VecTy->getSizeExpr())
+                    throw runtime_error("Invalid Vector Type has no size expr");
 
-                auto Dimensions = Res->second.first;
-                if (!Dimensions)
-                    throw runtime_error("Tried to cast to a vector of undefined"
-                                        " size");
-                auto Gen = getGenWithUpperBound(Dimensions);
+                auto Gen = getGenWithUpperBound(VecTy->getSizeExpr());
+                if (!VecTy->getInnerTy()->isSameTypeAs(ExprTy))
+                    Cast->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                 Gen->setExpr(Cast->getExpr());
+                auto GenTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 Cast->getParent()->replaceChildWith(Cast, Gen);
                 return;
             }
@@ -176,37 +145,43 @@ void SimplifyCompositeTypeCasting::visitTypeCast(TypeCast *Cast) {
             // Both the target and the inner expr are vectors.
         matchPattern(true, true): {
             if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
-                // If the size is known, we simply repeat the scalar
-                // that many times.
-                if (VecTy->isSizeKnown()) {
-                    auto Gen = getGenWithUpperBound(
-                            getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(Cast->getExpr());
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
-
-                // If the size is not known, check if it is given as an expression.
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find(
-                        {Cast, 0})->second.first;
-                // If the dimensions were given cast to them.
-                if (Dimensions) {
-                    auto Gen = getGenWithUpperBound(Dimensions);
-                    Gen->setExpr(Cast->getExpr());
-                    Cast->getParent()->replaceChildWith(Cast, Gen);
-                    return;
-                }
-
                 // If no expression was given, then the size of the resultant
                 // vector must be the same as the size of the inner expression.
                 auto TargetInnerCast = TypeRegistry::getInnerTyFromComposite(
                         TargetTy);
-                auto Gen = getIteratingGenerator(Cast->getExpr());
-                Gen->setExpr(wrapWithCastTo(Gen->getExpr(), TargetInnerCast));
+                auto Gen = getGenWithUpperBound(VecTy->getSizeExpr());
+                auto Idx = buildIndexExpr(Cast->getExpr(), Gen->getExpr());
+                Gen->setExpr(wrapWithCastTo(Idx, TargetInnerCast));
                 Cast->getParent()->replaceChildWith(Cast, Gen);
+
+                auto GenTy = PM->TypeReg.getVectorType(TargetInnerCast, -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 return;
             }
             // TODO: Add matrices here.
         }
     }
+}
+
+Index *SimplifyCompositeTypeCasting::buildIndexExpr(ASTNodeT *Base, ASTNodeT *IdxExpr) {
+    auto Idx = PM->Builder.build<Index>();
+    Idx->setBaseExpr(Base);
+    Idx->setIndexExpr(IdxExpr);
+    return Idx;
+}
+
+Interval *SimplifyCompositeTypeCasting::getIntervalWithUpperBound(ASTNodeT *Bound) {
+    auto Range = PM->Builder.build<Interval>();
+    Range->setLowerExpr(getIntLiteralWithVal(0));
+    Range->setUpperExpr(Bound);
+    return Range;
+}
+
+ArithmeticOp *SimplifyCompositeTypeCasting::createSub(ASTNodeT *N1, ASTNodeT *N2) {
+    auto Sub = PM->Builder.build<ArithmeticOp>();
+    Sub->setOp(ArithmeticOp::SUB);
+    Sub->setLeftExpr(N1);
+    Sub->setRightExpr(N2);
+    return Sub;
 }
