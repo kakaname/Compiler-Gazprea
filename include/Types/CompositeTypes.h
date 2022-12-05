@@ -187,7 +187,7 @@ struct FunctionTy : public Type {
         return T->getKind() == TypeKind::T_Function;
     }
 
-    using ParamTypeContainer = vector< Type*>;
+    using ParamTypeContainer = vector<Type*>;
 
      Type *getParamTypeAt(size_t Pos)  {
         if (Pos >= Params.size())
@@ -222,7 +222,7 @@ struct ProcedureTy : public Type {
         return T->getKind() == TypeKind::T_Procedure;
     }
 
-    using ArgsTypeContainer = vector< Type*>;
+    using ArgsTypeContainer = vector<Type*>;
 
      Type *getParamTypeAt(size_t Pos)  {
         if (Pos >= Args.size())

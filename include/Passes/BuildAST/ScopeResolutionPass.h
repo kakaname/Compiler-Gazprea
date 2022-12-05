@@ -386,6 +386,73 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
     }
 
+    void visitGenerator(Generator *Gen) {
+        // Resolve the domain first.
+        visit(Gen->getDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        auto DomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))->getInnerTy();
+        auto Sym = PM->SymTable.defineObject(Gen->getDomainVar()->getName(), DomainVarTy);
+        Gen->getDomainVar()->setReferred(Sym);
+        CurrentScope->declareInScope(Gen->getDomainVar()->getName(), Sym);
+
+        visit(Gen->getExpr());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+    void visitMatrixGenerator(MatrixGenerator *Gen) {
+        // Resolve the domain first.
+        visit(Gen->getRowDomain());
+        visit(Gen->getColumnDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        auto RowDomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))->getInnerTy();
+        auto RowSym = PM->SymTable.defineObject(Gen->getRowDomainVar()->getName(), RowDomainVarTy);
+        Gen->getRowDomainVar()->setReferred(RowSym);
+        CurrentScope->declareInScope(Gen->getRowDomainVar()->getName(), RowSym);
+
+        auto ColumnDomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))->getInnerTy();
+        auto ColumnSym = PM->SymTable.defineObject(Gen->getColumnDomainVar()->getName(), ColumnDomainVarTy);
+        Gen->getColumnDomainVar()->setReferred(ColumnSym);
+        CurrentScope->declareInScope(Gen->getColumnDomainVar()->getName(), ColumnSym);
+
+        visit(Gen->getExpr());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+    void visitFilter(Filter *Filter) {
+        // Resolve the domain first.
+        visit(Filter->getDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        auto DomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))->getInnerTy();
+        auto Sym = PM->SymTable.defineObject(Filter->getDomainVar()->getName(), DomainVarTy);
+        Filter->getDomainVar()->setReferred(Sym);
+        CurrentScope->declareInScope(Filter->getDomainVar()->getName(), Sym);
+
+        visit(Filter->getPredicatedList());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+
     Type *runTypeAnnotator(ASTNodeT *Node, Type *Ty = nullptr) {
         ExprAnnotator.setOpaqueTyCastTargetTy(Ty);
         ExprAnnotator.runOnAST(*PM, Node);
