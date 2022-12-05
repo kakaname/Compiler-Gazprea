@@ -67,6 +67,7 @@ public:
         N_AST_InStream,
         N_AST_ExplicitCast,
         N_AST_VectorLiteral,
+        N_AST_StringLiteral,
 
         N_AST_Interval,
         // Split AST nodes from tree node.

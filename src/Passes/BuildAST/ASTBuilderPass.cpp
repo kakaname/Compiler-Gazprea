@@ -273,6 +273,24 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     }
 }
 
+std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) {
+
+    // determine type of inner
+    auto Type = PM->TypeReg.getCharTy(false);
+
+    // determine if we have a known size or wildcard
+    auto Size = ctx->expressionOrWildcard();
+    if (Size == NULL || Size->MUL()){
+        // if size is null, expression or wildcard wasn't used, 
+        // if size = MUL size is determined by string literal
+        return PM->TypeReg.getVectorType(Type);
+    } else {
+        // TODO constant fold integer expressions if known
+        // for the time being, we are using a wildcard
+        return PM->TypeReg.getVectorType(Type);
+    }
+}
+
 // Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
     throw std::runtime_error("Unimplemented");
@@ -808,6 +826,17 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
         VectorLit->addChild(castToNodeVisit(Child));
 
     return cast<ASTNodeT>(VectorLit);;
+}
+
+std::any ASTBuilderPass::visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) {
+    auto StringLit = PM->Builder.build<StringLiteral>();
+    StringLit->setCtx(ctx);
+    std::cout << ctx->SCharSequence()->getText();
+    /*
+    for (auto *Child : ctx->SCharSequence()->getText())
+        StringLit->addChild(castToNodeVisit(Child));
+    */
+    return cast<ASTNodeT>(StringLit);
 }
 
 // ignored for part1

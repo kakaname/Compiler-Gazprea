@@ -82,6 +82,7 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
+     | STRINGATOM (LSQRPAREN expressionOrWildcard RSQRPAREN)?   #stringType
      | INTEGER INTERVAL                                 #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
@@ -163,6 +164,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
     | LSQRPAREN expr (COMMA expr)* RSQRPAREN        #vectorLiteral
+    | DOUBLEQUOTE SCharSequence DOUBLEQUOTE    #stringLiteral
     | ID                                    # identifier
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
@@ -182,6 +184,8 @@ realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
 
 ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
 
+SCharSequence
+    : CHARLITERAL;
 // --- LEXER RULES ---
 
 // Characters ++
@@ -202,6 +206,7 @@ PUT : '->' ;
 GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
+DOUBLEQUOTE : '"';
 
 // Ops
 ADD : '+' ;
@@ -265,6 +270,15 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
+
+SCHARLITERAL : ~["\\\r\n]
+    | ESCSEQUENCE
+    |   '\\\n'   // Added line
+    |   '\\\r\n' // Added line
+    ;
+
+ESCSEQUENCE:   '\\' ['"?abfnrtv\\]
+    ;
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;
 LineComment : '//' ~[\r\n]* -> skip ;
