@@ -809,6 +809,10 @@ std::any ASTBuilderPass::visitIndexExpr(GazpreaParser::IndexExprContext *ctx) {
     // Set the right expression.
     IndexExpr->setIndexExpr(castToNodeVisit(ctx->expr(1)));
 
+    if (ctx->expr(2)) {
+        IndexExpr->setIndex2Expr(castToNodeVisit(ctx->expr(2)));
+    }
+
     return cast<ASTNodeT>(IndexExpr);
 
 }
@@ -1031,6 +1035,8 @@ std::any ASTBuilderPass::visitIndexLValue(GazpreaParser::IndexLValueContext *ctx
     IdxRef->setCtx(ctx);
     IdxRef->setBaseExpr(castToNodeVisit(ctx->expr(0)));
     IdxRef->setIndexExpr(castToNodeVisit(ctx->expr(1)));
+    if (ctx->expr(2))
+        IdxRef->setIndex2Expr(castToNodeVisit(ctx->expr(2)));
     return cast<ASTNodeT>(IdxRef);
 }
 
