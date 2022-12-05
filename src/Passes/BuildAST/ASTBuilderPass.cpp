@@ -14,6 +14,7 @@ using llvm::dyn_cast;
 
 void ASTBuilderPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PM = &Manager;
+    PM->setResult<SelfT>(ResultT());
     assert(isa<Program>(Root) && "Builder must have the program"
                                  " node passed in as Root");
     Prog = cast<Program>(Root);
@@ -41,8 +42,10 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     // If the type is known, we set it.
     if (ctx->type()) {
         NodeToMarkForTypeSize = Decl;
+        CurrentIdxToMark = 0;
         auto DeclType = castToTypeVisit(ctx->type());
         NodeToMarkForTypeSize = nullptr;
+        CurrentIdxToMark = 0;
         if (IsConst)
             DeclType = PM->TypeReg.getConstTypeOf(DeclType);
         Decl->setIdentType(DeclType);
@@ -271,24 +274,70 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
         return PM->TypeReg.getVectorType(Type, -1, false);
 
     // TODO constant fold integer expressions if known
-    if (/*Size can be constant folded*/ false)
-        return PM->TypeReg.getVectorType(Type, -1);
+    try {
+        auto VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+        return PM->TypeReg.getVectorType(Type, (int) VecSize);
+    } catch (exception&) {}
 
-    // If the size is not given and not inferred, then there must an expression
+    // If the size cannot be folded, then there must an expression
     // specifying the size.
 
     auto SizeTree = castToNodeVisit(Size->expr());
-    PM->setAnnotation<ASTBuilderPass>(NodeToMarkForTypeSize, make_pair(SizeTree, nullptr));
+    PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
+            make_pair(SizeTree, nullptr);
 
     return PM->TypeReg.getVectorType(Type, -1, false);
 }
 
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
-    throw std::runtime_error("Unimplemented: MatrixType");
+    auto InnerTy = castToTypeVisit(ctx->type());
+
+    auto RowSizeExpr = ctx->expressionOrWildcard(0);
+
+    auto RowSize = [&]() {
+        if (RowSizeExpr->MUL())
+            return (long) -1;
+
+        try {
+            return std::any_cast<long>(Folder.visit(RowSizeExpr->expr()));
+        } catch (exception&) {}
+        auto RowSizeTree = castToNodeVisit(RowSizeExpr->expr());
+        PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
+                make_pair(RowSizeTree, nullptr);
+        return (long) -1;
+    }();
+
+    auto ColSizeExpr = ctx->expressionOrWildcard(1);
+
+    auto ColSize = [&]() {
+        if (ColSizeExpr->MUL())
+            return (long) -1;
+
+        try {
+            return std::any_cast<long>(Folder.visit(ColSizeExpr->expr()));
+        } catch (exception&) {}
+
+        auto ColSizeTree = castToNodeVisit(ColSizeExpr->expr());
+
+        auto &ResultMap = PM->getResult<SelfT>();
+        auto Key = make_pair(NodeToMarkForTypeSize, CurrentIdxToMark);
+        auto Res = ResultMap.find(Key);
+
+        if (Res == ResultMap.end())
+            ResultMap[Key] = make_pair(nullptr, ColSizeTree);
+        else
+            ResultMap[Key] = make_pair(Res->second.first, ColSizeTree);
+        return (long) -1;
+    }();
+
+    return PM->TypeReg.getMatrixType(InnerTy, (int) RowSize, (int) ColSize, false);
 }
 
 
 std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *ctx) {
+    auto InnerTy = castToTypeVisit(ctx->type());
+    if (!isa<IntegerTy>(InnerTy))
+        throw runtime_error("Intervals may only contain integers");
     return PM->TypeReg.getIntervalTy(false);
 }
 
@@ -921,9 +970,11 @@ std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
                 throw std::runtime_error("Tuple member with duplicate name");
             Mappings.insert({Member->ID()->getText(), Idx});
         }
+        CurrentIdxToMark = Idx - 1;
         MemberTypes.emplace_back(castToTypeVisit(Member->type()));
         ++Idx;
     }
+    CurrentIdxToMark = 0;
     return PM->TypeReg.getTupleType(MemberTypes, Mappings, false);
 }
 
