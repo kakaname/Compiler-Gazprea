@@ -25,6 +25,8 @@ struct SimplifyCompositeTypeCasting : VisitorPass<SimplifyCompositeTypeCasting, 
 
     Interval *getIntervalWithUpperBound(ASTNodeT *Bound);
 
+    ArithmeticOp *createSub(ASTNodeT *N1, ASTNodeT *N2);
+
     ASTPassManager *PM;
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {

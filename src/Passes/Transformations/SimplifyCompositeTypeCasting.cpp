@@ -33,6 +33,9 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
                 if (!VecTy->getInnerTy()->isSameTypeAs(ExprTy))
                     Cast->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                 Gen->setExpr(Cast->getExpr());
+                auto GenTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 Cast->getParent()->replaceChildWith(Cast, Gen);
                 return;
             }
@@ -49,6 +52,10 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
                 auto Idx = buildIndexExpr(Cast->getExpr(), Gen->getExpr());
                 Gen->setExpr(wrapWithCastTo(Idx, TargetInnerCast));
                 Cast->getParent()->replaceChildWith(Cast, Gen);
+
+                auto GenTy = PM->TypeReg.getVectorType(TargetInnerCast, -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 return;
             }
             // TODO: Add matrices here.
@@ -127,6 +134,9 @@ void SimplifyCompositeTypeCasting::visitTypeCast(TypeCast *Cast) {
                 if (!VecTy->getInnerTy()->isSameTypeAs(ExprTy))
                     Cast->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                 Gen->setExpr(Cast->getExpr());
+                auto GenTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 Cast->getParent()->replaceChildWith(Cast, Gen);
                 return;
             }
@@ -143,6 +153,10 @@ void SimplifyCompositeTypeCasting::visitTypeCast(TypeCast *Cast) {
                 auto Idx = buildIndexExpr(Cast->getExpr(), Gen->getExpr());
                 Gen->setExpr(wrapWithCastTo(Idx, TargetInnerCast));
                 Cast->getParent()->replaceChildWith(Cast, Gen);
+
+                auto GenTy = PM->TypeReg.getVectorType(TargetInnerCast, -1, true);
+                cast<VectorTy>(GenTy)->setSizeExpr(VecTy->getSizeExpr());
+                PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, GenTy);
                 return;
             }
             // TODO: Add matrices here.
@@ -162,4 +176,12 @@ Interval *SimplifyCompositeTypeCasting::getIntervalWithUpperBound(ASTNodeT *Boun
     Range->setLowerExpr(getIntLiteralWithVal(0));
     Range->setUpperExpr(Bound);
     return Range;
+}
+
+ArithmeticOp *SimplifyCompositeTypeCasting::createSub(ASTNodeT *N1, ASTNodeT *N2) {
+    auto Sub = PM->Builder.build<ArithmeticOp>();
+    Sub->setOp(ArithmeticOp::SUB);
+    Sub->setLeftExpr(N1);
+    Sub->setRightExpr(N2);
+    return Sub;
 }
