@@ -39,7 +39,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Type *LLVMVoidTy;
     llvm::PointerType *LLVMPtrTy;
     llvm::StructType *LLVMVectorTy;
-
+    llvm::StructType *LLVMMatrixTy;
     llvm::StructType *LLVMIntervalTy;
 
     llvm::Function *CurrentFunction{};
@@ -59,6 +59,15 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorConcat;
     llvm::FunctionCallee VectorDotProductInt;
     llvm::FunctionCallee VectorDotProductReal;
+    llvm::FunctionCallee VectorAccessInt;
+    llvm::FunctionCallee VectorAccessFloat;
+    llvm::FunctionCallee VectorAccessChar;
+    llvm::FunctionCallee VectorSetInt;
+    llvm::FunctionCallee VectorSetFloat;
+    llvm::FunctionCallee VectorSetChar;
+    llvm::FunctionCallee VectorViewScalar;
+    llvm::FunctionCallee VectorViewVector;
+    llvm::FunctionCallee VectorCreateDeepCopy;
     llvm::FunctionCallee VectorBy;
     llvm::FunctionCallee VectorNot;
     llvm::FunctionCallee VectorSub;
@@ -67,6 +76,28 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
     llvm::FunctionCallee VectorComp;
+    llvm::FunctionCallee PrintMatrix;
+    llvm::FunctionCallee MatrixNew;
+    llvm::FunctionCallee MatrixPopulateRow;
+    llvm::FunctionCallee MatrixAccessInt;
+    llvm::FunctionCallee MatrixAccessFloat;
+    llvm::FunctionCallee MatrixAccessChar;
+    llvm::FunctionCallee MatrixSetChar;
+    llvm::FunctionCallee MatrixSetInt;
+    llvm::FunctionCallee MatrixSetFloat;
+    llvm::FunctionCallee MatrixViewScalar;
+    llvm::FunctionCallee MatrixViewVector;
+    llvm::FunctionCallee MatrixViewMatrix;
+    llvm::FunctionCallee MatrixNot;
+    llvm::FunctionCallee MatrixSub;
+    llvm::FunctionCallee MatrixArith;
+    llvm::FunctionCallee MatrixComp;
+    llvm::FunctionCallee MatrixLogical;
+    llvm::FunctionCallee MatrixEq;
+    llvm::FunctionCallee MatrixCreateDeepCopy;
+    llvm::FunctionCallee MatrixCopy;
+    llvm::FunctionCallee VectorCopy;
+    llvm::FunctionCallee MatrixSetVector;
 
     // Runtime buffer location
     llvm::Value *BufferPtr;
@@ -90,7 +121,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
         LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
         LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
         LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)),
-        LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMPtrTy})), LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})) {}
+        LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMPtrTy, LLVMIntTy, LLVMPtrTy})),
+        LLVMMatrixTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMPtrTy, LLVMIntTy, LLVMPtrTy})),
+        LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})) {}
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
@@ -141,6 +174,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitDotProduct(DotProduct *Dot);
     llvm::Value *visitByOp(ByOp *By);
 
+    uint32_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
     llvm::Value *createAlloca(const Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc = false);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
