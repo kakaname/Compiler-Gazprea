@@ -1083,6 +1083,52 @@ Type *ExprTypeAnnotatorPass::visitConditionalElse(ConditionalElse *Cond) {
     return nullptr;
 }
 
+
+Type *ExprTypeAnnotatorPass::visitGenerator(Generator *Gen) {
+    visit(Gen->getDomainVar());
+    auto VectorType = dyn_cast<VectorTy>(visit(Gen->getDomain()));
+    auto InnerType = visit(Gen->getExpr());
+
+    auto ResTy = TypeReg->getVectorType(InnerType, VectorType->getSize());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
+    return ResTy;
+}
+
+
+Type *ExprTypeAnnotatorPass::visitMatrixGenerator(MatrixGenerator *Gen) {
+    visit(Gen->getRowDomainVar());
+    visit(Gen->getColumnDomainVar());
+    auto RowVectorType = dyn_cast<VectorTy>(visit(Gen->getRowDomain()));
+    auto ColVectorType = dyn_cast<VectorTy>(visit(Gen->getColumnDomain()));
+    auto InnerType = visit(Gen->getExpr());
+
+    auto ResTy = TypeReg->getMatrixType(InnerType, RowVectorType->getSize(), ColVectorType->getSize());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
+    return ResTy;
+}
+
+
+Type *ExprTypeAnnotatorPass::visitFilter(Filter *Filter) {
+    visit(Filter->getDomainVar());
+    auto VectorType = dyn_cast<VectorTy>(visit(Filter->getDomain()));
+
+
+    map<string, int> Temp{};
+
+
+    vector<Type*> ChildTypes;
+    for (auto ChildExpr : *Filter->getPredicatedList()) {
+        visit(ChildExpr);
+        auto ElementTy =  PM->TypeReg.getVectorType(VectorType->getInnerTy());
+        ChildTypes.emplace_back(ElementTy);
+    }
+    // There's an additional vector
+    ChildTypes.emplace_back(PM->TypeReg.getVectorType(VectorType->getInnerTy()));
+
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Filter, TupleTy);
+    return TupleTy;
+
 bool ExprTypeAnnotatorPass::isInferredSizedType(Type *Ty) {
     if (auto VecTy = dyn_cast<VectorTy>(Ty))
         return !VecTy->getSizeExpr();
