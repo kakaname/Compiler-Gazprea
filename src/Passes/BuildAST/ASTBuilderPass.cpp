@@ -1151,7 +1151,8 @@ std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    RealLit->setVal(ctx->RawReal()->getText());
+    string realVal = ctx->INTLITERAL()->getText() + ".";
+    RealLit->setVal(realVal);
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1161,6 +1162,16 @@ std::any ASTBuilderPass::visitRealLit6(GazpreaParser::RealLit6Context *ctx) {
     RealLit->setCtx(ctx);
 
     string realVal = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(realVal);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit7(GazpreaParser::RealLit7Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string realVal = ctx->INTLITERAL(0)->getText() + "." + ctx->INTLITERAL(1)->getText();
     RealLit->setVal(realVal);
 
     return cast<ASTNodeT>(RealLit);

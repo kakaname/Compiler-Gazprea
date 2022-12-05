@@ -179,15 +179,14 @@ realLit : ExponentialLiteral1             #realLit1
         | ExponentialLiteral2             #realLit2
         | ExponentialLiteral3             #realLit3
         | ExponentialLiteral4             #realLit4
-        | RawReal                         #realLit5
+        | INTLITERAL PERIOD               #realLit5
         | PERIOD INTLITERAL               #realLit6
+        | INTLITERAL PERIOD INTLITERAL    #realLit7
         ;
 
 // --- LEXER RULES ---
 StringLiteral: '"' (('\\' '"') | .)*?  '"';
 
-
-RawReal: [0-9]+ '.' [0-9]*;
 ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral3: '.' [0-9]+ 'e' ('+' | '-')? [0-9]+;

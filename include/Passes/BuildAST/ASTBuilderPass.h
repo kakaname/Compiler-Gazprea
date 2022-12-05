@@ -210,6 +210,8 @@ public:
 
     std::any visitRealLit6(GazpreaParser::RealLit6Context *ctx) override;
 
+    std::any visitRealLit7(GazpreaParser::RealLit7Context *ctx) override;
+
     std::any visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) override;
 
     std::any visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) override;
