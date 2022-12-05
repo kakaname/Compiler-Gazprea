@@ -296,6 +296,10 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
                 auto NewVecTy = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), dyn_cast<VectorTy>(ChildType)->getSize());
                 annotate(Op, NewVecTy);
                 return NewVecTy;
+            } else if (ChildType->getKind() == Type::TypeKind::T_Matrix && dyn_cast<MatrixTy>(ChildType)->getInnerTy()->isValidForUnaryNot()) {
+                auto NewMatTy = PM->TypeReg.getMatrixType(PM->TypeReg.getBooleanTy(), dyn_cast<MatrixTy>(ChildType)->getNumOfRows(), dyn_cast<MatrixTy>(ChildType)->getNumOfColumns());
+                annotate(Op, NewMatTy);
+                return NewMatTy;
             }
             throw InvalidUnaryNotError(Op, ChildType->getTypeName());
         }
@@ -303,7 +307,7 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
         return PM->TypeReg.getBooleanTy();
     }
 
-    if (!ChildType->isValidForUnaryAddOrSub() && ChildType->getKind() != Type::TypeKind::T_Vector) {
+    if (!ChildType->isValidForUnaryAddOrSub() && (ChildType->getKind() != Type::TypeKind::T_Vector && ChildType->getKind() != Type::TypeKind::T_Matrix)) {
         throw InvalidUnaryAddOrSubError(Op, ChildType->getTypeName());
     }
     annotateWithConst(Op, ChildType);
@@ -411,26 +415,68 @@ const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
-    auto BaseTy = visit(Ref->getBaseExpr());
-    if (!BaseTy)
-        throw runtime_error("Base type not set for index reference.");
-    if (BaseTy->getKind() != Type::TypeKind::T_Vector)
-        throw runtime_error("Base type is not a vector.");
     // TODO check if baseexpr is simply an ID?
-    auto VecTy = dyn_cast<VectorTy>(BaseTy);
-
-    auto IdxTy = visit(Ref->getIndexExpr());
-    if (!IdxTy)
-        throw runtime_error("Index type not set for index reference.");
     // TODO run pass to convert vector indexing to simple loop
-    if (!IdxTy->isSameTypeAs(PM->TypeReg.getIntegerTy()))
-        throw runtime_error("Index type is not an integer.");
+    auto BaseTy = visit(Ref->getBaseExpr());
+    if (isa<VectorTy>(BaseTy)) {
+        auto VecTy = dyn_cast<VectorTy>(BaseTy);
+        auto IdxTy = visit(Ref->getIndexExpr());
+        if (isa<IntegerTy>(IdxTy)) {
+            auto ResultTy = VecTy->getInnerTy();
+            ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        } else if (isa<VectorTy>(IdxTy)) {
+            auto IdxVecTy = dyn_cast<VectorTy>(IdxTy);
+            if (!isa<IntegerTy>(IdxVecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), IdxVecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    } else if (isa<MatrixTy>(BaseTy)) {
+        auto MatTy = dyn_cast<MatrixTy>(BaseTy);
+        auto Idx1Ty = visit(Ref->getIndexExpr());
+        auto Idx2Ty = visit(Ref->getIndex2Expr());
+        if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto ResultTy = MatTy->getInnerTy();
+            ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
 
-    auto ResultTy = VecTy->getInnerTy();
-    ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
-    return ResultTy;
+        } else if (isa<VectorTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()) || !isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getMatrixType(MatTy->getInnerTy(), Idx1VecTy->getSize(), Idx2VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
 
+        } else if (isa<VectorTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx1VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+
+        } else if (isa<IntegerTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx2VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    }
+    throw runtime_error("Base type is not a vector or matrix.");
 }
 
 const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
@@ -490,18 +536,47 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     // Pass 1: Check if all elements are of the same or promotable type (get the highest type)
     for (auto *ChildExpr : *VecLit) {
         const Type *ChildTy = visit(ChildExpr);
+        bool IsMatrix = ChildTy->getKind() == Type::TypeKind::T_Vector;
 
-        if (!ChildTy->isScalarTy())
-            throw std::runtime_error("Vector literal can only contain scalar types");
+        // If a vector has an inner type of vector of scalars, then it is a matrix
+        if (IsMatrix) {
+
+            auto InVecTy = dyn_cast<VectorTy>(ChildTy);
+            if (!InVecTy->getInnerTy()->isScalarTy()) {
+                throw runtime_error("Vector literal has a vector of vectors as an element.");
+            }
+            if (!VecTy) {
+                VecTy = ChildTy;
+                continue;
+            }
+
+            // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
+            if (VecTy->isScalarTy()) {
+                VecTy = ChildTy->getPromotedType(VecTy);
+                continue;
+            }
+
+            // All of this is done here since the type class should not be generating types, only the type registry
+            // should be doing that. This is to cover the special case where we have to use the type from one existing
+            // vector and the inner type from another vector.
+            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(VecTy));
+            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(VecTy)->getInnerTy());
+            VecTy = PM->TypeReg.getVectorType(PromotedTy, Size);
+
+        } else if (!ChildTy->isScalarTy()) {
+                throw std::runtime_error("Vector literal can only contain scalar types");
+        }
 
         if (!VecTy) {
             VecTy = ChildTy;
             continue;
         }
 
+        // By the nature of Gazprea only supporting int->real scalar promotion, this
+        // simplifies this pass of the compiler.
         VecTy = ChildTy->getPromotedType(VecTy);
         if (!VecTy)
-            throw std::runtime_error("Vector literal can only contain scalar types of the same or promotable types");
+            throw std::runtime_error("Vector literal can only contain values of the same or promotable types");
     }
 
     // Pass 2: Promote all elements to the highest type
@@ -512,10 +587,16 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
             auto NewChildExpr = wrapWithCastTo(ChildExpr, VecTy);
             VecLit->setExprAtPos(NewChildExpr, i);
         }
+
     }
 
-    // Get the vector type
-    VecTy = PM->TypeReg.getVectorType(VecTy, VecLit->numOfChildren());
+    // Get the correct type
+    if (VecTy->getKind() == Type::TypeKind::T_Vector) {
+        auto InVecTy = dyn_cast<VectorTy>(VecTy);
+        VecTy = PM->TypeReg.getMatrixType(InVecTy->getInnerTy(), VecLit->numOfChildren(), InVecTy->getSize());
+    } else {
+        VecTy = PM->TypeReg.getVectorType(VecTy, VecLit->numOfChildren());
+    }
     PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, VecTy);
     return VecTy;
 
@@ -523,19 +604,68 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
 const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
-    auto VecTy = dyn_cast<VectorTy>(BaseTy);
 
-    if (!VecTy)
-        throw std::runtime_error("Indexing can only be done on vector types");
+    if (isa<VectorTy>(BaseTy)) {
+        auto VecTy = dyn_cast<VectorTy>(BaseTy);
+        auto IdxTy = visit(Idx->getIndexExpr());
 
-    auto IdxTy = visit(Idx->getIndexExpr());
-    auto IntTy = dyn_cast<IntegerTy>(IdxTy);
-    if (!IntTy)
-        throw std::runtime_error("Indexing can only be done with integer types");
+        if (isa<IntegerTy>(IdxTy)) {
+            auto ResultTy = VecTy->getInnerTy();
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
 
-    auto ResultTy = VecTy->getInnerTy();
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
-    return ResultTy;
+        } else if (isa<VectorTy>(IdxTy)) {
+            auto IdxVecTy = dyn_cast<VectorTy>(IdxTy);
+            if (!isa<IntegerTy>(IdxVecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), IdxVecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+
+    } else if (isa<MatrixTy>(BaseTy)) {
+        auto MatTy = dyn_cast<MatrixTy>(BaseTy);
+        auto Idx1Ty = visit(Idx->getIndexExpr());
+        auto Idx2Ty = visit(Idx->getIndex2Expr());
+        if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto ResultTy = MatTy->getInnerTy();
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<VectorTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()) || !isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getMatrixType(MatTy->getInnerTy(), Idx1VecTy->getSize(), Idx2VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<VectorTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx1VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<IntegerTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx2VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    }
+    throw runtime_error("Base type is not a vector or matrix.");
+
 }
 
 const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
