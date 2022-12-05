@@ -88,7 +88,6 @@ private:
 
 struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
-
     ScopeTreeNode *CurrentScope;
     ASTPassManager *PM;
 
@@ -117,6 +116,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }
+
+
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
 
         // Infer the size from the expression type.
@@ -130,16 +131,20 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
                 if (VecTy->isSizeKnown())
                     break;
 
-                // If the size was specified as an expression, we do nothing
-                // and let the AssignmentTypeCheckerPass handle it.
-                if (PM->getResult<ASTBuilderPass>().find({Decl, 0})->second.first)
+                // If the size was specified as an expression, visit it to
+                // resolve references.
+                if (VecTy->getSizeExpr()) {
+                    visit(VecTy->getSizeExpr());
                     break;
-
+                }
+                // Otherwise the size must be inferred.
                 auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
                 assert(ExprVecTy && "Trying to assign non vector to vector with inferred size");
-                auto NewDeclType = PM->TypeReg.getVectorType(
+                auto NewDeclType = cast<VectorTy>(PM->TypeReg.getVectorType(
                         VecTy->getInnerTy(), ExprVecTy->getSize(),
-                        Decl->IsConst);
+                        Decl->IsConst));
+
+                NewDeclType->setSizeExpr(ExprVecTy->getSizeExpr());
 
                 Decl->setIdentType(NewDeclType);
                 Decl->getIdentifier()->setIdentType(NewDeclType);
@@ -152,7 +157,10 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
                 // If the size was specified as an expression, we do nothing
                 // and let the AssignmentTypeCheckerPass handle it.
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find({Decl, 0})->second;
+                auto Dimensions = make_pair(MatTy->getRowSizeExpr(),
+                                            MatTy->getColSizeExpr());
+
+                // If either one of them has an expression, we bail
                 if (Dimensions.first || Dimensions.second)
                     break;
 
@@ -165,11 +173,14 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
                 auto NumOfCols = MatTy->isNumOfColumnsIsKnown() ?
                         MatTy->getNumOfColumns() : MatTy->getNumOfRows();
 
-                auto NewDeclType = PM->TypeReg.getMatrixType(
+                auto NewDeclType = cast<MatrixTy>(PM->TypeReg.getMatrixType(
                         MatTy->getInnerTy(),
                         NumOfRows,
                         NumOfCols,
-                        Decl->IsConst);
+                        Decl->IsConst));
+                NewDeclType->setColSizeExpr(ExprMatTy->getColSizeExpr());
+                NewDeclType->setRowSizeExpr(ExprMatTy->getRowSizeExpr());
+
                 Decl->setIdentType(NewDeclType);
                 Decl->getIdentifier()->setIdentType(NewDeclType);
                 break;
@@ -390,6 +401,24 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         ExprAnnotator.setOpaqueTyCastTargetTy(Ty);
         ExprAnnotator.runOnAST(*PM, Node);
         return PM->getAnnotation<ExprTypeAnnotatorPass>(Node);
+    }
+
+    void visitExplicitCast(ExplicitCast *Cast) {
+        if (auto VecTy = dyn_cast<VectorTy>(Cast->getTargetType())) {
+            if (VecTy->getSizeExpr())
+                visit(VecTy->getSizeExpr());
+            return;
+        }
+
+        if (auto MatTy = dyn_cast<MatrixTy>(Cast->getTargetType())) {
+            if (MatTy->getColSizeExpr())
+                visit(MatTy->getColSizeExpr());
+
+            if (MatTy->getRowSizeExpr())
+                visit(MatTy->getRowSizeExpr());
+            return;
+        }
+
     }
 
 };

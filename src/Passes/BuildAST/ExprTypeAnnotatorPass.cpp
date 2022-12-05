@@ -698,9 +698,14 @@ Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
 }
 
 Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
-    visit(Cast->getExpr());
-    PM->setAnnotation<ExprTypeAnnotatorPass>(
-            Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    auto ExprType = visit(Cast->getExpr());
+    if (!isInferredSizedType(Cast->getTargetType())) {
+        annotate(Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+        return Cast->getTargetType();
+    }
+
+    copyOverCompositeSizeTypes(ExprType, Cast->getTargetType());
+    annotate(Cast, Cast->getTargetType());
     return Cast->getTargetType();
 }
 
@@ -715,9 +720,15 @@ Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
 }
 
 Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
-    visit(Cast->getExpr());
-    PM->setAnnotation<ExprTypeAnnotatorPass>(
-            Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    auto ExprType = visit(Cast->getExpr());
+    visitTypeSizeExpressions(Cast->getTargetType());
+    if (!isInferredSizedType(Cast->getTargetType())) {
+        annotate(Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+        return Cast->getTargetType();
+    }
+
+    copyOverCompositeSizeTypes(ExprType, Cast->getTargetType());
+    annotate(Cast, Cast->getTargetType());
     return Cast->getTargetType();
 }
 
@@ -840,6 +851,7 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
     // Get the vector type
     auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
+    cast<VectorTy>(VecTy)->setSizeExpr(getIntLiteralWithVal((long) VecLit->numOfChildren()));
     annotate(VecLit, VecTy);
     return VecTy;
 }
@@ -946,12 +958,14 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     // If LHS is not of type of vector, we make it
     if (!isa<VectorTy>(LType)) {
         LType = TypeReg->getVectorType(RType, 1);
+        cast<VectorTy>(LType)->setSizeExpr(getIntLiteralWithVal(1));
         LExpr = wrapWithCastTo(LExpr, LType);
     }
 
     // Similarly for RHS
     if (!isa<VectorTy>(RType)) {
         RType = TypeReg->getVectorType(RType, 1);
+        cast<VectorTy>(RType)->setSizeExpr(getIntLiteralWithVal(1));
         RExpr = wrapWithCastTo(RExpr, RType);
     }
 
@@ -975,6 +989,8 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
         Concat->setLHS(LExpr);
         Concat->setRHS(RExpr);
         auto ResTy = TypeReg->getVectorType(LInner, ResLen);
+        cast<VectorTy>(ResTy)->setSizeExpr(
+                getAddOpBetween(LVecTy->getSizeExpr(), RVecTy->getSizeExpr()));
         annotateWithConst(Concat, ResTy);
         return ResTy;
     }
@@ -1065,4 +1081,67 @@ Type *ExprTypeAnnotatorPass::visitConditionalElse(ConditionalElse *Cond) {
     auto Cast = wrapWithCastTo(Cond->getConditional(), TypeReg->getBooleanTy());
     Cond->setConditional(Cast);
     return nullptr;
+}
+
+bool ExprTypeAnnotatorPass::isInferredSizedType(Type *Ty) {
+    if (auto VecTy = dyn_cast<VectorTy>(Ty))
+        return !VecTy->getSizeExpr();
+
+    if (auto MatTy = dyn_cast<MatrixTy>(Ty))
+        return !MatTy->getColSizeExpr() || !MatTy->getRowSizeExpr();
+
+    return false;
+}
+
+void ExprTypeAnnotatorPass::copyOverCompositeSizeTypes(Type *Src, Type *Dest) {
+    if (auto VecTy = dyn_cast<VectorTy>(Src)) {
+        auto DestVec = dyn_cast<VectorTy>(Dest);
+        if (!DestVec)
+            throw runtime_error("Casting a non vector to an "
+                                "inferred size vector");
+        if (!DestVec->getSizeExpr())
+            DestVec->setSizeExpr(VecTy->getSizeExpr());
+        return;
+    }
+
+    auto SrcMat = dyn_cast<MatrixTy>(Src);
+    auto DestMat = dyn_cast<MatrixTy>(Dest);
+    if (!SrcMat || !DestMat)
+        throw runtime_error("Malformed cast");
+
+    if (!DestMat->getRowSizeExpr())
+        DestMat->setRowSizeExpr(SrcMat->getRowSizeExpr());
+
+    if (!DestMat->getColSizeExpr())
+        DestMat->setColSizeExpr(SrcMat->getColSizeExpr());
+}
+
+IntLiteral *ExprTypeAnnotatorPass::getIntLiteralWithVal(long Val) {
+    auto Lit = PM->Builder.build<IntLiteral>();
+    Lit->setIntVal(Val);
+    return Lit;
+}
+
+ArithmeticOp *ExprTypeAnnotatorPass::getAddOpBetween(ASTNodeT *N1, ASTNodeT *N2) {
+    auto Add = PM->Builder.build<ArithmeticOp>();
+    Add->setOp(ArithmeticOp::ADD);
+    Add->setLeftExpr(N1);
+    Add->setRightExpr(N2);
+    return Add;
+}
+
+void ExprTypeAnnotatorPass::visitTypeSizeExpressions(Type *T) {
+    if (auto VecTy = dyn_cast<VectorTy>(T)) {
+        if (VecTy->getSizeExpr())
+            visit(VecTy->getSizeExpr());
+        return;
+    }
+
+    if (auto MatTy = dyn_cast<MatrixTy>(T)) {
+        if (MatTy->getColSizeExpr())
+            visit(MatTy->getColSizeExpr());
+
+        if (MatTy->getRowSizeExpr())
+            visit(MatTy->getRowSizeExpr());
+    }
 }

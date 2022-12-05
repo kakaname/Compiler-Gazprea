@@ -13,13 +13,17 @@ struct SimplifyCompositeTypeCasting : VisitorPass<SimplifyCompositeTypeCasting, 
 
     Generator *getGenWithUpperBound(ASTNodeT *Bound);
 
-    Generator *getIteratingGenerator(ASTNodeT *Domain);
+    Generator *getIteratingGenerator(ASTNodeT *Bound, Type* DomainVarTy);
 
     Identifier *getAnonymousIdent(Type*);
 
     IntLiteral *getIntLiteralWithVal(long Val) const;
 
     TypeCast *wrapWithCastTo(ASTNodeT *Expr, Type *Target) const;
+
+    Index *buildIndexExpr(ASTNodeT *Base, ASTNodeT *IdxExpr);
+
+    Interval *getIntervalWithUpperBound(ASTNodeT *Bound);
 
     ASTPassManager *PM;
 

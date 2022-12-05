@@ -67,9 +67,18 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
 
     static bool isTypeSizeKnown(Type *Ty);
 
+    IntLiteral *getIntLiteralWithVal(long Val);
+
+    ArithmeticOp *getAddOpBetween(ASTNodeT* N1, ASTNodeT* N2);
+
+    void visitTypeSizeExpressions(Type*);
+
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
     explicit ExprTypeAnnotatorPass() = default;
+
+    static bool isInferredSizedType(Type *Ty);
+    void copyOverCompositeSizeTypes(Type *Src, Type *Dest);
 
     ASTPassManager *PM{};
     TypeRegistry *TypeReg{};

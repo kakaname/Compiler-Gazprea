@@ -43,7 +43,7 @@ struct VectorTy : public Type {
 
     VectorTy() = delete;
 
-    VectorTy( Type *InnerTy, int Size, bool IsConst):
+    VectorTy(Type *InnerTy, int Size, bool IsConst):
         Type(TypeKind::T_Vector, IsConst), Size(Size), InnerTy(InnerTy) {}
 
     bool isSizeKnown() {
@@ -67,7 +67,7 @@ struct VectorTy : public Type {
     }
 
 private:
-    ASTNodeT *SizeExpr;
+    ASTNodeT *SizeExpr{nullptr};
     int Size;
      Type *InnerTy;
 };
@@ -130,8 +130,8 @@ struct MatrixTy : public Type {
     }
 
 private:
-    ASTNodeT *RowSizeExpr;
-    ASTNodeT *ColSizeExpr;
+    ASTNodeT *RowSizeExpr{nullptr};
+    ASTNodeT *ColSizeExpr{nullptr};
     Type *InnerTy;
     std::pair<int, int> Dimensions;
 };

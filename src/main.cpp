@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
 //
@@ -115,9 +114,9 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(SimplifyCompositeTypeCasting());
-//    Manager.registerPass(ASTPrinterPass());
+    Manager.registerPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
@@ -129,8 +128,8 @@ int main(int argc, char **argv) {
 //    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
-    auto CG = CodeGenPass(argv[2]);
-    CG.runOnAST(Manager, Manager.getRoot());
+//    auto CG = CodeGenPass(argv[2]);
+//    CG.runOnAST(Manager, Manager.getRoot());
     return 0;
 
 }

@@ -67,7 +67,7 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentInner));
+            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentTy));
             return;
         }
     }
@@ -78,9 +78,11 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
     assert(IdentTy && "Identifier must have their types assigned at this point.");
     auto AssignedTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
 
-    // If they are already the same type, we don't care.
-    if (AssignedTy->isSameTypeAs(IdentTy))
+    // If they are already the same type, we set the right type so that any
+    // size expressions gets copied over.
+    if (AssignedTy->isSameTypeAs(IdentTy)) {
         return;
+    }
 
     matchBoolPair(IdentTy->isCompositeTy(), AssignedTy->isCompositeTy()) {
         // In the scalar case we just check if the scalar can be promoted to
@@ -133,7 +135,7 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentInner));
+            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
             return;
         }
     }

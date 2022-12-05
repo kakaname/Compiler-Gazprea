@@ -65,6 +65,14 @@ class TypeRegistry {
     ProcudureTypeContainer ProcedureTypes;
     IntervalTypeContainer IntervalTypes;
 
+    using UnknownVectorTyContainer = map<long, unique_ptr<Type>>;
+    using UnknownMatrixTyContainer = map<long, unique_ptr<Type>>;
+
+    UnknownVectorTyContainer UnknownVectors;
+    UnknownMatrixTyContainer UnknownMatrices;
+
+    long CurrentId{};
+
 
 public:
     explicit TypeRegistry(): NullType(), IdentityType(),
@@ -109,29 +117,44 @@ public:
     }
 
      Type *getVectorType( Type *InnerTy, int Size = -1, bool IsConst = true) {
-        auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
-        if (Res != VectorTypes.end())
-            return Res->second.get();
 
-        auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
-        VectorTyId Key{IsConst, {InnerTy, Size}};
-        auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
-        assert(Inserted.second && "We just checked that type wasn't in the map");
-        return Inserted.first->second.get();
+//         if (Size < 0) {
+         auto Inserted = UnknownVectors.insert({
+             CurrentId++,
+             make_unique<VectorTy>(InnerTy, -1, IsConst)});
+         return Inserted.first->second.get();
+//         }
+
+//        auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
+//        if (Res != VectorTypes.end())
+//            return Res->second.get();
+//
+//        auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
+//        VectorTyId Key{IsConst, {InnerTy, Size}};
+//        auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
+//        assert(Inserted.second && "We just checked that type wasn't in the map");
+//        return Inserted.first->second.get();
     }
 
-     Type *getMatrixType(Type *InnerTy, int Rows = -1, int Cols = -1 ,
-                              bool IsConst = true) {
-        MatrixTypeId Key{IsConst, {InnerTy, pair{Rows, Cols}}};
-        auto Res = MatrixTypes.find(Key);
-        if (Res != MatrixTypes.end()) {
-            return Res->second.get();
-        }
-        auto NewMatrixTy = make_unique<MatrixTy>(
-                MatrixTy(InnerTy,{Rows, Cols}, IsConst));
-        auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
-        assert(Inserted.second && "We just check that type wasn't in the map");
+    Type *getMatrixType(Type *InnerTy, int Rows = -1, int Cols = -1 ,
+                          bool IsConst = true) {
+//        if (Rows < 0 || Cols < 0) {
+         auto Inserted = UnknownVectors.insert({CurrentId++,
+        make_unique<MatrixTy>(InnerTy, std::make_pair(Rows, Cols), IsConst)});
         return Inserted.first->second.get();
+//        }
+
+
+//        MatrixTypeId Key{IsConst, {InnerTy, pair{Rows, Cols}}};
+//        auto Res = MatrixTypes.find(Key);
+//        if (Res != MatrixTypes.end()) {
+//            return Res->second.get();
+//        }
+//        auto NewMatrixTy = make_unique<MatrixTy>(
+//                MatrixTy(InnerTy,{Rows, Cols}, IsConst));
+//        auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
+//        assert(Inserted.second && "We just check that type wasn't in the map");
+//        return Inserted.first->second.get();
     }
 
      Type *getTupleType(TupleTy::MemberTyContainer &ContainedTypes,
@@ -196,12 +219,19 @@ public:
         if (isa<IntervalTy>(Ty))
             return getIntervalTy(true);
 
-        if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
+        if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
+            auto RetTy = getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
+            cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
+            return RetTy;
+        }
 
-        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
-                                 Mat->getNumOfColumns(), true);
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty)) {
+            auto RetTy = getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
+                                     Mat->getNumOfColumns(), true);
+            cast<MatrixTy>(RetTy)->setColSizeExpr(Mat->getColSizeExpr());
+            cast<MatrixTy>(RetTy)->setRowSizeExpr(Mat->getRowSizeExpr());
+            return RetTy;
+        }
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
             vector<Type*> VarMembers;
@@ -235,12 +265,19 @@ public:
         if (isa<IntervalTy>(Ty))
             return getIntervalTy(false);
 
-        if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+        if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
+            auto RetTy = getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+            cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
+            return RetTy;
+        }
 
-        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty)) {
+            auto RetTy = getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), false);
+            cast<MatrixTy>(RetTy)->setColSizeExpr(Mat->getColSizeExpr());
+            cast<MatrixTy>(RetTy)->setRowSizeExpr(Mat->getRowSizeExpr());
+            return RetTy;
+        }
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
             vector< Type*> VarMembers;

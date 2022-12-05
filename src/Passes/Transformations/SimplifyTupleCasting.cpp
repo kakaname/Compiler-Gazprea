@@ -13,21 +13,13 @@ void SimplifyTupleCasting::visitTypeCast(TypeCast *Cast) {
     if (!TargetTy)
         return;
 
-    auto &SizeExpr = PM->getResult<ASTBuilderPass>();
-
     auto Literal = PM->Builder.build<TupleLiteral>();
     PM->getResource<SubExpressionCacheSet>().addCachedNode(Cast->getExpr());
     Literal->copyCtx(Cast);
     for (int I = 0; I < TargetTy->getNumOfMembers(); I++) {
         auto MemCastTarget = TargetTy->getMemberTypeAt(I);
         auto MemExpr = buildMemberAccess(Cast->getExpr(), I+1);
-
-        auto Res = SizeExpr.find({Cast, I});
         auto Casted = wrapWithCastTo(MemExpr, MemCastTarget);
-
-        if (Res != SizeExpr.end())
-            SizeExpr[{Casted, I}] = Res->second;
-
         Literal->addChild(Casted);
     }
     PM->setAnnotation<ExprTypeAnnotatorPass>(Literal, TargetTy);
@@ -40,8 +32,6 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
     if (!TargetTy)
         return;
 
-    auto &SizeExpr = PM->getResult<ASTBuilderPass>();
-
     auto Literal = PM->Builder.build<TupleLiteral>();
     PM->getResource<SubExpressionCacheSet>().addCachedNode(Cast->getExpr());
 
@@ -49,14 +39,7 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
     for (int I = 0; I < TargetTy->getNumOfMembers(); I++) {
         auto MemCastTarget = TargetTy->getMemberTypeAt(I);
         auto MemExpr = buildMemberAccess(Cast->getExpr(), I+1);
-
-        auto Res = SizeExpr.find({Cast, I});
-
         auto Casted = wrapWithCastTo(MemExpr, MemCastTarget);
-
-        if (Res != SizeExpr.end())
-            SizeExpr[{Casted, I}] = Res->second;
-
         Literal->addChild(Casted);
     }
     PM->setAnnotation<ExprTypeAnnotatorPass>(Literal, TargetTy);
