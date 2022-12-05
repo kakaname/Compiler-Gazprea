@@ -9,6 +9,7 @@
 
 #include "CompositeTypes.h"
 #include "ScalarTypes.h"
+#include "TypeRegistry.h"
 
 using llvm::dyn_cast;
 using llvm::isa;
@@ -214,22 +215,16 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
 }
 
 bool canPromoteIntegerTo(const Type *TargetTy) {
-    if (auto MatTy = dyn_cast<MatrixTy>(TargetTy))
-        return canPromoteIntegerTo(MatTy->getInnerTy());
-
-    if (auto VecTy = dyn_cast<VectorTy>(TargetTy))
-        return canPromoteIntegerTo(VecTy->getInnerTy());
-
-    return isa<RealTy>(TargetTy);
+    if (TargetTy->isCompositeTy())
+        return canPromoteIntegerTo(TypeRegistry::getInnerTyFromComposite(
+                TargetTy));
+    return isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy);
 }
 
 bool canPromoteRealTo(const Type* TargetTy) {
-    if (auto MatTy = dyn_cast<MatrixTy>(TargetTy))
-        return canPromoteRealTo(MatTy->getInnerTy());
-
-    if (auto VecTy = dyn_cast<VectorTy>(TargetTy))
-        return canPromoteRealTo(VecTy->getInnerTy());
-
+    if (TargetTy->isCompositeTy())
+        return canPromoteRealTo(TypeRegistry::getInnerTyFromComposite(
+                TargetTy));
     return isa<RealTy>(TargetTy);
 }
 
@@ -248,6 +243,30 @@ bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
     return CanInnerPromote;
 }
 
+
+bool canCastBoolCharIntTo(const Type* TargetTy) {
+    switch (TargetTy->getKind()) {
+        case Type::T_Bool:
+        case Type::T_Char:
+        case Type::T_Int:
+        case Type::T_Real:
+            return true;
+        default:
+            if (TargetTy->isCompositeTy())
+                return canCastBoolCharIntTo(TypeRegistry::getInnerTyFromComposite(TargetTy));
+            return false;
+    }
+}
+
+bool canCastRealTo(const Type* TargetTy) {
+    if (isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy))
+        return true;
+
+    if (TargetTy->isCompositeTy())
+        return canCastRealTo(TypeRegistry::getInnerTyFromComposite(TargetTy));
+
+    return false;
+}
 
 bool isVectorValidForUnaryNot(const Type* T) {
     return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryNot();

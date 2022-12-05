@@ -36,6 +36,8 @@ bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
 
 bool canCastVectorTo(const Type*, const Type*);
+bool canCastBoolCharIntTo(const Type*);
+bool canCastRealTo(const Type*);
 
 const Type *getPromotedScalarType(const Type*, const Type*);
 
@@ -176,9 +178,9 @@ public:
             case T_Bool:
             case T_Char:
             case T_Int:
-                return Ty == T_Bool || Ty == T_Char || Ty == T_Int || Ty == T_Real;
+                return canCastBoolCharIntTo(T);
             case T_Real:
-                return Ty == T_Int || Ty == T_Real;
+                return canCastRealTo(T);
             case T_Tuple:
                 return isValidTupleCast(this, T);
             case T_Vector:
