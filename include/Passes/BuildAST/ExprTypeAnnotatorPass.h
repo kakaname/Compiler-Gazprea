@@ -47,6 +47,9 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
     Type *visitConditionalLoop(ConditionalLoop *Loop);
     Type *visitConditional(Conditional *Cond);
     Type *visitConditionalElse(ConditionalElse *Cond);
+    Type *visitGenerator(Generator *Gen);
+    Type *visitMatrixGenerator(MatrixGenerator *Gen);
+    Type *visitFilter(Filter *Filter);
 
 
     void setOpaqueTyCastTargetTy(Type *Ty) {
