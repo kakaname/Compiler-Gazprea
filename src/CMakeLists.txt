@@ -49,6 +49,7 @@ set(
 	"Passes/Transformations/BubbleGlobalDeclarationPass.cpp"
 	"Passes/BuildAST/AddingFreeNodesPass.cpp"
 	"Passes/Transformations/VectorScalarOpTransformationPass.cpp"
+	"Passes/Transformations/SimplifyCompositeTypeCasting.cpp"
 	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp")
 
 # Build our executable from the source files.

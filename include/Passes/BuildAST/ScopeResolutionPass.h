@@ -106,6 +106,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     void visitDeclaration(Declaration *Decl) {
         visit(Decl->getInitExpr());
         auto ExprType = runTypeAnnotator(Decl->getInitExpr(), Decl->getIdentType());
+
         // The type must be inferred.
         if (!Decl->getIdentType()) {
             assert(ExprType && "Cannot infer declaration type");
@@ -131,7 +132,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
                 // If the size was specified as an expression, we do nothing
                 // and let the AssignmentTypeCheckerPass handle it.
-                if (PM->getAnnotationUnchecked<ASTBuilderPass>(Decl))
+                if (PM->getResult<ASTBuilderPass>().find({Decl, 0})->second.first)
                     break;
 
                 auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
@@ -151,7 +152,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
                 // If the size was specified as an expression, we do nothing
                 // and let the AssignmentTypeCheckerPass handle it.
-                if (PM->getAnnotationUnchecked<ASTBuilderPass>(Decl))
+                auto Dimensions = PM->getResult<ASTBuilderPass>().find({Decl, 0})->second;
+                if (Dimensions.first || Dimensions.second)
                     break;
 
                 auto ExprMatTy = dyn_cast<MatrixTy>(ExprType);
