@@ -12,7 +12,7 @@ void ExprTypeAnnotatorPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     visit(Root);
 }
 
-const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
+Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     auto LExpr = Op->getLeftExpr();
     auto RExpr = Op->getRightExpr();
     auto LType = visit(LExpr);
@@ -53,7 +53,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         return ResultTy;
     }
 
-    auto GetTargetTyForOpaqueCasts = [&](const Type *OtherTy){
+    auto GetTargetTyForOpaqueCasts = [&](Type *OtherTy){
         if (OtherTy->isCompositeTy())
             return TypeRegistry::getInnerTyFromComposite(OtherTy);
         return OtherTy;
@@ -107,7 +107,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
 
             // The result type is a vector with the size equal to the size of the
             // operands but where the inner type is boolean.
-            auto GetResType = [&](const Type *T1, const Type *T2) {
+            auto GetResType = [&](Type *T1, Type *T2) {
                 // If the types are vectors.
                 if (auto Vec1 = dyn_cast<VectorTy>(T1)) {
                     auto Vec2 = cast<VectorTy>(T2);
@@ -243,7 +243,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     throw runtime_error("Should be unreachable: TypeAnnotatorComparisonOp");
 }
 
-const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
+Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto LExpr = Op->getLeftExpr();
     auto RExpr = Op->getRightExpr();
     auto LType = visit(LExpr);
@@ -279,7 +279,7 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
         return OpaqueTyCastTarget;
     }
 
-    auto GetTargetTyForOpaqueCasts = [&](const Type *OtherTy){
+    auto GetTargetTyForOpaqueCasts = [&](Type *OtherTy){
         if (OtherTy->isCompositeTy())
             return TypeRegistry::getInnerTyFromComposite(OtherTy);
         return OtherTy;
@@ -332,7 +332,7 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
 
             // The result type is a vector with the size equal to the size of the
             // operands but where the inner type is boolean.
-            auto GetResType = [&](const Type *T1, const Type *T2) {
+            auto GetResType = [&](Type *T1, Type *T2) {
                 // If the types are vectors.
                 if (auto Vec1 = dyn_cast<VectorTy>(T1)) {
                     auto Vec2 = cast<VectorTy>(T2);
@@ -467,13 +467,13 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     }
 }
 
-const Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
+Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
     assert(Ident->getIdentType() && "Identifier type unknown");
     annotate(Ident, Ident->getIdentType());
     return Ident->getIdentType();
 }
 
-const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
+Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     auto LeftExpr = Op->getLeftExpr();
     auto RightExpr = Op->getRightExpr();
     auto LeftType = visit(LeftExpr);
@@ -599,7 +599,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     }
 }
 
-TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *TargetType) const {
+TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, Type *TargetType) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
@@ -608,7 +608,7 @@ TypeCast *ExprTypeAnnotatorPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Targ
     return Cast;
 }
 
-const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
+Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     auto BaseTy = visit(MAccess->getExpr());
     assert(BaseTy && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(BaseTy);
@@ -637,7 +637,7 @@ const Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
     assert(false && "Invalid access into tuple type.");
 }
 
-const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
+Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     auto ChildType = visit(Op->getExpr());
     if (Op->getOpKind() == UnaryOp::NOT) {
         if (!ChildType->isValidForUnaryNot())
@@ -656,18 +656,19 @@ const Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     return ChildType;
 }
 
-const Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
-    vector<const Type*> ChildTypes;
+Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
+    vector<Type*> ChildTypes;
     for (auto *ChildExpr : *TupLit) {
         auto ChildTy = visit(ChildExpr);
         ChildTypes.emplace_back(ChildTy);
     }
-    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, map<string, int>());
+    map<string, int> Temp{};
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
     PM->setAnnotation<ExprTypeAnnotatorPass>(TupLit, TupleTy);
     return TupleTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
+Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
     assert(IdentTy && "Ident type not set for function call");
@@ -686,51 +687,51 @@ const Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     return RetTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) const {
+Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntegerTy());
     return PM->TypeReg.getIntegerTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
+Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Real, PM->TypeReg.getRealTy());
     return PM->TypeReg.getRealTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
+Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
     visit(Cast->getExpr());
     PM->setAnnotation<ExprTypeAnnotatorPass>(
             Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
     return Cast->getTargetType();
 }
 
-const Type *ExprTypeAnnotatorPass::visitNullLiteral(NullLiteral *Null) {
+Type *ExprTypeAnnotatorPass::visitNullLiteral(NullLiteral *Null) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Null, PM->TypeReg.getNullTy());
     return PM->TypeReg.getNullTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
+Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(ID, PM->TypeReg.getIdentityTy());
     return PM->TypeReg.getIdentityTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
+Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
     visit(Cast->getExpr());
     PM->setAnnotation<ExprTypeAnnotatorPass>(
             Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
     return Cast->getTargetType();
 }
 
-const Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
+Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Bool, PM->TypeReg.getBooleanTy());
     return PM->TypeReg.getBooleanTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
+Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Char, PM->TypeReg.getCharTy());
     return PM->TypeReg.getCharTy();
 }
 
-const Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
+Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
     auto BaseTy = visit(Ref->getBaseExpr());
     if (!BaseTy)
         throw runtime_error("Base type not set for index reference.");
@@ -753,7 +754,7 @@ const Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
 
 }
 
-const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
+Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     auto BaseTy = visit(Ref->getIdentifier());
     assert(BaseTy && "Type not assigned to identifier.");
     auto Tuple = dyn_cast<TupleTy>(BaseTy);
@@ -778,7 +779,7 @@ const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
     assert(false && "Invalid access into tuple type.");
 }
 
-const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
+Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
     visit(Ref->getIdentifier());
     auto IdentTy = Ref->getIdentifier()->getIdentType();
     assert(IdentTy && "Ident type not known in ident reference");
@@ -786,7 +787,7 @@ const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
     return IdentTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
+Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
     assert(IdentTy && "Ident type not set for function call");
@@ -805,8 +806,8 @@ const Type *ExprTypeAnnotatorPass::visitProcedureCall(ProcedureCall *Call) {
     return RetTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
-    const Type *WidestType = nullptr;
+Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
+    Type *WidestType = nullptr;
     bool IsFirst = true;
 
     if (!VecLit->numOfChildren())
@@ -843,7 +844,7 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     return VecTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
+Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
     auto VecTy = dyn_cast<VectorTy>(BaseTy);
 
@@ -860,7 +861,7 @@ const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     return ResultTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
+Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
     auto Lower = visit(Int->getLowerExpr());
     auto Upper = visit(Int->getUpperExpr());
 
@@ -886,7 +887,7 @@ const Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
 }
 
 
-const Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
+Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
     auto BaseExprTy = visit(By->getBaseExpr());
     auto ByExprTy = visit(By->getByExpr());
 
@@ -911,7 +912,7 @@ const Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
     return ResTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
+Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto LVecTy = dyn_cast<VectorTy>(visit(Dot->getLHS()));
     auto RVecTy = dyn_cast<VectorTy>(visit(Dot->getRHS()));
 
@@ -931,7 +932,7 @@ const Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     return ResTy;
 }
 
-const Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
+Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto LExpr = Concat->getLHS();
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
@@ -994,7 +995,7 @@ const Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
 }
 
 
-const Type *ExprTypeAnnotatorPass::getWiderType(const Type *Ty1, const Type *Ty2) {
+Type *ExprTypeAnnotatorPass::getWiderType(Type *Ty1, Type *Ty2) {
     if (Ty1->isCompositeTy() != Ty2->isCompositeTy())
         throw std::runtime_error("Called wider type with incompatible args");
 
@@ -1007,7 +1008,7 @@ const Type *ExprTypeAnnotatorPass::getWiderType(const Type *Ty1, const Type *Ty2
     return nullptr;
 }
 
-bool ExprTypeAnnotatorPass::isTypeSizeKnown(const Type *Ty) {
+bool ExprTypeAnnotatorPass::isTypeSizeKnown(Type *Ty) {
     if (auto VecTy = dyn_cast<VectorTy>(Ty))
         return VecTy->isSizeKnown();
 
@@ -1022,7 +1023,7 @@ bool ExprTypeAnnotatorPass::isTypeSizeKnown(const Type *Ty) {
     return true;
 }
 
-const Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
+Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
     auto ExprTy = visit(Out->getOutStreamExpr());
     if (!ExprTy->isOpaqueTy())
         return nullptr;
@@ -1032,7 +1033,7 @@ const Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
     return nullptr;
 }
 
-const Type *ExprTypeAnnotatorPass::visitConditionalLoop(ConditionalLoop *Loop) {
+Type *ExprTypeAnnotatorPass::visitConditionalLoop(ConditionalLoop *Loop) {
     visit(Loop->getBlock());
     auto ExprTy = visit(Loop->getConditional());
     if (!ExprTy->isOpaqueTy())
@@ -1043,7 +1044,7 @@ const Type *ExprTypeAnnotatorPass::visitConditionalLoop(ConditionalLoop *Loop) {
     return nullptr;
 }
 
-const Type *ExprTypeAnnotatorPass::visitConditional(Conditional *Cond) {
+Type *ExprTypeAnnotatorPass::visitConditional(Conditional *Cond) {
     visit(Cond->getBlock());
     auto ExprTy = visit(Cond->getConditional());
     if (!ExprTy->isOpaqueTy())
@@ -1054,7 +1055,7 @@ const Type *ExprTypeAnnotatorPass::visitConditional(Conditional *Cond) {
     return nullptr;
 }
 
-const Type *ExprTypeAnnotatorPass::visitConditionalElse(ConditionalElse *Cond) {
+Type *ExprTypeAnnotatorPass::visitConditionalElse(ConditionalElse *Cond) {
     visit(Cond->getIfBlock());
     visit(Cond->getElseBlock());
     auto ExprTy = visit(Cond->getConditional());

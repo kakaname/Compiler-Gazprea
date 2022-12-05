@@ -28,21 +28,21 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
         return N->getKind() == TreeNode::N_ScopeTreeNode;
     }
 
-    using SymbolMapT = map<string, const Symbol *>;
+    using SymbolMapT = map<string, Symbol *>;
 
     SymbolMapT SymbolsInScope;
     SymbolMapT TypeSymbolsInScope;
     // Note: The type symbols is only really relevant for global scopes
 
-    void declareInScope(const string& Name, const Symbol *Sym) {
+    void declareInScope(const string& Name, Symbol *Sym) {
         declareHelper(Name, Sym, &SymbolsInScope);
     }
 
-    void declareType(const string& Name, const Symbol *Sym) {
+    void declareType(const string& Name, Symbol *Sym) {
         declareHelper(Name, Sym, &TypeSymbolsInScope);
     }
 
-    const Symbol *resolveType(const string &Name) {
+    Symbol *resolveType(const string &Name) {
         auto Res = TypeSymbolsInScope.find(Name);
         if (Res != TypeSymbolsInScope.end())
             return Res->second;
@@ -74,7 +74,7 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
 
 private:
 
-    void declareHelper(const string& Name, const Symbol *Sym, SymbolMapT *ScopeMap) {
+    void declareHelper(const string& Name, Symbol *Sym, SymbolMapT *ScopeMap) {
         auto Res = ScopeMap->find(Name);
         if (Res != ScopeMap->end())
             throw std::runtime_error("Tried to redeclare when already in scope");
@@ -327,7 +327,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Call->getArgsList());
         visit(Call->getIdentifier());
 
-        vector<const Type*> ParamTypes;
+        vector<Type*> ParamTypes;
 
         if (auto ProcTy = dyn_cast<ProcedureTy>(
                 Call->getIdentifier()->getIdentType())) {
@@ -352,7 +352,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Call->getArgsList());
         visit(Call->getIdentifier());
 
-        vector<const Type*> ParamTypes;
+        vector<Type*> ParamTypes;
 
         if (auto ProcTy = dyn_cast<FunctionTy>(
                 Call->getIdentifier()->getIdentType())) {
@@ -386,7 +386,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
     }
 
-    const Type *runTypeAnnotator(ASTNodeT *Node, const Type *Ty = nullptr) {
+    Type *runTypeAnnotator(ASTNodeT *Node, Type *Ty = nullptr) {
         ExprAnnotator.setOpaqueTyCastTargetTy(Ty);
         ExprAnnotator.runOnAST(*PM, Node);
         return PM->getAnnotation<ExprTypeAnnotatorPass>(Node);

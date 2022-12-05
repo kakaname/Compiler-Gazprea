@@ -53,7 +53,7 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
         auto Res = SizeExpr.find({Cast, I});
 
         auto Casted = wrapWithCastTo(MemExpr, MemCastTarget);
-        
+
         if (Res != SizeExpr.end())
             SizeExpr[{Casted, I}] = Res->second;
 
@@ -63,7 +63,7 @@ void SimplifyTupleCasting::visitExplicitCast(ExplicitCast *Cast) {
     Cast->getParent()->replaceChildWith(Cast, Literal);
 }
 
-TypeCast *SimplifyTupleCasting::wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const {
+TypeCast *SimplifyTupleCasting::wrapWithCastTo(ASTNodeT *Expr, Type *Target) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);
     Cast->setExpr(Expr);

@@ -15,36 +15,36 @@ using std::string;
 
 class Type;
 
-bool isValidTupleCast(const Type*, const Type*);
-bool isSameTupleTypeAs(const Type*, const Type*);
-bool canPromoteTupleTo(const Type*, const Type*);
-bool canPromoteIntegerTo(const Type*);
-bool canPromoteRealTo(const Type*);
-bool canPromoteVectorTo(const Type*, const Type*);
-bool doesTupleSupportEq(const Type*);
-bool doesVectorSupportEq(const Type*);
-bool doesVectorSupportArithOps(const Type*);
-bool isVectorValidForComparisonOps(const Type*);
-bool isVectorValidForUnaryNot(const Type*);
-bool isMatrixValidForUnaryNot(const Type*);
+bool isValidTupleCast( Type*,  Type*);
+bool isSameTupleTypeAs( Type*,  Type*);
+bool canPromoteTupleTo( Type*,  Type*);
+bool canPromoteIntegerTo( Type*);
+bool canPromoteRealTo( Type*);
+bool canPromoteVectorTo( Type*,  Type*);
+bool doesTupleSupportEq( Type*);
+bool doesVectorSupportEq( Type*);
+bool doesVectorSupportArithOps( Type*);
+bool isVectorValidForComparisonOps( Type*);
+bool isVectorValidForUnaryNot( Type*);
+bool isMatrixValidForUnaryNot( Type*);
 
-bool isVectorValidForUnaryAddSub(const Type*);
-bool isMatrixValidForUnaryAddSub(const Type*);
+bool isVectorValidForUnaryAddSub( Type*);
+bool isMatrixValidForUnaryAddSub( Type*);
 
-bool isSameFuncAs(const Type*, const Type*);
-bool isSameProcAs(const Type*, const Type*);
-bool isSameVectorAs(const Type*, const Type*);
+bool isSameFuncAs( Type*,  Type*);
+bool isSameProcAs( Type*,  Type*);
+bool isSameVectorAs( Type*,  Type*);
 
-bool canCastVectorTo(const Type*, const Type*);
-bool canCastBoolCharIntTo(const Type*);
-bool canCastRealTo(const Type*);
+bool canCastVectorTo( Type*,  Type*);
+bool canCastBoolCharIntTo( Type*);
+bool canCastRealTo( Type*);
 
-const Type *getPromotedScalarType(const Type*, const Type*);
+ Type *getPromotedScalarType( Type*,  Type*);
 
-string getVectorTypeName(const Type* Ty);
-string getTupleTypeName(const Type *Ty);
-string getFunctionTypeName(const Type *Ty);
-string getProcedureTypeName(const Type *Ty);
+string getVectorTypeName( Type* Ty);
+string getTupleTypeName( Type *Ty);
+string getFunctionTypeName( Type *Ty);
+string getProcedureTypeName( Type *Ty);
 
 class Type {
 public:
@@ -77,7 +77,7 @@ public:
         return T_Vector == Kind || T_Matrix == Kind;
     }
 
-    bool isSameTypeAs(const Type *T) const {
+    bool isSameTypeAs( Type *T) {
         switch (Kind) {
             case T_Int:
             case T_Bool:
@@ -98,20 +98,20 @@ public:
         }
     }
 
-    bool isValidForArithOps() const {
+    bool isValidForArithOps()  {
         if (Kind == T_Vector) {
             return doesVectorSupportArithOps(this);
         }
         return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
-    bool isValidForComparisonOp() const {
+    bool isValidForComparisonOp()  {
         if (Kind == T_Vector)
             return isVectorValidForComparisonOps(this);
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
-    bool isValidForUnaryNot() const {
+    bool isValidForUnaryNot()  {
         switch (Kind) {
             case T_Bool:
                 return true;
@@ -124,7 +124,7 @@ public:
         }
     }
 
-    bool isValidForUnaryAddOrSub() const {
+    bool isValidForUnaryAddOrSub()  {
         switch (Kind) {
             case T_Real:
             case T_Int:
@@ -139,7 +139,7 @@ public:
         }
     }
 
-    bool isValidForEq() const {
+    bool isValidForEq()  {
         switch (Kind) {
             case T_Real:
             case T_Int:
@@ -160,11 +160,11 @@ public:
                T_Int == Kind || T_Real == Kind;
     }
 
-    bool isCallable() const {
+    bool isCallable()  {
         return T_Function == Kind || T_Procedure == Kind;
     }
 
-    bool isOutputTy() const {
+    bool isOutputTy()  {
         return T_Identity == Kind || T_Null == Kind ||
                T_Bool == Kind || T_Char == Kind ||
                T_Int == Kind || T_Real == Kind ||
@@ -172,8 +172,7 @@ public:
                T_Vector == Kind || T_Matrix == Kind;
     }
 
-    bool canCastTo(const Type *T) const {
-        TypeKind Ty = T->getKind();
+    bool canCastTo( Type *T)  {
         switch (Kind) {
             case T_Bool:
             case T_Char:
@@ -190,7 +189,7 @@ public:
         }
     }
 
-    bool canPromoteTo(const Type *T) const {
+    bool canPromoteTo( Type *T)  {
         if (isSameTypeAs(T))
             return true;
 
@@ -211,11 +210,11 @@ public:
         }
     }
 
-    const Type * getPromotedType(const Type *T) const {
+     Type * getPromotedType( Type *T)  {
         return getPromotedScalarType(this, T);
     }
 
-    bool isOpaqueTy() const {
+    bool isOpaqueTy() {
         return TypeKind::T_Null == Kind || TypeKind::T_Identity == Kind;
     }
 
@@ -223,14 +222,14 @@ public:
         return Kind;
     }
 
-    bool isValidForBy() const {
+    bool isValidForBy()  {
         return T_Interval == Kind || T_Vector == Kind;
     }
 
-    std::string getTypeName() const {
+    std::string getTypeName()  {
         std::string TypeName;
         if (isConst())
-            TypeName += "const ";
+            TypeName += " ";
         switch (Kind) {
             case T_Identity:
                 return TypeName + "identity";

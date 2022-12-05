@@ -40,7 +40,7 @@ struct NoOp: public TreeNode {
 
 struct Identifier: public TreeNode {
     string IdentName;
-    const Type *IdentType;
+    Type *IdentType;
 
     const Symbol *Referred;
 
@@ -55,11 +55,11 @@ struct Identifier: public TreeNode {
         IdentName = N;
     }
 
-    void setIdentType(const Type *T) {
+    void setIdentType(Type *T) {
         IdentType = T;
     }
     
-    const Type *getIdentType() const {
+    Type *getIdentType() const {
         return IdentType;
     }
 
@@ -109,7 +109,7 @@ struct Declaration: public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t InitExprIdx = 1;
 
-    const Type *IdentType{nullptr};
+    Type *IdentType{nullptr};
 
     bool IsConst{false};
 
@@ -117,7 +117,7 @@ struct Declaration: public TreeNode {
         return N->getKind() == TreeNodeKind::N_AST_Declaration;
     }
 
-    void setIdentType(const Type *T) {
+    void setIdentType(Type *T) {
         IdentType = T;
     }
 
@@ -137,7 +137,7 @@ struct Declaration: public TreeNode {
         return getChildAt(InitExprIdx);
     }
 
-    const Type *getIdentType() const {
+    Type *getIdentType() const {
         return IdentType;
     }
 
@@ -556,7 +556,7 @@ struct ConditionalElse: public TreeNode {
 struct TypeCast: public TreeNode {
     static constexpr int ExprIdx = 0;
 
-    const Type* TargetType{nullptr};
+    Type *TargetType{nullptr};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_TypeCast;
@@ -570,11 +570,11 @@ struct TypeCast: public TreeNode {
         return getChildAt(ExprIdx);
     }
 
-    const Type *getTargetType() const {
+    Type *getTargetType() const {
         return TargetType;
     }
 
-    void setTargetType(const Type *T) {
+    void setTargetType(Type *T) {
         TargetType = T;
     }
 
@@ -728,8 +728,8 @@ struct ParameterList: public TreeNode {
 struct FunctionDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
 
-    vector<const Type*> ParamTypes;
-    const Type *RetTy{nullptr};
+    vector<Type*> ParamTypes;
+    Type *RetTy{nullptr};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDecl;
@@ -743,23 +743,23 @@ struct FunctionDecl: public TreeNode {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    void addParam(const Type* T) {
+    void addParam(Type *T) {
         ParamTypes.emplace_back(T);
     }
 
-    const Type *getParamTypeAt(long Pos) {
+    Type *getParamTypeAt(long Pos) {
         return ParamTypes.at(Pos);
     }
 
-    void setRetTy(const Type *T) {
+    void setRetTy(Type *T) {
         RetTy = T;
     }
 
-    const Type *getRetType() const {
+    Type *getRetType() const {
         return RetTy;
     }
 
-    const vector<const Type*> &getParamTypes() const {
+    vector<Type*> &getParamTypes() {
         return ParamTypes;
     }
 
@@ -771,7 +771,7 @@ struct FunctionDef: public TreeNode {
     static constexpr size_t ParamListIdx = 1;
     static constexpr size_t BlockIdx = 2;
 
-    const Type *RetTy{nullptr};
+    Type *RetTy{nullptr};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FunctionDef;
@@ -793,11 +793,11 @@ struct FunctionDef: public TreeNode {
         return getChildAtAs<Block>(BlockIdx);
     }
 
-    void setRetTy(const Type *T) {
+    void setRetTy(Type *T) {
         RetTy = T;
     }
 
-    const Type *getRetTy() const {
+    Type *getRetTy() const {
         return RetTy;
     }
 
@@ -860,8 +860,8 @@ struct FunctionCall: public TreeNode {
 struct ProcedureDecl: public TreeNode {
     static constexpr size_t IdentIdx = 0;
 
-    const Type *RetTy{nullptr};
-    vector<const Type*> ParamTypes;
+    Type *RetTy{nullptr};
+    vector<Type*> ParamTypes;
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ProcedureDecl;
@@ -875,19 +875,19 @@ struct ProcedureDecl: public TreeNode {
         return getChildAtAs<Identifier>(IdentIdx);
     }
 
-    void setRetTy(const Type *T) {
+    void setRetTy(Type *T) {
         RetTy = T;
     }
 
-    const Type *getRetTy() const {
+    Type *getRetTy() const {
         return RetTy;
     }
 
-    void addParamTy(const Type *T) {
+    void addParamTy(Type *T) {
         ParamTypes.emplace_back(T);
     }
 
-    vector<const Type*> &getParamTypes() {
+    vector<Type*> &getParamTypes() {
         return ParamTypes;
     }
 
@@ -899,7 +899,7 @@ struct ProcedureDef: public TreeNode {
     static constexpr size_t ParamListIdx = 1;
     static constexpr size_t BlockIdx = 2;
 
-    const Type *RetTy{nullptr};
+    Type *RetTy{nullptr};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ProcedureDef;
@@ -921,11 +921,11 @@ struct ProcedureDef: public TreeNode {
         return getChildAtAs<Block>(BlockIdx);
     }
 
-    void setRetTy(const Type *T) {
+    void setRetTy(Type *T) {
         RetTy = T;
     }
 
-    const Type *getRetTy() const {
+    Type *getRetTy() const {
         return RetTy;
     }
 
@@ -1082,13 +1082,13 @@ struct InStream: public TreeNode {
 struct ExplicitCast: public TreeNode {
     static constexpr size_t ExprIdx = 0;
 
-    const Type *TargetType{nullptr};
+    Type *TargetType{nullptr};
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_ExplicitCast;
     }
 
-    void setTargetType(const Type *T) {
+    void setTargetType(Type *T) {
         TargetType = T;
     }
 
@@ -1096,7 +1096,7 @@ struct ExplicitCast: public TreeNode {
         setChildAt(ExprIdx, Expr);
     }
 
-    const Type *getTargetType() const {
+    Type *getTargetType() const {
         return TargetType;
     }
 
@@ -1169,7 +1169,7 @@ struct FreeNode : public TreeNode {
 };
 
 struct VectorLiteral: public TreeNode {
-    const Type *MemType;
+    Type *MemType;
     int vecSize;    
 
     static bool classof(const TreeNode *N) {

@@ -231,7 +231,7 @@ public:
     }
 
     void visitVectorLiteral(VectorLiteral *Vec) {
-        std::cout << "VectorLit(Type: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Vec)->getTypeName() << ")" << "\n";
+        std::cout << "VectorLit\n";
     }
 
     void visitGenerator(Generator *Gen) {

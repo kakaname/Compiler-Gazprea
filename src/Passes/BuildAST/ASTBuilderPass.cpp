@@ -398,7 +398,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     FuncDef->setIdent(Ident);
 
 
-    vector<const Type*> ParamTypes;
+    vector<Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
     ParamList->setCtx(ctx);
@@ -455,7 +455,7 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
         ProcDecl->addParamTy(ParamTy);
     }
 
-    const Type *ProcRetTy{nullptr};
+    Type *ProcRetTy{nullptr};
     if (ctx->type())
         ProcRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
 
@@ -476,7 +476,7 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     Ident->setName(ctx->ID()->getText());
     ProcDef->setIdent(Ident);
 
-    vector<const Type*> ParamTypes;
+    vector<Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
     ParamList->setCtx(ctx);
@@ -961,7 +961,7 @@ std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
-    vector<const Type*> MemberTypes;
+    vector<Type*> MemberTypes;
     map<string, int> Mappings;
     int Idx = 1;
     for (auto *Member : ctx->tupleTypeDecl()->tupleMemberType()) {

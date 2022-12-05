@@ -29,7 +29,7 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
                 if (VecTy->isSizeKnown()) {
                     auto Gen = getGenWithUpperBound(
                             getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(Cast->getExpr());
+                    Gen->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                     Cast->getParent()->replaceChildWith(Cast, Gen);
                     return;
                 }
@@ -85,7 +85,7 @@ void SimplifyCompositeTypeCasting::visitExplicitCast(ExplicitCast *Cast) {
     }
 }
 
-TypeCast *SimplifyCompositeTypeCasting::wrapWithCastTo(ASTNodeT *Expr, const Type *TargetType) const {
+TypeCast *SimplifyCompositeTypeCasting::wrapWithCastTo(ASTNodeT *Expr, Type *TargetType) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);
     Cast->setExpr(Expr);
@@ -94,13 +94,11 @@ TypeCast *SimplifyCompositeTypeCasting::wrapWithCastTo(ASTNodeT *Expr, const Typ
     return Cast;
 }
 
-IntLiteral *SimplifyCompositeTypeCasting::getIntLiteralWithVal(long Val) {
+IntLiteral *SimplifyCompositeTypeCasting::getIntLiteralWithVal(long Val) const {
     auto Lit = PM->Builder.build<IntLiteral>();
     Lit->setIntVal(Val);
     return Lit;
 }
-
-
 
 Generator *SimplifyCompositeTypeCasting::getGenWithUpperBound(ASTNodeT *Bound) {
     auto Gen = PM->Builder.build<Generator>();
@@ -112,7 +110,7 @@ Generator *SimplifyCompositeTypeCasting::getGenWithUpperBound(ASTNodeT *Bound) {
     return Gen;
 }
 
-Identifier *SimplifyCompositeTypeCasting::getAnonymousIdent(const Type*Ty) {
+Identifier *SimplifyCompositeTypeCasting::getAnonymousIdent(Type*Ty) {
     auto Ident = PM->Builder.build<Identifier>();
     Ident->setIdentType(Ty);
     Ident->setReferred(PM->SymTable.defineObject("", Ty));
@@ -153,14 +151,18 @@ void SimplifyCompositeTypeCasting::visitTypeCast(TypeCast *Cast) {
                 if (VecTy->isSizeKnown()) {
                     auto Gen = getGenWithUpperBound(
                             getIntLiteralWithVal(VecTy->getSize()));
-                    Gen->setExpr(Cast->getExpr());
+                    Gen->setExpr(wrapWithCastTo(Cast->getExpr(), VecTy->getInnerTy()));
                     Cast->getParent()->replaceChildWith(Cast, Gen);
                     return;
                 }
 
                 // If the size is not known, it must be given as an expression
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find(
-                        {Cast, 0})->second.first;
+                auto Res = PM->getResult<ASTBuilderPass>().find({Cast, 0});
+                if (Res == PM->getResult<ASTBuilderPass>().end())
+                    throw runtime_error("Tried to cast to a vector of undefined"
+                                        " size");
+
+                auto Dimensions = Res->second.first;
                 if (!Dimensions)
                     throw runtime_error("Tried to cast to a vector of undefined"
                                         " size");

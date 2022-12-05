@@ -39,8 +39,8 @@ public:
         return std::any_cast<ASTNodeT*>(visit(Tree));
     }
 
-    const Type *castToTypeVisit(antlr4::tree::ParseTree *Tree) {
-        return std::any_cast<const Type*>(visit(Tree));
+    Type *castToTypeVisit(antlr4::tree::ParseTree *Tree) {
+        return std::any_cast<Type*>(visit(Tree));
     }
 
     std::any visitFile(GazpreaParser::FileContext *ctx) override;
