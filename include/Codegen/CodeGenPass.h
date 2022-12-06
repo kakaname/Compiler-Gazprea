@@ -118,7 +118,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     const char *OutputFile;
 
     explicit CodeGenPass(const char *OutFile) : GlobalCtx(), IR(GlobalCtx), Mod("gazprea", GlobalCtx), OutputFile(OutFile),
-        LLVMIntTy(llvm::Type::getInt32Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
+        LLVMIntTy(llvm::Type::getInt64Ty(GlobalCtx)), LLVMBoolTy(llvm::Type::getInt1Ty(GlobalCtx)),
         LLVMCharTy(llvm::Type::getInt8Ty(GlobalCtx)), LLVMRealTy(llvm::Type::getFloatTy(GlobalCtx)),
         LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)),
         LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMPtrTy, LLVMIntTy, LLVMPtrTy})),
@@ -174,9 +174,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitDotProduct(DotProduct *Dot);
     llvm::Value *visitByOp(ByOp *By);
 
-    uint32_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
+    uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
     llvm::Value *createAlloca(const Type *Ty);
-    llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc = false);
+    llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);

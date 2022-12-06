@@ -9,10 +9,10 @@ void rt_print_matrix(struct matrix *m) {
     printf("[");
     struct vector *data = (struct vector *) m->data;
     if (m->type == VECTOR_TYPE_INT) {
-        for (int i = 0; i < m->rows; i++) {
+        for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
-            for (int j = 0; j < m->cols; j++) {
-                printf("%d", ((int *) data[i].data )[j]);
+            for (int64_t j = 0; j < m->cols; j++) {
+                printf("%ld", ((int64_t *) data[i].data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
                 }
@@ -23,9 +23,9 @@ void rt_print_matrix(struct matrix *m) {
             }
         }
     } else if (m->type == VECTOR_TYPE_FLOAT) {
-        for (int i = 0; i < m->rows; i++) {
+        for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
-            for (int j = 0; j < m->cols; j++) {
+            for (int64_t j = 0; j < m->cols; j++) {
                 printf("%g", ((float *) data[i].data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
@@ -37,9 +37,9 @@ void rt_print_matrix(struct matrix *m) {
             }
         }
     } else if (m->type == VECTOR_TYPE_CHAR) {
-        for (int i = 0; i < m->rows; i++) {
+        for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
-            for (int j = 0; j < m->cols; j++) {
+            for (int64_t j = 0; j < m->cols; j++) {
                 printf("%c", ((char *) data[i].data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
@@ -51,9 +51,9 @@ void rt_print_matrix(struct matrix *m) {
             }
         }
     } else if (m->type == VECTOR_TYPE_BOOL) {
-        for (int i = 0; i < m->rows; i++) {
+        for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
-            for (int j = 0; j < m->cols; j++) {
+            for (int64_t j = 0; j < m->cols; j++) {
                 printf("%c", ((char *) data[i].data )[j] ? 'T' : 'F');
                 if (j != m->cols - 1) {
                     printf(" ");
@@ -71,29 +71,29 @@ void rt_print_matrix(struct matrix *m) {
 void rt_print_vector(struct vector *v) {
     printf("[");
     if (v->type == VECTOR_TYPE_INT) {
-        int *data = (int *) v->data;
-        for (int i = 0; i < v->size; i++) {
-            printf("%d", data[i]);
+        int64_t *data = (int64_t *) v->data;
+        for (int64_t i = 0; i < v->size; i++) {
+            printf("%ld", data[i]);
             if (i != v->size - 1)
                 printf(" ");
         }
     } else if (v->type == VECTOR_TYPE_FLOAT) {
         float *data = (float *) v->data;
-        for (int i = 0; i < v->size; i++) {
+        for (int64_t i = 0; i < v->size; i++) {
             printf("%g", data[i]);
             if (i != v->size - 1)
                 printf(" ");
         }
     } else if (v->type == VECTOR_TYPE_CHAR) {
         char *data = (char *) v->data;
-        for (int i = 0; i < v->size; i++) {
+        for (int64_t i = 0; i < v->size; i++) {
             printf("%c", data[i]);
             if (i != v->size - 1)
                 printf(" ");
         }
     } else if (v->type == VECTOR_TYPE_BOOL) {
         char *data = (char *) v->data;
-        for (int i = 0; i < v->size; i++) {
+        for (int64_t i = 0; i < v->size; i++) {
             printf("%c", data[i] ? 'T' : 'F');
             if (i != v->size - 1)
                 printf(" ");
@@ -102,8 +102,8 @@ void rt_print_vector(struct vector *v) {
     printf("]");
 }
 
-void rt_print_int(int i) {
-    printf("%d", i);
+void rt_print_int(int64_t i) {
+    printf("%ld", i);
 }
 
 void rt_print_real(float d) {
@@ -114,7 +114,7 @@ void rt_print_char(char c) {
     printf("%c", c);
 }
 
-void rt_print_bool(int b) {
+void rt_print_bool(int64_t b) {
     printf("%c", b ? 'T' : 'F');
 }
 
@@ -303,19 +303,19 @@ float scan_real_err(char val) {
     return 0.0f;
 }
 
-int scan_int_err(char val) {
+int64_t scan_int_err(char val) {
     s.stream_state = val;
     return 0;
 }
 
-int rt_scan_int() {
+int64_t rt_scan_int() {
 
     char *token = peek_token(2);
     if (token == NULL) return scan_int_err(2);
 
-    // convert the token to an int
+    // convert the token to an int64_t
     char *end;
-    int num = strtol(token, &end, 10);
+    int64_t num = strtol(token, &end, 10);
     if (end == token) return scan_int_err(1);
     if (!is_ws(*end) && *end != '\0') return scan_int_err(1);
     s.stream_state = 0;
@@ -340,47 +340,4 @@ float rt_scan_real() {
     free(token);
     consume_to_curr();
     return num;
-}
-
-
-
-
-// sample main function for testing
-
-int main() {
-
-
-    int i;
-    float d;
-    char c = 0;
-    char b;
-    char sample;
-//
-//    while (1) {
-    i = rt_scan_int();
-    printf("i: %d, state: %d\n", i, s.stream_state);
-    sample = rt_scan_char();
-    printf("c: %c, state: %d\n", sample, s.stream_state);
-
-    c = rt_scan_char();
-    printf("c: %c, state: %d\n", c, s.stream_state);
-    sample = rt_scan_char();
-    printf("c: %c, state: %d\n", sample, s.stream_state);
-
-    b = rt_scan_bool();
-    printf("b: %d, state: %d\n", b, s.stream_state);
-    sample = rt_scan_char();
-    printf("c: %c, state: %d\n", sample, s.stream_state);
-
-    d = rt_scan_real();
-    printf("val: %g, state: %d\n", d, s.stream_state);
-    rt_print_int(i);
-    rt_print_char(c);
-    rt_print_bool(b);
-    rt_print_real(d);
-//
-//        if (s.stream_state != 0) break;
-//    }
-//
-    return 0;
 }
