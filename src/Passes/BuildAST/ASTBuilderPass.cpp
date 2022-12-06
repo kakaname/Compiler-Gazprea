@@ -14,6 +14,7 @@ using llvm::dyn_cast;
 
 void ASTBuilderPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PM = &Manager;
+    PM->setResult<SelfT>(ResultT());
     assert(isa<Program>(Root) && "Builder must have the program"
                                  " node passed in as Root");
     Prog = cast<Program>(Root);
@@ -40,7 +41,11 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
 
     // If the type is known, we set it.
     if (ctx->type()) {
+        NodeToMarkForTypeSize = Decl;
+        CurrentIdxToMark = 0;
         auto DeclType = castToTypeVisit(ctx->type());
+        NodeToMarkForTypeSize = nullptr;
+        CurrentIdxToMark = 0;
         if (IsConst)
             DeclType = PM->TypeReg.getConstTypeOf(DeclType);
         Decl->setIdentType(DeclType);
@@ -139,7 +144,8 @@ std::any ASTBuilderPass::visitInfiniteLoop(GazpreaParser::InfiniteLoopContext *c
     if (!isa<Block>(Body)) {
         auto Blk = wrapStmtInBlock(Body);
         Blk->setCtx(ctx);
-        return cast<ASTNodeT>(Blk);
+        Loop->setBlock(Blk);
+        return cast<ASTNodeT>(Loop);
     }
     Loop->setBlock(cast<Block>(Body));
     return cast<ASTNodeT>(Loop);
@@ -190,12 +196,12 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
 
 // Ignore for part1
 std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Domain Loop");
 }
 
 // Ignore for part1
 std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: IterDomain");
 }
 
 
@@ -264,22 +270,74 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
-    if (Size->MUL()){
-        return PM->TypeReg.getVectorType(Type);
-    } else {
-        // TODO constant fold integer expressions if known
-        // for the time being, we are using a wildcard
-        return PM->TypeReg.getVectorType(Type);
-    }
+    if (Size->MUL())
+        return PM->TypeReg.getVectorType(Type, -1, false);
+
+    // TODO constant fold integer expressions if known
+    try {
+        auto VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+        return PM->TypeReg.getVectorType(Type, (int) VecSize);
+    } catch (exception&) {}
+
+    // If the size cannot be folded, then there must an expression
+    // specifying the size.
+
+    auto SizeTree = castToNodeVisit(Size->expr());
+    PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
+            make_pair(SizeTree, nullptr);
+
+    return PM->TypeReg.getVectorType(Type, -1, false);
 }
 
-// Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    auto InnerTy = castToTypeVisit(ctx->type());
+
+    auto RowSizeExpr = ctx->expressionOrWildcard(0);
+
+    auto RowSize = [&]() {
+        if (RowSizeExpr->MUL())
+            return (long) -1;
+
+        try {
+            return std::any_cast<long>(Folder.visit(RowSizeExpr->expr()));
+        } catch (exception&) {}
+        auto RowSizeTree = castToNodeVisit(RowSizeExpr->expr());
+        PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
+                make_pair(RowSizeTree, nullptr);
+        return (long) -1;
+    }();
+
+    auto ColSizeExpr = ctx->expressionOrWildcard(1);
+
+    auto ColSize = [&]() {
+        if (ColSizeExpr->MUL())
+            return (long) -1;
+
+        try {
+            return std::any_cast<long>(Folder.visit(ColSizeExpr->expr()));
+        } catch (exception&) {}
+
+        auto ColSizeTree = castToNodeVisit(ColSizeExpr->expr());
+
+        auto &ResultMap = PM->getResult<SelfT>();
+        auto Key = make_pair(NodeToMarkForTypeSize, CurrentIdxToMark);
+        auto Res = ResultMap.find(Key);
+
+        if (Res == ResultMap.end())
+            ResultMap[Key] = make_pair(nullptr, ColSizeTree);
+        else
+            ResultMap[Key] = make_pair(Res->second.first, ColSizeTree);
+        return (long) -1;
+    }();
+
+    return PM->TypeReg.getMatrixType(InnerTy, (int) RowSize, (int) ColSize, false);
 }
 
 
 std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *ctx) {
+    auto InnerTy = castToTypeVisit(ctx->type());
+    if (!isa<IntegerTy>(InnerTy))
+        throw runtime_error("Intervals may only contain integers");
     return PM->TypeReg.getIntervalTy(false);
 }
 
@@ -304,7 +362,7 @@ std::any ASTBuilderPass::visitRealType(GazpreaParser::RealTypeContext *ctx) {
 
 // Ignore for part1
 std::any ASTBuilderPass::visitExpressionOrWildcard(GazpreaParser::ExpressionOrWildcardContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: Expression or wildcard");
 }
 
 std::any ASTBuilderPass::visitFunctionDeclr(GazpreaParser::FunctionDeclrContext *ctx) {
@@ -504,7 +562,9 @@ std::any ASTBuilderPass::visitExplicitCast(GazpreaParser::ExplicitCastContext *c
     auto Cast = PM->Builder.build<ExplicitCast>();
     Cast->setCtx(ctx);
 
+    NodeToMarkForTypeSize = Cast;
     auto TargetType = castToTypeVisit(ctx->type());
+    NodeToMarkForTypeSize = nullptr;
     Cast->setTargetType(TargetType);
 
     // Set expression that is being cast.
@@ -542,11 +602,6 @@ std::any ASTBuilderPass::visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) {
     UnaryExpr->setExpr(Expr);
 
     return cast<ASTNodeT>(UnaryExpr);
-}
-
-// Ignore for part1
-std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
 }
 
 std::any ASTBuilderPass::visitExpExpr(GazpreaParser::ExpExprContext *ctx) {
@@ -718,10 +773,10 @@ std::any ASTBuilderPass::visitByExpr(GazpreaParser::ByExprContext *ctx) {
     ByExpr->setCtx(ctx);
 
     // Set the left expression.
-    ByExpr->setLHS(castToNodeVisit(ctx->expr(0)));
+    ByExpr->setBaseExpr(castToNodeVisit(ctx->expr(0)));
 
     // Set the right expression.
-    ByExpr->setRHS(castToNodeVisit(ctx->expr(1)));
+    ByExpr->setByExpr(castToNodeVisit(ctx->expr(1)));
 
     return cast<ASTNodeT>(ByExpr);
 }
@@ -743,13 +798,6 @@ std::any ASTBuilderPass::visitOrExpr(GazpreaParser::OrExprContext *ctx) {
     OrExpr->setRightExpr(castToNodeVisit(ctx->expr(1)));
     return cast<ASTNodeT>(OrExpr);
 }
-
-
-// ignored for part1
-std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
-    throw std::runtime_error("Unimplemented");
-}
-
 
 std::any ASTBuilderPass::visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) {
     auto CharLit = PM->Builder.build<CharLiteral>();
@@ -850,7 +898,6 @@ std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
     ConcatOp->setRHS(castToNodeVisit(ctx->expr(1)));
 
     return cast<ASTNodeT>(ConcatOp);
-
 }
 
 std::any ASTBuilderPass::visitFuncCall(GazpreaParser::FuncCallContext *ctx) {
@@ -878,7 +925,7 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 //    IntInterval->addCheck(Check);
 
     if (ctx->BY())
-        throw std::runtime_error("Unimplemented");
+        throw std::runtime_error("Unimplemented: By");
 
     return cast<ASTNodeT>(IntInterval);
 }
@@ -927,9 +974,11 @@ std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
                 throw std::runtime_error("Tuple member with duplicate name");
             Mappings.insert({Member->ID()->getText(), Idx});
         }
+        CurrentIdxToMark = Idx - 1;
         MemberTypes.emplace_back(castToTypeVisit(Member->type()));
         ++Idx;
     }
+    CurrentIdxToMark = 0;
     return PM->TypeReg.getTupleType(MemberTypes, Mappings, false);
 }
 
@@ -1065,20 +1114,14 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 }
 
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
-    throw std::runtime_error("Unimplemented");
+    throw std::runtime_error("Unimplemented: TupleUnpack");
 }
 
 std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    string RealString = ctx->INTLITERAL(0)->getText() + ".";
-    if (ctx->INTLITERAL().size() == 2)
-        RealString += ctx->INTLITERAL(1)->getText();
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
-
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral1()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1086,11 +1129,8 @@ std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
 std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText() + ".";
-    if (ctx->ExponentialLiteral())
-        RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral2()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
@@ -1098,13 +1138,97 @@ std::any ASTBuilderPass::visitRealLit2(GazpreaParser::RealLit2Context *ctx) {
 std::any ASTBuilderPass::visitRealLit3(GazpreaParser::RealLit3Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
-    string RealString = ctx->INTLITERAL()->getText();
-    RealString += ctx->ExponentialLiteral()->getText();
 
-    RealLit->setVal(RealString);
+    RealLit->setVal(ctx->ExponentialLiteral3()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
+
+std::any ASTBuilderPass::visitRealLit4(GazpreaParser::RealLit4Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->ExponentialLiteral4()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    RealLit->setVal(ctx->RawReal()->getText());
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit6(GazpreaParser::RealLit6Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string realVal = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(realVal);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<Generator>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Gen->setDomainVariable(DomainVar);
+
+    Gen->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(1)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) {
+    auto Gen = PM->Builder.build<MatrixGenerator>();
+
+    auto RowDomainVar = PM->Builder.build<Identifier>();
+    RowDomainVar->setName(ctx->ID(0)->getText());
+    Gen->setRowDomainVariable(RowDomainVar);
+
+    Gen->setRowDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto ColumnDomainVarIdx = PM->Builder.build<Identifier>();
+    ColumnDomainVarIdx->setName(ctx->ID(1)->getText());
+    Gen->setColumnDomainVariable(ColumnDomainVarIdx);
+
+    Gen->setColumnDomain(castToNodeVisit(ctx->expr(1)));
+
+    Gen->setExpr(castToNodeVisit(ctx->expr(2)));
+
+    return cast<ASTNodeT>(Gen);
+}
+
+
+std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) {
+    auto Filt = PM->Builder.build<Filter>();
+
+    auto DomainVar = PM->Builder.build<Identifier>();
+    DomainVar->setName(ctx->ID()->getText());
+    Filt->setDomainVariable(DomainVar);
+
+    Filt->setDomain(castToNodeVisit(ctx->expr(0)));
+
+    auto PredList = PM->Builder.build<PredicatedList>();
+    for (long long int I = 1; I < ctx->expr().size(); I++) {
+        Filt->addChild(castToNodeVisit(ctx->expr(I)));
+    }
+
+    Filt->setPredicatedList(PredList);
+
+    return cast<ASTNodeT>(Filt);
+}
+
+
+
 
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))
@@ -1114,3 +1238,4 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
+

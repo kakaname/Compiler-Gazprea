@@ -6,39 +6,137 @@
 #include "Passes/BuildAST/ExprTypeAnnotatorPass.h"
 
 void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
-    auto IdentType = PM->getAnnotation<ExprTypeAnnotatorPass>(
+    auto IdentTy = PM->getAnnotation<ExprTypeAnnotatorPass>(
             Assign->getAssignedTo());
-    auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
-    if (IdentType->isConst())
-        throw ConstantAssignmentError(Assign, IdentType->getTypeName());
+    auto AssignedTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+    if (IdentTy->isConst())
+        throw ConstantAssignmentError(Assign, IdentTy->getTypeName());
 
     // If they are already the same type, we don't care.
-    if (AssignedType->isSameTypeAs(IdentType))
+    if (AssignedTy->isSameTypeAs(IdentTy))
         return;
 
-    // If not, the expression must be promotable to the ident type.
-    if (!AssignedType->canPromoteTo(IdentType))
-        throw ScalarPromotionError(Assign, IdentType->getTypeName(), AssignedType->getTypeName());
+    matchBoolPair(IdentTy->isCompositeTy(), AssignedTy->isCompositeTy()) {
+        // In the scalar case we just check if the scalar can be promoted to
+        // the assigned to type.
+        matchPattern(false, false): {
+            if (!AssignedTy->canPromoteTo(IdentTy))
+                throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            auto Cast = wrapWithCastTo(Assign->getExpr(), IdentTy);
+            Assign->setExpr(Cast);
+            return;
+        }
 
-    auto Cast = wrapWithCastTo(Assign->getExpr(), IdentType);
-    Assign->setExpr(Cast);
+            // A composite type cannot be assigned to a scalar type, so we throw
+            // an error.
+        matchPattern(false, true): {
+            throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
+                                       IdentTy->getTypeName());
+        }
+
+            // If both of them are composite types, we first ensure they are the
+            // same composite type and then ensure that the inner type of the
+            // assigned expression can be promoted to the inner of the assigned to.
+        matchPattern(true, true): {
+            if (!((isa<VectorTy>(AssignedTy) && isa<VectorTy>(IdentTy)) ||
+                  (isa<MatrixTy>(AssignedTy) && isa<MatrixTy>(IdentTy))))
+                throw runtime_error("Operation between incompatible "
+                                    "types " + AssignedTy->getTypeName() +
+                                    IdentTy->getTypeName());
+            auto AssignedInner = TypeRegistry::getInnerTyFromComposite(
+                    AssignedTy);
+            auto IdentInner = TypeRegistry::getInnerTyFromComposite(
+                    IdentTy);
+            if (AssignedInner->isSameTypeAs(IdentInner))
+                return;
+            if (!AssignedInner->canPromoteTo(IdentInner))
+                throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            auto TargetTy = PM->TypeReg.getCompositeTyWithInner(AssignedTy, IdentInner);
+            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), TargetTy));
+            return;
+        }
+
+        matchPattern(true, false): {
+            auto IdentInner = TypeRegistry::getInnerTyFromComposite(
+                    IdentTy);
+            if (AssignedTy->isSameTypeAs(IdentInner))
+                return;
+
+            if (!AssignedTy->canPromoteTo(IdentInner))
+                throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentInner));
+            return;
+        }
+    }
 }
 
 void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
-    auto IdentType = Decl->getIdentifier()->getIdentType();
-    assert(IdentType && "Identifier must have their types assigned at this point.");
-    auto AssignedType = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
+    auto IdentTy = Decl->getIdentifier()->getIdentType();
+    assert(IdentTy && "Identifier must have their types assigned at this point.");
+    auto AssignedTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Decl->getInitExpr());
 
     // If they are already the same type, we don't care.
-    if (AssignedType->isSameTypeAs(IdentType))
+    if (AssignedTy->isSameTypeAs(IdentTy))
         return;
 
-    // If not, the expression must be promotable to the ident type.
-    if (!AssignedType->canPromoteTo(IdentType))
-        throw ScalarPromotionError(Decl, AssignedType->getTypeName(), IdentType->getTypeName());
+    matchBoolPair(IdentTy->isCompositeTy(), AssignedTy->isCompositeTy()) {
+        // In the scalar case we just check if the scalar can be promoted to
+        // the assigned to type.
+        matchPattern(false, false): {
+            if (!AssignedTy->canPromoteTo(IdentTy))
+                throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            auto Cast = wrapWithCastTo(Decl->getInitExpr(), IdentTy);
+            Decl->setInitExpr(Cast);
+            return;
+        }
 
-    auto Cast = wrapWithCastTo(Decl->getInitExpr(), IdentType);
-    Decl->setInitExpr(Cast);
+        // A composite type cannot be assigned to a scalar type, so we throw
+        // an error.
+        matchPattern(false, true): {
+            throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
+                                       IdentTy->getTypeName());
+        }
+
+        // If both of them are composite types, we first ensure they are the
+        // same composite type and then ensure that the inner type of the
+        // assigned expression can be promoted to the inner of the assigned to.
+        matchPattern(true, true): {
+            if (!((isa<VectorTy>(AssignedTy) && isa<VectorTy>(IdentTy)) ||
+                  (isa<MatrixTy>(AssignedTy) && isa<MatrixTy>(IdentTy))))
+                throw runtime_error("Operation between incompatible "
+                                    "types " + AssignedTy->getTypeName() +
+                                    IdentTy->getTypeName());
+            auto AssignedInner = TypeRegistry::getInnerTyFromComposite(
+                    AssignedTy);
+            auto IdentInner = TypeRegistry::getInnerTyFromComposite(
+                    IdentTy);
+            if (AssignedInner->isSameTypeAs(IdentInner))
+                return;
+            if (!AssignedInner->canPromoteTo(IdentInner))
+                throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            auto TargetTy = PM->TypeReg.getCompositeTyWithInner(AssignedTy, IdentInner);
+            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), TargetTy));
+            return;
+        }
+
+        matchPattern(true, false): {
+            auto IdentInner = TypeRegistry::getInnerTyFromComposite(
+                    IdentTy);
+            if (AssignedTy->isSameTypeAs(IdentInner))
+                return;
+
+            if (!AssignedTy->canPromoteTo(IdentInner))
+                throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentInner));
+            return;
+        }
+    }
 }
 
 

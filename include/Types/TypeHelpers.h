@@ -8,9 +8,11 @@
 #include <algorithm>
 
 #include "CompositeTypes.h"
+#include "ScalarTypes.h"
+#include "TypeRegistry.h"
 
 using llvm::dyn_cast;
-
+using llvm::isa;
 
 
 bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
@@ -33,7 +35,7 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
     auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
-    if (!TargetTy)
+    if (!TargetTuple)
         return false;
 
     if (BaseTy->getNumOfMembers() != TargetTuple->getNumOfMembers())
@@ -48,16 +50,23 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
 
 bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
     auto BaseTy = cast<VectorTy>(BaseType);
-    auto TargetTyVec = dyn_cast<VectorTy>(TargetTy);
+    auto TargetVecTy = dyn_cast<VectorTy>(TargetTy);
 
-    if (!TargetTyVec)
+    if (!TargetVecTy)
         return false;
 
-    if (BaseTy->getSize() != TargetTyVec->getSize() &&
-        BaseTy->getSize() != -1 && TargetTyVec->getSize() != -1)
+    // The inner type must be the same.
+    if (!BaseTy->getInnerTy()->isSameTypeAs(TargetVecTy->getInnerTy()))
         return false;
 
-    return BaseTy->getInnerTy()->isSameTypeAs(TargetTyVec->getInnerTy());
+    // If any of the sizes are not known, we assume they are the same type.
+    // In this case the program will fail at runtime is this is not the case.
+    if (!BaseTy->isSizeKnown() || !TargetVecTy->isSizeKnown())
+        return true;
+
+    // Sizes of both vectors are known. If they are different, the types are
+    // different.
+    return BaseTy->getSize() == TargetVecTy->getSize();
 }
 
 bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
@@ -158,7 +167,7 @@ bool doesVectorSupportArithOps(const Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForArithOps();
 }
 
-bool doesVectorSupportComparisonOps(const Type *Vec) {
+bool isVectorValidForComparisonOps(const Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForComparisonOp();
 }
 
@@ -263,6 +272,7 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
 
     if (!OtherProc)
         return false;
+
     if (ProcTy->getNumOfArgs() != OtherProc->getNumOfArgs())
         return false;
 
@@ -278,6 +288,83 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
         return false;
 
     return ProcTy->getRetTy()->isSameTypeAs(OtherProc->getRetTy());
+}
+
+bool canPromoteIntegerTo(const Type *TargetTy) {
+    if (TargetTy->isCompositeTy())
+        return canPromoteIntegerTo(TypeRegistry::getInnerTyFromComposite(
+                TargetTy));
+    return isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy);
+}
+
+bool canPromoteRealTo(const Type* TargetTy) {
+    if (TargetTy->isCompositeTy())
+        return canPromoteRealTo(TypeRegistry::getInnerTyFromComposite(
+                TargetTy));
+    return isa<RealTy>(TargetTy);
+}
+
+bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
+    auto BaseVec = cast<VectorTy>(BaseTy);
+    auto TargetVec = dyn_cast<VectorTy>(TargetTy);
+
+    if (!TargetVec)
+        return false;
+
+    auto CanInnerPromote = BaseVec->getInnerTy()->canPromoteTo(TargetVec->getInnerTy());
+
+    if (TargetVec->isSizeKnown() && BaseVec->isSizeKnown())
+        return (TargetVec->getSize() == BaseVec->getSize()) && CanInnerPromote;
+
+    return CanInnerPromote;
+}
+
+
+bool canCastBoolCharIntTo(const Type* TargetTy) {
+    switch (TargetTy->getKind()) {
+        case Type::T_Bool:
+        case Type::T_Char:
+        case Type::T_Int:
+        case Type::T_Real:
+            return true;
+        default:
+            if (TargetTy->isCompositeTy())
+                return canCastBoolCharIntTo(TypeRegistry::getInnerTyFromComposite(TargetTy));
+            return false;
+    }
+}
+
+bool canCastRealTo(const Type* TargetTy) {
+    if (isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy))
+        return true;
+
+    if (TargetTy->isCompositeTy())
+        return canCastRealTo(TypeRegistry::getInnerTyFromComposite(TargetTy));
+
+    return false;
+}
+
+bool isVectorValidForUnaryNot(const Type* T) {
+    return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryNot();
 };
+bool isMatrixValidForUnaryNot(const Type* T) {
+    return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryNot();
+}
+
+bool isVectorValidForUnaryAddSub(const Type *T) {
+    return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
+}
+bool isMatrixValidForUnaryAddSub(const Type *T) {
+    return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
+}
+
+bool canCastVectorTo(const Type *Base, const Type *TargetTy) {
+    auto BaseVec = cast<VectorTy>(Base);
+    auto VecTy = dyn_cast<VectorTy>(TargetTy);
+    if (!VecTy)
+        return false;
+
+    return (BaseVec->getInnerTy()->canCastTo(VecTy->getInnerTy()));
+}
 
 #endif //GAZPREABASE_TYPEHELPERS_H

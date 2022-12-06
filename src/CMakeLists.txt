@@ -47,7 +47,10 @@ set(
 	"Passes/Checks/ProcedureCallStatCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Codegen/CastOperation.cpp"
 	"Passes/Transformations/BubbleGlobalDeclarationPass.cpp"
-)
+	"Passes/BuildAST/AddingFreeNodesPass.cpp"
+	"Passes/Transformations/VectorScalarOpTransformationPass.cpp"
+	"Passes/Transformations/SimplifyCompositeTypeCasting.cpp"
+	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})

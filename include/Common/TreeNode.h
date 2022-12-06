@@ -70,10 +70,15 @@ public:
         N_AST_ByOp,
         N_AST_ExplicitCast,
         N_AST_VectorLiteral,
-
         N_AST_Interval,
+        N_AST_FreeNode,
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
+        N_AST_Generator,
+        N_AST_MatrixGenerator,
+        N_AST_PredicatedList,
+        N_AST_Filter,
+        N_AST_AppendNode
     };
 
     TreeNodeKind getKind() const {
@@ -126,20 +131,24 @@ public:
     }
 
     TreeNode *getChildAt(size_t Pos) {
-        assert(Pos < Children.size());
+        if(Pos >= Children.size())
+            throw std::runtime_error("Tried to access a child that does not exist");
         auto I = Children.begin();
         advance(I, Pos);
         return *I;
     }
 
 
-    size_t numOfChildren() {
+    [[gnu::noinline]] size_t numOfChildren() {
         return Children.size();
     }
 
     void replaceChildWith(const TreeNode *Old, TreeNode *New) {
         auto Loc = std::find(Children.begin(), Children.end(), Old);
-        assert(Loc != Children.end() && "Tried to replace a non existent child");
+
+        if(Loc == Children.end())
+            throw std::runtime_error("Tried to replace a non existent child");
+
         if (New)
             New->setParent(this);
         *Loc = New;

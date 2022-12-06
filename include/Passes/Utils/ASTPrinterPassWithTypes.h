@@ -250,6 +250,30 @@ public:
         std::cout << "ByOp(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(By)->getTypeName() << ")\n";
     }
 
+    void visitFreeNode(FreeNode *FreeNode) {
+        std::cout << "FreeNode" << "\n";
+    }
+
+    void visitGenerator(Generator *Gen) {
+        std:: cout << "Gen" << "\n";
+    }
+
+    void visitMatrixGenerator(MatrixGenerator *Gen) {
+        std:: cout << "MatrixGen" << "\n";
+    }
+
+    void visitPredicatedList(PredicatedList *PredList) {
+        std::cout << "PredList" << "\n";
+    }
+
+    void visitFilter(Filter *Filter) {
+        std::cout << "Filter" << "\n";
+    }
+
+    void visitAppendNode(AppendNode *Append) {
+        std::cout << "Append" << "\n";
+    }
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;

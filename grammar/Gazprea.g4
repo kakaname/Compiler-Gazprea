@@ -52,8 +52,6 @@ lvalue
     | ID                                    # identLValue
     ;
 
-index : expr LSQRPAREN expr RSQRPAREN;
-
 conditional : IF expr stmt              # ifConditional
             | IF expr stmt ELSE stmt    # ifElseConditional;
 
@@ -82,12 +80,13 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
-     | INTEGER INTERVAL                                 #intervalType
+     | type INTERVAL                                    #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
      | BOOLEANA                                         #booleanType
      | REAL                                             #realType
      | ID                                               #resolvedType
+     | STRINGATOM                                       #stringType
      ;
 
 expressionOrWildcard: (MUL | expr);
@@ -160,6 +159,8 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | AS LT type GT LPAREN expr RPAREN      # explicitCast
     | LSQRPAREN ID IN expr BAR expr RSQRPAREN       # generatorExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
+    | LSQRPAREN ID IN expr COMMA ID IN expr BAR expr RSQRPAREN  #matrixGeneratorExpr
+    | LSQRPAREN ID IN expr AND expr (COMMA expr)* RSQRPAREN #filterExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
     | LSQRPAREN (expr (COMMA expr)*)? RSQRPAREN        #vectorLiteral
@@ -170,17 +171,26 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
+    | StringLiteral                         # stringLiteral
     ;
 
 
-realLit : INTLITERAL? PERIOD INTLITERAL ExponentialLiteral? #realLit1
-        | INTLITERAL PERIOD ExponentialLiteral?             #realLit2
-        | INTLITERAL ExponentialLiteral                     #realLit3
+realLit : ExponentialLiteral1             #realLit1
+        | ExponentialLiteral2             #realLit2
+        | ExponentialLiteral3             #realLit3
+        | ExponentialLiteral4             #realLit4
+        | INTLITERAL PERIOD                        #realLit5
+        | PERIOD INTLITERAL               #realLit6
+        | INTLITERAL PERIOD INTLITERAL  #realLit7
         ;
 
 // --- LEXER RULES ---
+StringLiteral: '"' (('\\' '"') | .)*?  '"';
 
-ExponentialLiteral: 'e' (ADD | SUB)? INTLITERAL;
+ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral3: '.' [0-9]+ 'e' ('+' | '-')? [0-9]+;
+ExponentialLiteral4: [0-9]+ '.' [0-9]+ 'e' ('+' | '-')? [0-9]+;
 
 // --- LEXER RULES ---
 
@@ -262,6 +272,7 @@ XOR : 'xor' ;
 
 INTLITERAL : [0-9]+ ;
 ID : [_a-zA-Z][_a-zA-Z0-9]* ;
+
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;

@@ -8,19 +8,32 @@
 #include "GazpreaBaseVisitor.h"
 #include "AST/ASTNodes.h"
 #include "Passes/PassManager.h"
+#include "Passes/BuildAST/ConstantFoldingPass.h"
 
 using gazprea::GazpreaParser;
 using std::string;
+using std::pair;
 
-class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<ASTBuilderPass> {
+struct ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<ASTBuilderPass> {
 
-    using AnnotationT = map<string, int>;
+private:
+    using SelfT = ASTBuilderPass;
+
+    Program *Prog{};
 
     ASTPassManager *PM{};
 
-    Program *Prog;
+    ASTNodeT *NodeToMarkForTypeSize{};
+
+    int CurrentIdxToMark{};
 
     antlr4::tree::ParseTree *File;
+
+    ConstantFoldingPass Folder;
+
+public:
+
+    using ResultT = map<pair<ASTNodeT*, int>, pair<ASTNodeT*, ASTNodeT*>>;
 
     ASTNodeT *castToNodeVisit(antlr4::tree::ParseTree *Tree) {
         return std::any_cast<ASTNodeT*>(visit(Tree));
@@ -133,8 +146,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitUnaryExpr(GazpreaParser::UnaryExprContext *ctx) override;
 
-    std::any visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) override;
-
     std::any visitExpExpr(GazpreaParser::ExpExprContext *ctx) override;
 
     std::any visitCompExpr(GazpreaParser::CompExprContext *ctx) override;
@@ -158,8 +169,6 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
     std::any visitByExpr(GazpreaParser::ByExprContext *ctx) override;
 
     std::any visitOrExpr(GazpreaParser::OrExprContext *ctx) override;
-
-    std::any visitFilterExpr(GazpreaParser::FilterExprContext *ctx) override;
 
     std::any visitCharLiteral(GazpreaParser::CharLiteralContext *ctx) override;
 
@@ -195,11 +204,21 @@ class ASTBuilderPass: public gazprea::GazpreaBaseVisitor, public ASTPassIDMixin<
 
     std::any visitRealLit3(GazpreaParser::RealLit3Context *ctx) override;
 
+    std::any visitRealLit4(GazpreaParser::RealLit4Context *ctx) override;
+
+    std::any visitRealLit5(GazpreaParser::RealLit5Context *ctx) override;
+
+    std::any visitRealLit6(GazpreaParser::RealLit6Context *ctx) override;
+
+    std::any visitGeneratorExpr(GazpreaParser::GeneratorExprContext *ctx) override;
+
+    std::any visitMatrixGeneratorExpr(GazpreaParser::MatrixGeneratorExprContext *ctx) override;
+
+    std::any visitFilterExpr(GazpreaParser::FilterExprContext *ctx) override;
+
     Block *wrapStmtInBlock(ASTNodeT *Stmt);
 
-public:
-
-    explicit ASTBuilderPass(antlr4::tree::ParseTree *F): File(F) {};
+    explicit ASTBuilderPass(antlr4::tree::ParseTree *F): File(F), Folder() {};
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 };

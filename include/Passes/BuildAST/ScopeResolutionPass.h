@@ -12,6 +12,7 @@
 #include "Symbol/Symbol.h"
 #include "Passes/VisitorPass.h"
 #include "Passes/BuildAST/ExprTypeAnnotatorPass.h"
+#include "ASTBuilderPass.h"
 
 
 using llvm::isa;
@@ -105,6 +106,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     void visitDeclaration(Declaration *Decl) {
         visit(Decl->getInitExpr());
         auto ExprType = runTypeAnnotator(Decl->getInitExpr(), Decl->getIdentType());
+
         // The type must be inferred.
         if (!Decl->getIdentType()) {
             assert(ExprType && "Cannot infer declaration type");
@@ -116,6 +118,63 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->getIdentifier()->setIdentType(ExprType);
         }
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
+
+        // Infer the size from the expression type.
+        do {
+            if (!Decl->getIdentType()->isCompositeTy())
+                break;
+
+            if (auto VecTy = dyn_cast<VectorTy>(Decl->getIdentType())) {
+                // If the size is known, we don't change the type and let it
+                // potentially fail when the AssignmentTypeCheckerPass runs.
+                if (VecTy->isSizeKnown())
+                    break;
+
+                // If the size was specified as an expression, we do nothing
+                // and let the AssignmentTypeCheckerPass handle it.
+                if (PM->getResult<ASTBuilderPass>().find({Decl, 0})->second.first)
+                    break;
+
+                auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
+                assert(ExprVecTy && "Trying to assign non vector to vector with inferred size");
+                auto NewDeclType = PM->TypeReg.getVectorType(
+                        VecTy->getInnerTy(), ExprVecTy->getSize(),
+                        Decl->IsConst);
+
+                Decl->setIdentType(NewDeclType);
+                Decl->getIdentifier()->setIdentType(NewDeclType);
+                break;
+            }
+
+            if (auto MatTy = dyn_cast<MatrixTy>(Decl->getIdentType())) {
+                if (MatTy->isSizeKnown())
+                    break;
+
+                // If the size was specified as an expression, we do nothing
+                // and let the AssignmentTypeCheckerPass handle it.
+                auto Dimensions = PM->getResult<ASTBuilderPass>().find({Decl, 0})->second;
+                if (Dimensions.first || Dimensions.second)
+                    break;
+
+                auto ExprMatTy = dyn_cast<MatrixTy>(ExprType);
+                assert(ExprMatTy && "Trying to assign non matrix to matrix "
+                                    "of unknown size");
+
+                auto NumOfRows = MatTy->isNumOfRowsIsKnown() ?
+                        MatTy->getNumOfRows() : ExprMatTy->getNumOfRows();
+                auto NumOfCols = MatTy->isNumOfColumnsIsKnown() ?
+                        MatTy->getNumOfColumns() : MatTy->getNumOfRows();
+
+                auto NewDeclType = PM->TypeReg.getMatrixType(
+                        MatTy->getInnerTy(),
+                        NumOfRows,
+                        NumOfCols,
+                        Decl->IsConst);
+                Decl->setIdentType(NewDeclType);
+                Decl->getIdentifier()->setIdentType(NewDeclType);
+                break;
+            }
+        } while (false);
 
         auto Sym = PM->SymTable.defineObject(
                 Decl->getIdentifier()->getName(), Decl->getIdentType());
@@ -150,8 +209,21 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     }
 
     void visitProcedureDef(ProcedureDef *Def) {
-        auto ParamList = Def->getParamList();
 
+        auto ProcName = Def->getIdentifier()->getName();
+        auto ProcTy = Def->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(ProcName);
+        if (Resolved) {
+            if (!Resolved->getSymbolType()->isSameTypeAs(ProcTy))
+                throw runtime_error("Differing declaration and definition");
+        } else {
+            auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
+            CurrentScope->declareInScope(ProcName, ProcSym);
+            Def->getIdentifier()->setReferred(ProcSym);
+        }
+
+
+        auto ParamList = Def->getParamList();
         // Add a scope for the parameters of the function.
         auto ProcParamScope = PM->Builder.build<ScopeTreeNode>();
         CurrentScope->addChild(ProcParamScope);
@@ -175,21 +247,23 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
         // Go back to the original scope.
         CurrentScope = cast<ScopeTreeNode>(ProcParamScope->getParent());
-
-        auto ProcName = Def->getIdentifier()->getName();
-        auto ProcTy = Def->getIdentifier()->getIdentType();
-        auto Resolved = CurrentScope->resolve(ProcName);
-        if (Resolved) {
-            assert(Resolved->getSymbolType()->isSameTypeAs(ProcTy) &&
-                   "Differing declaration and definition");
-            return;
-        }
-
-        auto ProcSym = PM->SymTable.defineObject(ProcName, ProcTy);
-        CurrentScope->declareInScope(ProcName, ProcSym);
     }
 
     void visitFunctionDef(FunctionDef *Def) {
+
+        auto FuncName = Def->getIdentifier()->getName();
+        auto FuncTy = Def->getIdentifier()->getIdentType();
+        auto Resolved = CurrentScope->resolve(FuncName);
+        if (Resolved) {
+            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
+                   "Differing declaration and definition");
+            Def->getIdentifier()->setReferred(Resolved);
+        } else {
+            auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
+            CurrentScope->declareInScope(FuncName, FuncSym);
+            Def->getIdentifier()->setReferred(FuncSym);
+        }
+
         auto ParamList = Def->getParamList();
 
         // Add a scope for the parameters of the function.
@@ -216,20 +290,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         // Go back to the original scope.
         CurrentScope = cast<ScopeTreeNode>(FuncParamScope->getParent());
 
-        auto FuncName = Def->getIdentifier()->getName();
-        auto FuncTy = Def->getIdentifier()->getIdentType();
-        auto Resolved = CurrentScope->resolve(FuncName);
-        if (Resolved) {
-            assert(Resolved->getSymbolType()->isSameTypeAs(FuncTy) &&
-            "Differing declaration and definition");
-            Def->getIdentifier()->setReferred(Resolved);
-            return;
-        }
 
-        auto FuncSym = PM->SymTable.defineObject(FuncName, FuncTy);
-        CurrentScope->declareInScope(FuncName, FuncSym);
-        Def->getIdentifier()->setReferred(FuncSym);
-    }
+   }
 
     void visitFunctionDecl(FunctionDecl *Decl) {
         auto FuncName = Decl->getIdentifier()->getName();
@@ -281,7 +343,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (ParamTypes.size() != Args->numOfChildren())
             throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
 
-        for (auto I = 0; I < ParamTypes.size(); I++)
+        for (unsigned long I = 0; I < ParamTypes.size(); I++)
             runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
     }
@@ -306,7 +368,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         if (ParamTypes.size() != Args->numOfChildren())
             throw InvalidProcedureCallError(Call, "Incorrect number of arguments");
 
-        for (auto I = 0; I < ParamTypes.size(); I++)
+        for (size_t I = 0; I < ParamTypes.size(); I++)
             runTypeAnnotator(Args->getExprAtPos(I), ParamTypes[I]);
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
     }
