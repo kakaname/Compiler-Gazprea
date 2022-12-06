@@ -46,7 +46,7 @@ identDecl
 assignment : lvalue EQ expr SC;
 
 lvalue
-    : expr LSQRPAREN expr RSQRPAREN         # indexLValue
+    : expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexLValue
     | ID PERIOD (ID | INTLITERAL)           # memAccessLValue
     | lvalue COMMA lvalue (COMMA lvalue)*   # tupleUnpackLValue
     | ID                                    # identLValue
@@ -144,7 +144,7 @@ block : LBRACE (stmt)* RBRACE ;
 
 expr: LPAREN expr RPAREN                    # bracketExpr
     | ID PERIOD (ID | INTLITERAL)           # memberAccess
-    | expr LSQRPAREN expr RSQRPAREN         # indexExpr
+    | expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexExpr
     | expr DD expr (BY expr)?               # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr op=EXP expr        # expExpr

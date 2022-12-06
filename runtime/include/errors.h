@@ -4,9 +4,6 @@
 
 #pragma once
 
-#include <stdlib.h>
-#include <stdio.h>
-
 void ERR(const char *msg) {
     fprintf(stderr, "%s", msg);
     exit(1);
