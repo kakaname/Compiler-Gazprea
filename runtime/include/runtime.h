@@ -7,21 +7,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
+int64_t rt_ipow(int64_t base, int64_t exp);
 
 #define VECTOR_OP(enum_name, op) \
     case enum_name:                  \
         res_data[i] = a_data[i] op b_data[i]; \
         break;
 #define ARITHMETIC_OPS \
-switch (op) {          \
     VECTOR_OP(MUL, *)  \
     VECTOR_OP(DIV, /)  \
     VECTOR_OP(ADD, +)  \
     VECTOR_OP(SUB, -)  \
     default:           \
-        exit(1);       \
-}
+        exit(1);
+
 #define VECTOR_A_INIT(type) \
     type *a_data = (type *) a->data;
 #define VECTOR_RES_INIT(type) \
@@ -185,6 +186,7 @@ struct matrix {
 };
 
 
+struct vector rt_vector_new(enum vector_type type, u_int64_t size);
 struct vector rt_vector_not(struct vector *v);
 struct vector rt_vector_sub(struct vector *v);
 struct vector rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op);
