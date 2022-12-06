@@ -67,13 +67,29 @@ struct vector rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op) 
     if (res.type == VECTOR_TYPE_INT) {
         VECTOR_DATA_INIT_RES(int64_t)
         for (int64_t i = 0; i < res.size; i++) {
-            ARITHMETIC_OPS
+            switch (op) {
+                ARITHMETIC_OPS
+                case EXP:
+                    res_data[i] = rt_ipow(a_data[i], b_data[i]);
+                    break;
+                case MOD:
+                    res_data[i] = a_data[i] % b_data[i];
+                    break;
+            }
         }
 
     } else if (res.type == VECTOR_TYPE_FLOAT) {
         VECTOR_DATA_INIT_RES(float)
         for (int64_t i = 0; i < res.size; i++) {
-            ARITHMETIC_OPS
+            switch (op) {
+                ARITHMETIC_OPS
+                case EXP:
+                    res_data[i] = powf(a_data[i], b_data[i]);
+                    break;
+                case MOD:
+                    res_data[i] = remainderf(a_data[i], b_data[i]);
+                    break;
+            }
         }
     } else {
         exit(1);
@@ -178,8 +194,8 @@ struct vector rt_vector_concat(struct vector *a, struct vector *b) {
 
 }
 
-u_int64_t rt_vector_dotproduct_int(struct vector *a, struct vector *b) {
-    u_int64_t res = 0;
+int64_t rt_vector_dotproduct_int(struct vector *a, struct vector *b) {
+    int64_t res = 0;
     VECTOR_DATA_INIT(int64_t)
     VECTOR_DOTPRODUCT
     return res;
@@ -295,5 +311,21 @@ struct vector rt_vector_view_vector(struct vector *v, struct vector *idx) {
     newV.type = v->type;
     newV.data = v->data;
     return newV;
+}
+
+int64_t rt_ipow(int64_t base, int64_t exp) {
+    // taken from https://stackoverflow.com/questions/101439/the-most-efficient-way-to-implement-an-integer-based-power-function-powint-int
+    int64_t result = 1;
+    for (;;)
+    {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        if (!exp)
+            break;
+        base *= base;
+    }
+
+    return result;
 }
 

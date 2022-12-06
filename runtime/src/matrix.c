@@ -17,7 +17,6 @@ struct matrix rt_matrix_new(enum vector_type type, u_int64_t rows, u_int64_t col
     m.rows = rows;
     m.cols = cols;
     m.idx = 0;
-    m.idx = 0;
     m.type = type;
     m.data = malloc(sizeof(struct vector) * rows);
     return m;
@@ -138,8 +137,37 @@ struct matrix rt_matrix_arith(struct matrix *a, struct matrix *b, u_int64_t op) 
     return m;
 }
 
+struct matrix rt_matrix_mul(struct matrix *a, struct matrix *b) {
+    struct matrix m = rt_matrix_new(a->type, a->rows, b->cols);
+
+    // loop through each position and create a dot product
+    // we should not have any vector views ever here
+    for (u_int64_t i = 0; i < a->rows; i++) {
+        m.data[i] = rt_vector_new(a->type, b->cols);
+        for (u_int64_t j = 0; j < b->cols; j++) {
+            if (a->type == VECTOR_TYPE_INT) {
+                int64_t sum = 0;
+                for (u_int64_t k = 0; k < a->cols; k++) {
+                    sum += ((int64_t *) a->data[i].data)[k] * ((int64_t *) b->data[k].data)[j];
+                }
+                ((int64_t *) m.data[i].data)[j] = sum;
+            } else if (a->type == VECTOR_TYPE_FLOAT) {
+                float sum = 0;
+                for (u_int64_t k = 0; k < a->cols; k++) {
+                    sum += ((float *) a->data[i].data)[k] * ((float *) b->data[k].data)[j];
+                }
+                ((float *) m.data[i].data)[j] = sum;
+            } else {
+                exit(1);
+            }
+        }
+    }
+    return m;
+}
+
 struct matrix rt_matrix_comp(struct matrix *a, struct matrix *b, u_int64_t op) {
     struct matrix m = rt_matrix_create_unpopulated(a);
+    m.type = VECTOR_TYPE_BOOL;
     for (int64_t i = 0; i < a->rows; i++) {
         m.data[i] = rt_vector_comp(&a->data[i], &b->data[i], op);
     }
