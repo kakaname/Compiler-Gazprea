@@ -54,9 +54,14 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
 
     if (LeftType->isSameTypeAs(RightType)) {
 
-        if (LeftType->getKind() == Type::TypeKind::T_Vector) {
+        if (isa<VectorTy>(LeftType)) {
             auto LeftVec = dyn_cast<VectorTy>(LeftType);
-            auto ResType = PM->TypeReg.getVectorType(LeftVec->getInnerTy(), LeftVec->getSize());
+            auto ResType = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), LeftVec->getSize());
+            annotate(Op, ResType);
+            return ResType;
+        } else if (isa<MatrixTy>(LeftType)) {
+            auto LeftMat = dyn_cast<MatrixTy>(LeftType);
+            auto ResType = PM->TypeReg.getMatrixType(PM->TypeReg.getBooleanTy(), LeftMat->getNumOfRows(), LeftMat->getNumOfColumns());
             annotate(Op, ResType);
             return ResType;
         }
@@ -215,35 +220,6 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
             return PM->TypeReg.getBooleanTy();
         }
 
-        //Check tuple promotion
-//        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
-//            if(!(LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
-//                    || RightType->canPromoteTo(LeftType)))
-//                throw InvalidTupleComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
-//
-//            if (LeftType->canPromoteTo(RightType)) {
-//                auto Cast = PM->Builder.build<TypeCast>();
-//                Cast->copyCtx(Op);
-//                auto TupleType = cast<TupleTy>(RightType);
-//
-//                Cast->setExpr(LeftExpr);
-//                Cast->setTargetType(TupleType);
-//                Op->setLeftExpr(Cast);
-//                LeftType = Cast->getTargetType();
-//            }
-//
-//            if (RightType->canPromoteTo(LeftType)) {
-//                auto Cast = PM->Builder.build<TypeCast>();
-//                Cast->copyCtx(Op);
-//                auto TupleType = cast<TupleTy>(LeftType);
-//
-//                Cast->setExpr(RightExpr);
-//                Cast->setTargetType(TupleType);
-//                Op->setRightExpr(Cast);
-//                RightType = Cast->getTargetType();
-//            }
-//        }
-
         if (!LeftType->isSameTypeAs(RightType))
             throw InvalidComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
 
@@ -253,7 +229,7 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     } else {
         // All other "logical ops" are only supported for booleans.
 
-        if (LeftType->getKind() == Type::TypeKind::T_Vector && RightType->getKind() == Type::TypeKind::T_Vector) {
+        if (isa<VectorTy>(LeftType) && isa<VectorTy>(RightType)){
             auto LeftVecTy = cast<VectorTy>(LeftType);
             auto RightVecTy = cast<VectorTy>(RightType);
             if (!LeftVecTy->getInnerTy()->isSameTypeAs(RightVecTy->getInnerTy())) {
@@ -266,6 +242,23 @@ const Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
             PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
             return LeftType;
+
+        } else if (isa<MatrixTy>(LeftType) && isa<MatrixTy>(RightType)) {
+            auto LeftMatTy = cast<MatrixTy>(LeftType);
+            auto RightMatTy = cast<MatrixTy>(RightType);
+
+            // TODO switch to comparing left type only?
+            if (!LeftMatTy->getInnerTy()->isSameTypeAs(RightMatTy->getInnerTy())) {
+                throw runtime_error("Matrix types must be of the same type");
+            }
+
+            if (!LeftMatTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
+                throw InvalidComparisonOpError(Op, LeftMatTy->getInnerTy()->getTypeName());
+            }
+
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
+            return LeftType;
+
         }
 
         if (!isa<BoolTy>(LeftType))
@@ -752,18 +745,41 @@ const Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto LHS = visit(Dot->getLHS());
     auto RHS = visit(Dot->getRHS());
 
-    if (LHS->getKind() != Type::TypeKind::T_Vector || RHS->getKind() != Type::TypeKind::T_Vector)
-        throw std::runtime_error("Dot product can only be applied to vector types");
+    if (isa<VectorTy>(LHS) && isa<VectorTy>(RHS)) {
+        // TODO ensure vector isSameTypeAs ignores size of -1
+        // TODO casting logic
+        if (!LHS->isSameTypeAs(RHS))
+            throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
 
-    // TODO ensure vector isSameTypeAs ignores size of -1
-    // TODO casting logic
-    if (!LHS->isSameTypeAs(RHS))
-        throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
+        auto ResTy = dyn_cast<VectorTy>(LHS)->getInnerTy();
+        if (!ResTy->isValidForArithOps())
+            throw std::runtime_error("Dot product can only be applied to vectors of arithmetic types");
 
-    auto ResTy = dyn_cast<VectorTy>(LHS)->getInnerTy();
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Dot, ResTy);
+        return ResTy;
 
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Dot, ResTy);
-    return ResTy;
+    } else if (isa<MatrixTy>(LHS) && isa<MatrixTy>(RHS)) {
+        auto LHSMatTy = dyn_cast<MatrixTy>(LHS);
+        auto RHSMatTy = dyn_cast<MatrixTy>(RHS);
+        if (LHSMatTy->getNumOfColumns() != RHSMatTy->getNumOfRows()
+            && LHSMatTy->getNumOfRows() != -1 && RHSMatTy->getNumOfColumns() != -1)
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of compatible sizes");
+
+        auto LHSInnerTy = LHSMatTy->getInnerTy();
+        auto RHSInnerTy = RHSMatTy->getInnerTy();
+        if (!LHSInnerTy->isSameTypeAs(RHSInnerTy))
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of the same inner type");
+
+        if (!LHSInnerTy->isValidForArithOps())
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of arithmetic types");
+
+        auto ResTy = PM->TypeReg.getMatrixType(LHSInnerTy, LHSMatTy->getNumOfRows(), RHSMatTy->getNumOfColumns());
+        PM->setAnnotation<ExprTypeAnnotatorPass>(Dot, ResTy);
+        return ResTy;
+
+    }
+    throw std::runtime_error("Dot product/matrix multiplication can only be applied to vector/matrix types");
+
 }
 
 const Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {

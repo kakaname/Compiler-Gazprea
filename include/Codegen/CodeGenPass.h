@@ -98,6 +98,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee MatrixCopy;
     llvm::FunctionCallee VectorCopy;
     llvm::FunctionCallee MatrixSetVector;
+    llvm::FunctionCallee MatrixMul;
 
     // Runtime buffer location
     llvm::Value *BufferPtr;

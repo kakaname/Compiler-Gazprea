@@ -175,6 +175,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     MatrixSetVector = Mod.getOrInsertFunction(
             "rt_matrix_set_vector", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMMatrixTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+    MatrixMul = Mod.getOrInsertFunction(
+            "rt_matrix_mul", llvm::FunctionType::get(
+                    LLVMMatrixTy, {LLVMMatrixTy->getPointerTo(), LLVMMatrixTy->getPointerTo()}, false));
 
     visit(Root);
 
@@ -1131,7 +1134,7 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     IR.CreateBr(Body);
 
     CurrentFunction = GlobalFunction;
-
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
@@ -1158,6 +1161,7 @@ llvm::Value *CodeGenPass::visitReturn(Return *Return) {
     llvm::BasicBlock *AfterRet = llvm::BasicBlock::Create(
             GlobalCtx, "after_ret", CurrentFunction);
     IR.SetInsertPoint(AfterRet);
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitBreak(Break *Break) {
@@ -1388,6 +1392,7 @@ llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
         visit(Child);
 
     // TODO free unnecessary vectors
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
@@ -1542,18 +1547,39 @@ llvm::Value *CodeGenPass::visitDotProduct(DotProduct *DP) {
     llvm::Value *Left = visit(DP->getLHS());
     llvm::Value *Right = visit(DP->getRHS());
 
-    // TODO temporary alloca
-    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
-    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Left, LeftPtr);
-    IR.CreateStore(Right, RightPtr);
+    auto LeftTy = PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS());
+    auto RightTy = PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getRHS());
 
-    // Determine type of the result
-    auto LeftTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS()));
-    if (LeftTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
-        return IR.CreateCall(VectorDotProductReal, {LeftPtr, RightPtr});
-    else
-        return IR.CreateCall(VectorDotProductInt, {LeftPtr, RightPtr});
+    if (isa<VectorTy>(LeftTy)) {
+        // Dot product
+        // TODO temporary alloca
+        llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
+        llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(Left, LeftPtr);
+        IR.CreateStore(Right, RightPtr);
+
+        // Determine type of the result
+        auto LeftVTy = dyn_cast<VectorTy>(LeftTy);
+        if (LeftVTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
+            return IR.CreateCall(VectorDotProductReal, {LeftPtr, RightPtr});
+        else
+            return IR.CreateCall(VectorDotProductInt, {LeftPtr, RightPtr});
+
+    } else if (isa<MatrixTy>(LeftTy)) {
+
+        // TODO temporary alloca
+        llvm::Value *LeftPtr = IR.CreateAlloca(LLVMMatrixTy);
+        llvm::Value *RightPtr = IR.CreateAlloca(LLVMMatrixTy);
+        IR.CreateStore(Left, LeftPtr);
+        IR.CreateStore(Right, RightPtr);
+
+        // Determine type of the result
+        return IR.CreateCall(MatrixMul, {LeftPtr, RightPtr});
+
+    }
+
+    assert(false && "Invalid dot product/matrix mul");
+
 }
 
 llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
