@@ -45,20 +45,6 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return BoolTy;
         }
 
-        if (LeftType->isSameTypeAs(RightType)) {
-
-            if (isa<VectorTy>(LeftType)) {
-                auto LeftVec = dyn_cast<VectorTy>(LeftType);
-                auto ResType = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), LeftVec->getSize());
-                annotate(Op, ResType);
-                return ResType;
-            } else if (isa<MatrixTy>(LeftType)) {
-                auto LeftMat = dyn_cast<MatrixTy>(LeftType);
-                auto ResType = PM->TypeReg.getMatrixType(PM->TypeReg.getBooleanTy(), LeftMat->getNumOfRows(), LeftMat->getNumOfColumns());
-                annotate(Op, ResType);
-                return ResType;
-        }
-
         // Otherwise, the result is a composite type with the same size as
         // the opaque type but with inner type as boolean.
         auto ResultTy = PM->TypeReg.getCompositeTyWithInner(
@@ -67,7 +53,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         return ResultTy;
     }
 
-    auto GetTargetTyForOpaqueCasts = [&](const Type *OtherTy){
+    auto GetTargetTyForOpaqueCasts = [&](const Type *OtherTy) {
         if (OtherTy->isCompositeTy())
             return TypeRegistry::getInnerTyFromComposite(OtherTy);
         return OtherTy;
@@ -96,7 +82,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     // Easy case where both types are the same.
     if (LType->isSameTypeAs(RType)) {
         auto ResultTy = (LType->isCompositeTy()) ?
-                TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
+                        TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
         annotateWithConst(Op, ResultTy);
         return ResultTy;
     }
@@ -108,7 +94,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         // size or equal to the size of the known sized type.
         matchPattern(true, true): {
             if (!((isa<VectorTy>(LType) && isa<VectorTy>(RType)) ||
-            (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
+                  (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
                 throw runtime_error("Operation between incompatible "
                                     "types " + LType->getTypeName() +
                                     RType->getTypeName());
@@ -177,13 +163,13 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             }
         }
 
-        // If the left type is composite, and the right type is not, we cast
-        // the right type to the inner type of the left type if the inner type
-        // is wider than the right type. If the reverse is true, i.e. the right
-        // type is wider, then we cast the left type to a composite type with
-        // the same size as before but the inner being the right type. The
-        // result is always a composite type with equal size as the composite
-        // type but the inner type being the wider type.
+            // If the left type is composite, and the right type is not, we cast
+            // the right type to the inner type of the left type if the inner type
+            // is wider than the right type. If the reverse is true, i.e. the right
+            // type is wider, then we cast the left type to a composite type with
+            // the same size as before but the inner being the right type. The
+            // result is always a composite type with equal size as the composite
+            // type but the inner type being the wider type.
         matchPattern(true, false): {
             auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
             auto WiderTy = getWiderType(LInner, RType);
@@ -202,7 +188,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
                 return ResTy;
             }
 
-            if (!RType->isSameTypeAs(WiderTy))  {
+            if (!RType->isSameTypeAs(WiderTy)) {
                 RExpr = wrapWithCastTo(RExpr, WiderTy);
                 Op->setRightExpr(RExpr);
             }
@@ -211,7 +197,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return ResTy;
         }
 
-        // Same as the (true, false) case just mirrored.
+            // Same as the (true, false) case just mirrored.
         matchPattern(false, true): {
             auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
             auto WiderTy = getWiderType(RInner, LType);
@@ -230,7 +216,7 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
                 return ResTy;
             }
 
-            if (!LType->isSameTypeAs(WiderTy))  {
+            if (!LType->isSameTypeAs(WiderTy)) {
                 LExpr = wrapWithCastTo(LExpr, WiderTy);
                 Op->setLeftExpr(LExpr);
             }
@@ -239,8 +225,8 @@ const Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return ResTy;
         }
 
-        // In this case we simply cast the narrower type to the wider type and
-        // we are done
+            // In this case we simply cast the narrower type to the wider type and
+            // we are done
         matchPattern(false, false): {
             auto WiderTy = getWiderType(LType, RType);
             if (!LType->isSameTypeAs(WiderTy)) {
@@ -890,23 +876,23 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
             if (!InVecTy->getInnerTy()->isScalarTy()) {
                 throw runtime_error("Vector literal has a vector of vectors as an element.");
             }
-            if (!VecTy) {
-                VecTy = ChildTy;
+            if (!WidestType) {
+                WidestType = ChildTy;
                 continue;
             }
 
             // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
-            if (VecTy->isScalarTy()) {
-                VecTy = ChildTy->getPromotedType(VecTy);
+            if (WidestType->isScalarTy()) {
+                WidestType = ChildTy->getPromotedType(WidestType);
                 continue;
             }
 
             // All of this is done here since the type class should not be generating types, only the type registry
             // should be doing that. This is to cover the special case where we have to use the type from one existing
             // vector and the inner type from another vector.
-            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(VecTy));
-            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(VecTy)->getInnerTy());
-            VecTy = PM->TypeReg.getVectorType(PromotedTy, Size);
+            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(WidestType));
+            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(WidestType)->getInnerTy());
+            WidestType = PM->TypeReg.getVectorType(PromotedTy, Size);
 
         } else if (!ChildTy->isScalarTy()) {
                 throw std::runtime_error("Vector literal can only contain scalar types");
@@ -930,9 +916,16 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     }
 
     // Get the vector type
-    auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
-    annotate(VecLit, VecTy);
-    return VecTy;
+    if (isa<VectorTy>(WidestType)) {
+        auto VecTy = dyn_cast<VectorTy>(WidestType);
+        auto ResultTy = PM->TypeReg.getMatrixType(VecTy->getInnerTy(), VecLit->numOfChildren(), VecTy->getSize());
+        PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, ResultTy);
+        return ResultTy;
+    } else {
+        auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
+        annotate(VecLit, VecTy);
+        return VecTy;
+    }
 }
 
 const Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {

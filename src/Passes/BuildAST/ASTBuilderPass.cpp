@@ -1157,7 +1157,7 @@ std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    RealLit->setVal(ctx->RawReal()->getText());
+    RealLit->setVal(ctx->getText());
 
     return cast<ASTNodeT>(RealLit);
 }

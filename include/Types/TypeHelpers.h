@@ -86,27 +86,6 @@ bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
     return true;
 }
 
-bool canPromoteVectorTo(const Type *BaseTy, const Type *TargetTy) {
-    auto BaseVec = cast<VectorTy>(BaseTy);
-    auto TargetVec = dyn_cast<VectorTy>(TargetTy);
-
-    if (!TargetVec)
-        return false;
-
-    // All scalars can be promoted to vectors whose type is promotable from
-    // the base as well
-    if (BaseTy->isScalarTy())
-        return BaseTy->canPromoteTo(TargetVec->getInnerTy());
-
-    // sizes must be the same for vector promotion, but sizes can differ for
-    // vector casting
-    if (BaseVec->getSize() != TargetVec->getSize() &&
-        BaseVec->getSize() != -1 && TargetVec->getSize() != -1)
-        return false;
-
-    return BaseVec->getInnerTy()->canPromoteTo(TargetVec->getInnerTy());
-}
-
 const Type *getPromotedScalarType(const Type *BaseTy, const Type *TargetTy) {
     if (BaseTy->isSameTypeAs(TargetTy))
         return BaseTy;
@@ -155,7 +134,7 @@ bool doesMatrixSupportArithOps(const Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForArithOps();
 }
 
-bool doesMatrixSupportComparisonOps(const Type *Mat) {
+bool isMatrixValidForComparisonOps(const Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForComparisonOp();
 }
 

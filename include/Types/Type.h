@@ -23,8 +23,11 @@ bool canPromoteRealTo(const Type*);
 bool canPromoteVectorTo(const Type*, const Type*);
 bool doesTupleSupportEq(const Type*);
 bool doesVectorSupportEq(const Type*);
+bool doesMatrixSupportEq(const Type*);
 bool doesVectorSupportArithOps(const Type*);
+bool doesMatrixSupportArithOps(const Type*);
 bool isVectorValidForComparisonOps(const Type*);
+bool isMatrixValidForComparisonOps(const Type*);
 bool isVectorValidForUnaryNot(const Type*);
 bool isMatrixValidForUnaryNot(const Type*);
 
