@@ -41,6 +41,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::StructType *LLVMVectorTy;
     llvm::StructType *LLVMMatrixTy;
     llvm::StructType *LLVMIntervalTy;
+    llvm::PointerType *LLVMVectorPtrTy;
+    llvm::PointerType *LLVMMatrixPtrTy;
 
     llvm::Function *CurrentFunction{};
     llvm::Function *GlobalFunction{};
@@ -124,7 +126,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
         LLVMVoidTy(llvm::Type::getVoidTy(GlobalCtx)), LLVMPtrTy(llvm::Type::getInt8PtrTy(GlobalCtx)),
         LLVMVectorTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMPtrTy, LLVMIntTy, LLVMPtrTy})),
         LLVMMatrixTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy, LLVMPtrTy, LLVMIntTy, LLVMPtrTy})),
-        LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})) {}
+        LLVMIntervalTy(llvm::StructType::get(GlobalCtx, {LLVMIntTy, LLVMIntTy})),
+        LLVMVectorPtrTy(LLVMVectorTy->getPointerTo()), LLVMMatrixPtrTy(LLVMMatrixTy->getPointerTo()) {};
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 

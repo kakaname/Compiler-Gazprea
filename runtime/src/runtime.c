@@ -7,12 +7,12 @@ struct stream_store s = {0, 0, 0, 0, 0, {0}};
 
 void rt_print_matrix(struct matrix *m) {
     printf("[");
-    struct vector *data = (struct vector *) m->data;
+    struct vector **data = m->data;
     if (m->type == VECTOR_TYPE_INT) {
         for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
             for (int64_t j = 0; j < m->cols; j++) {
-                printf("%ld", ((int64_t *) data[i].data )[j]);
+                printf("%ld", ((int64_t *) data[i]->data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
                 }
@@ -26,7 +26,7 @@ void rt_print_matrix(struct matrix *m) {
         for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
             for (int64_t j = 0; j < m->cols; j++) {
-                printf("%g", ((float *) data[i].data )[j]);
+                printf("%g", ((float *) data[i]->data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
                 }
@@ -40,7 +40,7 @@ void rt_print_matrix(struct matrix *m) {
         for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
             for (int64_t j = 0; j < m->cols; j++) {
-                printf("%c", ((char *) data[i].data )[j]);
+                printf("%c", ((char *) data[i]->data )[j]);
                 if (j != m->cols - 1) {
                     printf(" ");
                 }
@@ -54,7 +54,7 @@ void rt_print_matrix(struct matrix *m) {
         for (int64_t i = 0; i < m->rows; i++) {
             printf("[");
             for (int64_t j = 0; j < m->cols; j++) {
-                printf("%c", ((char *) data[i].data )[j] ? 'T' : 'F');
+                printf("%c", ((char *) data[i]->data )[j] ? 'T' : 'F');
                 if (j != m->cols - 1) {
                     printf(" ");
                 }
