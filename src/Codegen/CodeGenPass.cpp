@@ -45,7 +45,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     ScanBool = Mod.getOrInsertFunction(
             "rt_scan_bool", llvm::FunctionType::get(
-                    LLVMBoolTy, {}, false));
+                    LLVMCharTy, {}, false));
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
@@ -253,8 +253,6 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
-
-    // TODO ensure IndexReferences are covered in instreams
 
     if (isa<IndexReference>(Assign->getAssignedTo())) {
         auto Expr = visit(Assign->getExpr());
@@ -1232,12 +1230,63 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             break;
         case Type::TypeKind::T_Bool:
             ReadVal = IR.CreateCall(ScanBool);
+            ReadVal = IR.CreateICmpNE(ReadVal, llvm::ConstantInt::get(LLVMCharTy, 0));
             break;
         case Type::TypeKind::T_Real:
             ReadVal = IR.CreateCall(ScanReal);
             break;
         default:
             assert(false && "Invalid type for in-stream");
+    }
+    if (isa<IndexReference>(InStream->getTarget())) {
+
+        auto VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(
+                dyn_cast<IndexReference>(InStream->getTarget())->getBaseExpr());
+        if (isa<VectorTy>(VarExprTy)) {
+            // TODO fix assigning boolean to function with bad function call signature
+            // TODO struct shenanigans
+            auto AllocLoc = IR.CreateAlloca(LLVMVectorTy);
+            IR.CreateStore(StoreLoc, AllocLoc);
+            llvm::Value *Res;
+
+            switch (IdentTy->getKind()) {
+                case Type::TypeKind::T_Int:
+                    return IR.CreateCall(VectorSetInt, {AllocLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Real:
+                    return IR.CreateCall(VectorSetFloat, {AllocLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Char:
+                    return IR.CreateCall(VectorSetChar, {AllocLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Bool:
+                    return IR.CreateCall(VectorSetChar,
+                                         {AllocLoc, IR.getInt64(0), IR.CreateZExt(ReadVal, LLVMCharTy), IR.getInt64(0)});
+                default:
+                    assert(false && "Unknown type");
+            }
+
+            assert(false && "Should not reach here");
+        } else if (isa<MatrixTy>(VarExprTy)) {
+            // TODO struct shenanigans
+            auto AllocLoc = IR.CreateAlloca(LLVMMatrixTy);
+            IR.CreateStore(StoreLoc, AllocLoc);
+            llvm::Value *Res;
+            switch (IdentTy->getKind()) {
+                case Type::TypeKind::T_Int:
+                    return IR.CreateCall(MatrixSetInt,
+                                         {AllocLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Real:
+                    return IR.CreateCall(MatrixSetFloat,
+                                         {AllocLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Char:
+                    return IR.CreateCall(MatrixSetChar,
+                                         {AllocLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Bool:
+                    return IR.CreateCall(MatrixSetChar,
+                                         {AllocLoc, IR.getInt64(0), IR.getInt64(0), IR.CreateZExt(ReadVal, LLVMCharTy),
+                                          IR.getInt64(0)});
+                default:
+                    assert(false && "Unknown type");
+            }
+        }
     }
     IR.CreateStore(ReadVal, StoreLoc);
     return nullptr;
