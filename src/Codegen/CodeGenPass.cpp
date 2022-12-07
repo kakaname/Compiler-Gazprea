@@ -247,7 +247,8 @@ llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
 
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
-    if (Val->getType()->isPointerTy())
+    auto IdentTy = Ident->getIdentType();
+    if (Val->getType()->isPointerTy() && !IdentTy->isCompositeTy());
         return IR.CreateLoad(Val);
     return Val;
 }
@@ -422,10 +423,17 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-//    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
-//                                     "not have reached the code gen");
+    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+
+    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false):
+            break;
+            matchPattern(true, false):
+
+    }
+
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
     auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
