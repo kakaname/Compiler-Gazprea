@@ -224,8 +224,9 @@ public:
             return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), true);
 
-        if (auto *Str = dyn_cast<StringTy>(Ty))
-            return getMatrixType(getConstTypeOf(Str->getInnerTy()), Str->getSize(), true);
+        if (auto *Str = dyn_cast<StringTy>(Ty)){
+            return getStringType(getConstTypeOf(Str->getInnerTy()), Str->getSize(), true);
+        }
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
             vector<const Type*> VarMembers;
@@ -262,6 +263,9 @@ public:
         if (auto *Vec = dyn_cast<VectorTy>(Ty))
             return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
 
+        if (auto *Str = dyn_cast<StringTy>(Ty))
+            return getStringType(getCharTy(false), Str->getSize(), false);
+
         if (auto *Mat = dyn_cast<MatrixTy>(Ty))
             return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), false);
@@ -272,6 +276,8 @@ public:
                 VarMembers.emplace_back(getVarTypeOf(Mem));
             return getTupleType(VarMembers, Tup->getMappings(), false);
         }
+
+
 
         assert(false && "Should not be reachable.");
     }

@@ -56,12 +56,10 @@ struct Identifier: public TreeNode {
     }
 
     void setIdentType(const Type *T) {
-        std::cout << "called set";
         IdentType = T;
     }
     
     const Type *getIdentType() const {
-        std::cout << "called get";
         return IdentType;
     }
 

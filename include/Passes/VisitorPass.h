@@ -700,8 +700,10 @@ public:
 
         if (auto *Vec = dyn_cast<VectorLiteral>(Node))
             return callVisitVectorLiteralImpl(Vec);
+
         if (auto *Str = dyn_cast<StringLiteral>(Node))
             return callVisitStringLiteralImpl(Str);
+
         if (auto *Gen = dyn_cast<Generator>(Node))
             return callVisitGeneratorImpl(Gen);
 
