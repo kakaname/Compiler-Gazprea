@@ -1315,10 +1315,21 @@ Type *ExprTypeAnnotatorPass::visitConditionalElse(ConditionalElse *Cond) {
 
 Type *ExprTypeAnnotatorPass::visitGenerator(Generator *Gen) {
     visit(Gen->getDomainVar());
-    auto VectorType = dyn_cast<VectorTy>(visit(Gen->getDomain()));
+    auto DomainType = visit(Gen->getDomain());
     auto InnerType = visit(Gen->getExpr());
 
-    auto ResTy = TypeReg->getVectorType(InnerType, VectorType->getSize());
+    Type* ResTy = nullptr;
+    if (dyn_cast<VectorTy>(DomainType)) {
+        ResTy = TypeReg->getVectorType(InnerType, dyn_cast<VectorTy>(DomainType)->getSize());
+    }
+    else if (dyn_cast<IntervalTy>(DomainType)) {
+        // Cast the interval to a vector<int>
+        auto CastNode = PM->Builder.build<ExplicitCast>();
+        CastNode->setExpr(Gen->getDomain());
+        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
+        ResTy = CastNode->getTargetType();
+    }
+
     PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
     return ResTy;
 }
@@ -1327,11 +1338,40 @@ Type *ExprTypeAnnotatorPass::visitGenerator(Generator *Gen) {
 Type *ExprTypeAnnotatorPass::visitMatrixGenerator(MatrixGenerator *Gen) {
     visit(Gen->getRowDomainVar());
     visit(Gen->getColumnDomainVar());
-    auto RowVectorType = dyn_cast<VectorTy>(visit(Gen->getRowDomain()));
-    auto ColVectorType = dyn_cast<VectorTy>(visit(Gen->getColumnDomain()));
-    auto InnerType = visit(Gen->getExpr());
 
-    auto ResTy = TypeReg->getMatrixType(InnerType, RowVectorType->getSize(), ColVectorType->getSize());
+    auto RowType = visit(Gen->getRowDomain());
+    Type *RowResTy = nullptr;
+    if (dyn_cast<VectorTy>(RowType)) {
+        auto RowVectorType = dyn_cast<VectorTy>(RowType);
+        RowResTy = TypeReg->getVectorType(RowVectorType->getInnerTy(), RowVectorType->getSize());
+    }
+    else if (dyn_cast<IntervalTy>(RowType)) {
+        // Cast the interval to a vector<int>
+        auto CastNode = PM->Builder.build<ExplicitCast>();
+        CastNode->setExpr(Gen->getRowDomain());
+        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
+        RowResTy = CastNode->getTargetType();
+    }
+
+    auto ColumnType = visit(Gen->getRowDomain());
+    Type *ColumnResTy = nullptr;
+    if (dyn_cast<VectorTy>(ColumnType)) {
+        auto ColumnVectorType = dyn_cast<VectorTy>(ColumnType);
+        ColumnResTy = TypeReg->getVectorType(ColumnVectorType->getInnerTy(), ColumnVectorType->getSize());
+    }
+    else if (dyn_cast<IntervalTy>(ColumnType)) {
+        // Cast the interval to a vector<int>
+        auto CastNode = PM->Builder.build<ExplicitCast>();
+        CastNode->setExpr(Gen->getColumnDomain());
+        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
+        ColumnResTy = CastNode->getTargetType();
+    }
+
+    auto ExprTy = visit(Gen->getExpr());
+    auto ResTy = TypeReg->getMatrixType(ExprTy,
+                                        dyn_cast<VectorTy>(RowResTy)->getSize(),
+                                        dyn_cast<VectorTy>(ColumnResTy)->getSize());
+
     PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
     return ResTy;
 }
@@ -1339,24 +1379,36 @@ Type *ExprTypeAnnotatorPass::visitMatrixGenerator(MatrixGenerator *Gen) {
 
 Type *ExprTypeAnnotatorPass::visitFilter(Filter *Filter) {
     visit(Filter->getDomainVar());
-    auto VectorType = dyn_cast<VectorTy>(visit(Filter->getDomain()));
+    auto DomainType = visit(Filter->getDomain());
 
+    Type* DomainResTy = nullptr;
+    if (dyn_cast<VectorTy>(DomainType)) {
+        auto VectorType = dyn_cast<VectorTy>(DomainType);
+        DomainResTy = TypeReg->getVectorType(VectorType->getInnerTy(), -1);
+    }
+    else if (dyn_cast<IntervalTy>(DomainType)) {
+        // Cast the interval to a vector<int>
+        auto CastNode = PM->Builder.build<ExplicitCast>();
+        CastNode->setExpr(Filter->getDomain());
+        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
+        DomainResTy = CastNode->getTargetType();
+    }
 
     map<string, int> Temp{};
 
-
-    vector<Type*> ChildTypes;
-    for (auto ChildExpr : *Filter->getPredicatedList()) {
+    vector<Type *> ChildTypes;
+    for (auto ChildExpr: *Filter->getPredicatedList()) {
         visit(ChildExpr);
-        auto ElementTy =  PM->TypeReg.getVectorType(VectorType->getInnerTy());
+        auto ElementTy = PM->TypeReg.getVectorType(dyn_cast<VectorTy>(DomainResTy)->getInnerTy());
         ChildTypes.emplace_back(ElementTy);
     }
     // There's an additional vector
-    ChildTypes.emplace_back(PM->TypeReg.getVectorType(VectorType->getInnerTy()));
+    ChildTypes.emplace_back(PM->TypeReg.getVectorType(dyn_cast<VectorTy>(DomainResTy)->getInnerTy()));
 
     auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Filter, TupleTy);
     return TupleTy;
+}
 
 bool ExprTypeAnnotatorPass::isInferredSizedType(Type *Ty) {
     if (auto VecTy = dyn_cast<VectorTy>(Ty))

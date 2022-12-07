@@ -406,7 +406,15 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope->addChild(NewScope);
         CurrentScope = NewScope;
 
-        auto DomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))->getInnerTy();
+        Type* DomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))) {
+            DomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getDomain()))) {
+            DomainVarTy = PM->TypeReg.getIntegerTy();
+        }
+
         auto Sym = PM->SymTable.defineObject(Gen->getDomainVar()->getName(), DomainVarTy);
         Gen->getDomainVar()->setReferred(Sym);
         CurrentScope->declareInScope(Gen->getDomainVar()->getName(), Sym);
@@ -427,15 +435,32 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope->addChild(NewScope);
         CurrentScope = NewScope;
 
-        auto RowDomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))->getInnerTy();
+        Type* RowDomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))) {
+            RowDomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getRowDomain()))) {
+            RowDomainVarTy = PM->TypeReg.getIntegerTy();
+        }
         auto RowSym = PM->SymTable.defineObject(Gen->getRowDomainVar()->getName(), RowDomainVarTy);
         Gen->getRowDomainVar()->setReferred(RowSym);
         CurrentScope->declareInScope(Gen->getRowDomainVar()->getName(), RowSym);
 
-        auto ColumnDomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))->getInnerTy();
+
+
+        Type* ColumnDomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))) {
+            ColumnDomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getColumnDomain()))) {
+            ColumnDomainVarTy = PM->TypeReg.getIntegerTy();
+        }
         auto ColumnSym = PM->SymTable.defineObject(Gen->getColumnDomainVar()->getName(), ColumnDomainVarTy);
         Gen->getColumnDomainVar()->setReferred(ColumnSym);
         CurrentScope->declareInScope(Gen->getColumnDomainVar()->getName(), ColumnSym);
+
 
         visit(Gen->getExpr());
 
@@ -452,7 +477,14 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope->addChild(NewScope);
         CurrentScope = NewScope;
 
-        auto DomainVarTy = dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))->getInnerTy();
+        Type* DomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))) {
+            DomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Filter->getDomain()))) {
+            DomainVarTy = PM->TypeReg.getIntegerTy();
+        }
         auto Sym = PM->SymTable.defineObject(Filter->getDomainVar()->getName(), DomainVarTy);
         Filter->getDomainVar()->setReferred(Sym);
         CurrentScope->declareInScope(Filter->getDomainVar()->getName(), Sym);
@@ -487,7 +519,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         }
 
     }
-
 };
 
 #endif //GAZPREABASE_SCOPERESOLUTIONPASS_H
