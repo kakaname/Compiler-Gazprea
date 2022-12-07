@@ -58,10 +58,7 @@ conditional : IF expr stmt              # ifConditional
 loop : LOOP stmt                 #infiniteLoop
      | LOOP WHILE expr stmt      #whileLoop
      | LOOP stmt WHILE expr SC   #doWhileLoop
-     | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
-
-// I don't quite understand this one
-iterDomain : ID GET expr;
+     | LOOP (ID IN expr) (COMMA ID IN expr)* stmt      #domainLoop;
 
 typeDef : TYPEDEF type ID SC;
 
