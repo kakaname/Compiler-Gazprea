@@ -62,6 +62,33 @@ private:
     const Type *InnerTy;
 };
 
+struct StringTy : public Type {
+    static bool classof(const Type *T) {
+        return T->getKind() == TypeKind::T_String;
+    }
+
+    StringTy() = delete;
+
+    StringTy(const Type *InnerTy, int Size, bool IsConst):
+        Type(TypeKind::T_String, IsConst), Size(Size), InnerTy(InnerTy) {}
+
+    bool isSizeKnown() const {
+        return Size != -1;
+    }
+
+    int getSize() const {
+        return Size;
+    }
+
+    const Type *getInnerTy() const {
+        return InnerTy;
+    }
+
+private:
+    int Size;
+    const Type *InnerTy;
+};
+
 struct MatrixTy : public Type {
     static bool classof(const Type *T) {
         return T->getKind() == TypeKind::T_Matrix;

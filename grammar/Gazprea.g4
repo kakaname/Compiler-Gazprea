@@ -80,7 +80,6 @@ type
      | type LSQRPAREN expressionOrWildcard RSQRPAREN    #vectorType
      | type LSQRPAREN expressionOrWildcard COMMA
      expressionOrWildcard RSQRPAREN                     #matrixType
-     | STRINGATOM (LSQRPAREN expressionOrWildcard RSQRPAREN)? #stringType
      | type INTERVAL                                    #intervalType
      | INTEGER                                          #intType
      | CHARACTER                                        #charType
@@ -165,7 +164,6 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
     | LSQRPAREN (expr (COMMA expr)*)? RSQRPAREN        #vectorLiteral
-    | SCHAR                                 #stringLiteral 
     | ID                                    # identifier
     | NULL_                                 # nullLiteral
     | IDENTITY                              # identityLiteral
@@ -173,7 +171,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
-    | StringLiteral                         # stringLiteral
+    | StringLit                             # stringLiteral
     ;
 
 
@@ -187,7 +185,7 @@ realLit : ExponentialLiteral1             #realLit1
         ;
 
 // --- LEXER RULES ---
-StringLiteral: '"' (('\\' '"') | .)*?  '"';
+StringLit: '"' (('\\' '"') | .)*?  '"';
 
 ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
@@ -279,8 +277,6 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
-
-SCHAR: '"' ( . | ( '\\' ['"abtnr0\\]) )*? '"';
 
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;

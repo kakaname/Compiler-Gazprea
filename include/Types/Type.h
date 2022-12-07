@@ -34,6 +34,7 @@ bool isMatrixValidForUnaryAddSub(const Type*);
 bool isSameFuncAs(const Type*, const Type*);
 bool isSameProcAs(const Type*, const Type*);
 bool isSameVectorAs(const Type*, const Type*);
+bool isSameStringAs(const Type*, const Type*);
 
 bool canCastVectorTo(const Type*, const Type*);
 bool canCastBoolCharIntTo(const Type*);
@@ -42,6 +43,7 @@ bool canCastRealTo(const Type*);
 const Type *getPromotedScalarType(const Type*, const Type*);
 
 string getVectorTypeName(const Type* Ty);
+string getStringTypeName(const Type* Ty);
 string getTupleTypeName(const Type *Ty);
 string getFunctionTypeName(const Type *Ty);
 string getProcedureTypeName(const Type *Ty);
@@ -74,7 +76,7 @@ public:
     }
 
     bool isCompositeTy() const {
-        return T_Vector == Kind || T_Matrix == Kind;
+        return T_Vector == Kind || T_Matrix == Kind || T_String == Kind;
     }
 
     bool isSameTypeAs(const Type *T) const {
@@ -93,6 +95,8 @@ public:
                 return isSameProcAs(this, T);
             case T_Vector:
                 return isSameVectorAs(this, T);
+            case T_String:
+                return isSameStringAs(this, T);
             default:
                 return T->getKind() == Kind;
         }
@@ -169,7 +173,8 @@ public:
                T_Bool == Kind || T_Char == Kind ||
                T_Int == Kind || T_Real == Kind ||
                T_Interval == Kind || T_String == Kind ||
-               T_Vector == Kind || T_Matrix == Kind;
+               T_Vector == Kind || T_Matrix == Kind ||
+               T_String == Kind;
     }
 
     bool canCastTo(const Type *T) const {
@@ -253,7 +258,7 @@ public:
             case T_Vector:
                 return getVectorTypeName(this);
             case T_String:
-                return getVectorTypeName(this);
+                return getStringTypeName(this);
             case T_Interval:
                 return TypeName + "interval";
             default:

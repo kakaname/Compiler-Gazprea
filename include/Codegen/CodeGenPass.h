@@ -63,6 +63,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorNot;
     llvm::FunctionCallee VectorSub;
     llvm::FunctionCallee PrintVector;
+    llvm::FunctionCallee PrintString;
     llvm::FunctionCallee VectorLogical;
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
@@ -138,6 +139,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndexReference(IndexReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
     llvm::Value *visitVectorLiteral(VectorLiteral *VecLit);
+    llvm::Value *visitStringLiteral(StringLiteral *String);
     llvm::Value *visitBlock(Block *Blk);
     llvm::Value *visitInterval(Interval *Interval);
     llvm::Value *visitConcat(Concat *Con);

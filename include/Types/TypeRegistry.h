@@ -13,7 +13,7 @@
 #include <string>
 #include <algorithm>
 #include <stdexcept>
-
+#include <iostream>
 
 #include "llvm/Support/Casting.h"
 #include "Types/Type.h"
@@ -45,6 +45,7 @@ class TypeRegistry {
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
     using VectorTyContainer = map<VectorTyId, unique_ptr<VectorTy>>;
+    using StringTyContainer = map<VectorTyId, unique_ptr<StringTy>>;
     using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
     using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
@@ -59,6 +60,7 @@ class TypeRegistry {
     array<RealTy, 2> RealTypes;
 
     VectorTyContainer VectorTypes;
+    StringTyContainer StringTypes;
     MatrixTyContainer MatrixTypes;
     TupleTyContainer TupleTypes;
     FunctionTypeContainer FunctionTypes;
@@ -110,12 +112,30 @@ public:
 
     const Type *getVectorType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
         auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
-        if (Res != VectorTypes.end())
+
+        if (Res != VectorTypes.end()){
             return Res->second.get();
+
+        }
 
         auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
         VectorTyId Key{IsConst, {InnerTy, Size}};
         auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
+        assert(Inserted.second && "We just checked that type wasn't in the map");
+        return Inserted.first->second.get();
+    }
+
+    const Type *getStringType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
+        auto Res = StringTypes.find({IsConst, {InnerTy, Size}});
+
+        if (Res != StringTypes.end()){
+            return Res->second.get();
+
+        }
+
+        auto NewStrTy = make_unique<StringTy>(StringTy(InnerTy, Size, IsConst));
+        VectorTyId Key{IsConst, {InnerTy, Size}};
+        auto Inserted = StringTypes.insert({Key, std::move(NewStrTy)});
         assert(Inserted.second && "We just checked that type wasn't in the map");
         return Inserted.first->second.get();
     }
@@ -202,6 +222,9 @@ public:
         if (auto *Mat = dyn_cast<MatrixTy>(Ty))
             return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), true);
+
+        if (auto *Str = dyn_cast<StringTy>(Ty))
+            return getMatrixType(getConstTypeOf(Str->getInnerTy()), Str->getSize(), true);
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
             vector<const Type*> VarMembers;

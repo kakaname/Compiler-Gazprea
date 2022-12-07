@@ -82,6 +82,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
                     LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    PrintVector = Mod.getOrInsertFunction(
+            "rt_print_string", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorTy->getPointerTo()}, false));
 
     visit(Root);
 
@@ -901,6 +904,12 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
         IR.CreateStore(ValToOut, Vec);
         return IR.CreateCall(PrintVector, {Vec});
     }
+    if (ValType->getKind() == Type::T_String) {
+        // TODO temporary store
+        auto Str = IR.CreateAlloca(LLVMVectorTy);
+        IR.CreateStore(ValToOut, Str);
+        return IR.CreateCall(PrintString, {Str});
+    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -1054,6 +1063,31 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
     assert(VecSize >= 0 && "All vector literals should have a size");
 
     llvm::Value *Result = CreateVectorStruct(VecTy->getInnerTy()->getKind(), VecSize, true);
+    auto MallocPtr = CreateVectorMallocPtrAccess(Result, VecTy);
+
+    // store the elements in the vector
+    for (int i = 0; i < VecSize; i++) {
+        auto Elem = VecLit->getChildAt(i);
+        auto ElemVal = visit(Elem);
+        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        if (VecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
+            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
+        IR.CreateStore(ElemVal, ElemPtr);
+    }
+
+    return Result;
+
+}
+
+llvm::Value *CodeGenPass::visitStringLiteral(StringLiteral *VecLit) {
+    auto VecTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
+    assert(VecTy && "Invalid vector type");
+
+    auto VecSize = VecTy->getSize();
+    assert(VecSize >= 0 && "All vector literals should have a size");
+
+
+    llvm::Value *Result = CreateVectorStruct(Type::TypeKind::T_Char, VecSize, true);
     auto MallocPtr = CreateVectorMallocPtrAccess(Result, VecTy);
 
     // store the elements in the vector

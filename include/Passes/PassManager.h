@@ -219,8 +219,14 @@ public:
     }
 
     void runAllPasses() {
-        for (auto &Pass : Passes)
+        int x = 0;
+        for (auto &Pass : Passes){
             Pass.runOnAST(*this, Root);
+            x += 1;
+            std::cout << x;
+            std::cout << "\n";
+        }
+
     }
 
     ASTNodeT *getRoot() {

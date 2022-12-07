@@ -370,6 +370,13 @@ void rt_print_vector(struct vector *v) {
     printf("]");
 }
 
+void rt_print_string(struct vector *v) {
+    char *data = (char *) v->data;
+    for (int i = 0; i < v->size; i++) {
+        printf("%c", data[i]);
+    }
+}
+
 void rt_print_int(int i) {
     printf("%d", i);
 }

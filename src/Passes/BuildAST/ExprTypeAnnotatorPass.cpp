@@ -468,6 +468,10 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
+    std::cout << "Identifier\n";
+    std::cout << Ident->getIdentType()->getKind();
+    std::cout << "dumb";
+    std::cout << "\n";
     assert(Ident->getIdentType() && "Identifier type unknown");
     annotate(Ident, Ident->getIdentType());
     return Ident->getIdentType();
@@ -844,20 +848,18 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
-    const Type *CharTy = PM->TypeReg.getCharTy();
-;
 
-    // Pass 2: Promote all elements to the highest type
-    for (int i = 0; i < StrLit->numOfChildren(); i++) {
-        auto ChildExpr = StrLit->getChildAt(i);
-        auto ChildTy = visit(ChildExpr);
-        PM->setAnnotation<ExprTypeAnnotatorPass>(ChildExpr, PM->TypeReg.getCharTy());
-    }
+    std::cout << "StringLit\n";
+
+    if (!StrLit->numOfChildren())
+        throw runtime_error("Unimplemented");
+
+    const Type *CharTy = PM->TypeReg.getCharTy();
 
     // Get the vector type
-    CharTy = PM->TypeReg.getVectorType(CharTy, StrLit->numOfChildren());
-    PM->setAnnotation<ExprTypeAnnotatorPass>(StrLit, CharTy);
-    return CharTy;
+    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    annotate(StrLit, StrTy);
+    return StrTy;
 
 }
 
@@ -1041,6 +1043,7 @@ bool ExprTypeAnnotatorPass::isTypeSizeKnown(const Type *Ty) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
+    std::cout << "Outstream\n";
     auto ExprTy = visit(Out->getOutStreamExpr());
     if (!ExprTy->isOpaqueTy())
         return nullptr;

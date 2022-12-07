@@ -77,6 +77,9 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     } else
         Decl->setInitExpr(castToNodeVisit(ctx->expr()));
 
+    std::cout << Ident->getIdentType()->getKind();
+    std::cout << "\n";
+
     return cast<ASTNodeT>(Decl);
 }
 
@@ -267,6 +270,13 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine type of inner
     auto Type = castToTypeVisit(ctx->type());
+    bool isString = false;
+    if(Type->getKind() == Type::TypeKind::T_Vector){
+        std::cout << "hello world\n";
+        // if it is type vector, it is a string then
+        Type = PM->TypeReg.getCharTy(false);    
+        isString = true;
+    }
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
@@ -285,6 +295,8 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     auto SizeTree = castToNodeVisit(Size->expr());
     PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
             make_pair(SizeTree, nullptr);
+    if(isString)
+        return PM->TypeReg.getStringType(Type, -1, false);
 
     return PM->TypeReg.getVectorType(Type, -1, false);
 }
@@ -294,17 +306,8 @@ std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) 
     // determine type of inner
     auto Type = PM->TypeReg.getCharTy(false);
 
-    // determine if we have a known size or wildcard
-    auto Size = ctx->expressionOrWildcard();
-    if (Size == NULL || Size->MUL()){
-        // if size is null, expression or wildcard wasn't used, 
-        // if size = MUL size is determined by string literal
-        return PM->TypeReg.getVectorType(Type);
-    } else {
-        // TODO constant fold integer expressions if known
-        // for the time being, we are using a wildcard
-        return PM->TypeReg.getVectorType(Type);
-    }
+    // if it is a stringType size is not specified
+    return PM->TypeReg.getStringType(Type);
 }
 
 // Ignore for part1
@@ -901,11 +904,14 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
     return cast<ASTNodeT>(VectorLit);;
 }
 
+
+
 std::any ASTBuilderPass::visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) {
     auto StringLit = PM->Builder.build<StringLiteral>();
     StringLit->setCtx(ctx);
 
-    std::string CharVal = ctx->SCHAR()->getText();
+    std::string CharVal = ctx->StringLit()->getText();
+
     long len = CharVal.length();
     bool escapeSequence = false;
 
@@ -1232,7 +1238,7 @@ std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    RealLit->setVal(ctx->RawReal()->getText());
+    //RealLit->setVal(ctx->RawReal()->getText());
 
     return cast<ASTNodeT>(RealLit);
 }
