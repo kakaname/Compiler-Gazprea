@@ -78,11 +78,28 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     if (!RType->isValidForComparisonOp())
         throw InvalidComparisonOpError(Op, RType->getTypeName());
 
+    if (RType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewRType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(RExpr, NewRType);
+        Op->setRightExpr(Cast);
+        RExpr = Cast;
+        RType = NewRType;
+    }
+    if (LType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewLType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(LExpr, NewLType);
+        Op->setLeftExpr(Cast);
+        LExpr = Cast;
+        LType = NewLType;
+    }
+
 
     // Easy case where both types are the same.
     if (LType->isSameTypeAs(RType)) {
         auto ResultTy = (LType->isCompositeTy()) ?
-                TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
+                        TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
         annotateWithConst(Op, ResultTy);
         return ResultTy;
     }
@@ -94,7 +111,7 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         // size or equal to the size of the known sized type.
         matchPattern(true, true): {
             if (!((isa<VectorTy>(LType) && isa<VectorTy>(RType)) ||
-            (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
+                  (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
                 throw runtime_error("Operation between incompatible "
                                     "types " + LType->getTypeName() +
                                     RType->getTypeName());
@@ -105,71 +122,24 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             if (!WiderTy)
                 throw runtime_error("No suitable promotion possible");
 
-            // The result type is a vector with the size equal to the size of the
-            // operands but where the inner type is boolean.
-            auto GetResType = [&](Type *T1, Type *T2) {
-                // If the types are vectors.
-                if (auto Vec1 = dyn_cast<VectorTy>(T1)) {
-                    auto Vec2 = cast<VectorTy>(T2);
-                    matchBoolPair(Vec1->isSizeKnown(), Vec2->isSizeKnown()) {
-                        matchPattern(true, true):
-                            if (Vec1->getSize() != Vec2->getSize())
-                                throw runtime_error("Operation between vectors of unequal size");
-                            return TypeReg->getCompositeTyWithInner(Vec1, BoolTy);
-                        matchPattern(true, false):
-                            return TypeReg->getCompositeTyWithInner(Vec1, BoolTy);
-                        matchPattern(false, true):
-                            return TypeReg->getCompositeTyWithInner(Vec2, BoolTy);
-                        matchPattern(false, false):
-                            return TypeReg->getCompositeTyWithInner(Vec1, BoolTy);
-                    }
-                }
-                auto Mat1 = dyn_cast<MatrixTy>(T1);
-                auto Mat2 = cast<MatrixTy>(T2);
-                matchBoolPair(Mat1->isSizeKnown(), Mat2->isSizeKnown()) {
-                    matchPattern(true, true):
-                        if (Mat1->isSameSizeAs(Mat2))
-                            throw runtime_error("Operation between vectors of unequal size");
-                        return TypeReg->getCompositeTyWithInner(Mat1, BoolTy);
-                    matchPattern(true, false):
-                        return TypeReg->getCompositeTyWithInner(Mat1, BoolTy);
-                    matchPattern(false, true):
-                        return TypeReg->getCompositeTyWithInner(Mat2, BoolTy);
-                    matchPattern(false, false):
-                        return TypeReg->getMatrixType(BoolTy);
-                }
-                throw runtime_error("Should be unreachable");
-            };
-
-            // Do the casts.
             if (!LInner->isSameTypeAs(WiderTy)) {
-                auto TargetTy = TypeReg->getCompositeTyWithInner(
-                        LType, WiderTy);
-                LExpr = wrapWithCastTo(LExpr, TargetTy);
-                Op->setLeftExpr(LExpr);
-                auto ResType = GetResType(TargetTy, RType);
-                annotateWithConst(Op, ResType);
-                return ResType;
+                auto Cast = wrapWithCastTo(LExpr, PM->TypeReg.getCompositeTyWithInner(
+                        LType, WiderTy));
+                Op->setLeftExpr(Cast);
             }
 
             if (!RInner->isSameTypeAs(WiderTy)) {
-                auto TargetTy = TypeReg->getCompositeTyWithInner(
-                        RType, WiderTy);
-                RExpr = wrapWithCastTo(RExpr, TargetTy);
-                Op->setRightExpr(RExpr);
-                auto ResType = GetResType(LType, TargetTy);
-                annotateWithConst(Op, ResType);
-                return ResType;
+                auto Cast = wrapWithCastTo(RExpr, PM->TypeReg.getCompositeTyWithInner(
+                        RType, WiderTy));
+                Op->setRightExpr(Cast);
             }
+
+            auto ResTy = PM->TypeReg.getCompositeTyWithInner(
+                    LType, BoolTy);
+            annotate(Op, ResTy);
+            return ResTy;
         }
 
-        // If the left type is composite, and the right type is not, we cast
-        // the right type to the inner type of the left type if the inner type
-        // is wider than the right type. If the reverse is true, i.e. the right
-        // type is wider, then we cast the left type to a composite type with
-        // the same size as before but the inner being the right type. The
-        // result is always a composite type with equal size as the composite
-        // type but the inner type being the wider type.
         matchPattern(true, false): {
             auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
             auto WiderTy = getWiderType(LInner, RType);
@@ -188,7 +158,7 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
                 return ResTy;
             }
 
-            if (!RType->isSameTypeAs(WiderTy))  {
+            if (!RType->isSameTypeAs(WiderTy)) {
                 RExpr = wrapWithCastTo(RExpr, WiderTy);
                 Op->setRightExpr(RExpr);
             }
@@ -197,7 +167,7 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return ResTy;
         }
 
-        // Same as the (true, false) case just mirrored.
+            // Same as the (true, false) case just mirrored.
         matchPattern(false, true): {
             auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
             auto WiderTy = getWiderType(RInner, LType);
@@ -216,7 +186,7 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
                 return ResTy;
             }
 
-            if (!LType->isSameTypeAs(WiderTy))  {
+            if (!LType->isSameTypeAs(WiderTy)) {
                 LExpr = wrapWithCastTo(LExpr, WiderTy);
                 Op->setLeftExpr(LExpr);
             }
@@ -225,8 +195,8 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return ResTy;
         }
 
-        // In this case we simply cast the narrower type to the wider type and
-        // we are done
+            // In this case we simply cast the narrower type to the wider type and
+            // we are done
         matchPattern(false, false): {
             auto WiderTy = getWiderType(LType, RType);
             if (!LType->isSameTypeAs(WiderTy)) {
@@ -240,6 +210,7 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
             return WiderTy;
         }
     }
+
     throw runtime_error("Should be unreachable: TypeAnnotatorComparisonOp");
 }
 
@@ -305,6 +276,24 @@ Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     if (!RType->isValidForArithOps())
         throw InvalidArithmeticOpError(Op, RType->getTypeName());
 
+    if (RType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewRType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(RExpr, NewRType);
+        Op->setRightExpr(Cast);
+        RExpr = Cast;
+        RType = NewRType;
+    }
+
+    if (LType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewLType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(LExpr, NewLType);
+        Op->setLeftExpr(Cast);
+        LExpr = Cast;
+        LType = NewLType;
+    }
+
 
     // Easy case where both types are the same.
     if (LType->isSameTypeAs(RType)) {
@@ -330,71 +319,24 @@ Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
             if (!WiderTy)
                 throw runtime_error("No suitable promotion possible");
 
-            // The result type is a vector with the size equal to the size of the
-            // operands but where the inner type is boolean.
-            auto GetResType = [&](Type *T1, Type *T2) {
-                // If the types are vectors.
-                if (auto Vec1 = dyn_cast<VectorTy>(T1)) {
-                    auto Vec2 = cast<VectorTy>(T2);
-                    matchBoolPair(Vec1->isSizeKnown(), Vec2->isSizeKnown()) {
-                        matchPattern(true, true):
-                            if (Vec1->getSize() != Vec2->getSize())
-                                throw runtime_error("Operation between vectors of unequal size");
-                            return TypeReg->getCompositeTyWithInner(Vec1, WiderTy);
-                        matchPattern(true, false):
-                            return TypeReg->getCompositeTyWithInner(Vec1, WiderTy);
-                        matchPattern(false, true):
-                            return TypeReg->getCompositeTyWithInner(Vec2, WiderTy);
-                        matchPattern(false, false):
-                            return TypeReg->getVectorType(WiderTy);
-                    }
-                }
-                auto Mat1 = dyn_cast<MatrixTy>(T1);
-                auto Mat2 = cast<MatrixTy>(T2);
-                matchBoolPair(Mat1->isSizeKnown(), Mat2->isSizeKnown()) {
-                    matchPattern(true, true):
-                        if (Mat1->isSameSizeAs(Mat2))
-                            throw runtime_error("Operation between matrices of unequal size");
-                        return TypeReg->getCompositeTyWithInner(Mat1, WiderTy);
-                    matchPattern(true, false):
-                        return TypeReg->getCompositeTyWithInner(Mat1, WiderTy);
-                    matchPattern(false, true):
-                        return TypeReg->getCompositeTyWithInner(Mat2, WiderTy);
-                    matchPattern(false, false):
-                        return TypeReg->getMatrixType(WiderTy);
-                }
-                throw runtime_error("Should be unreachable");
-            };
-
-            // Do the casts.
             if (!LInner->isSameTypeAs(WiderTy)) {
-                auto TargetTy = TypeReg->getCompositeTyWithInner(
-                        LType, WiderTy);
-                LExpr = wrapWithCastTo(LExpr, TargetTy);
-                Op->setLeftExpr(LExpr);
-                auto ResType = GetResType(TargetTy, RType);
-                annotateWithConst(Op, ResType);
-                return ResType;
+                auto Cast = wrapWithCastTo(LExpr, PM->TypeReg.getCompositeTyWithInner(
+                        LType, WiderTy));
+                Op->setLeftExpr(Cast);
             }
 
             if (!RInner->isSameTypeAs(WiderTy)) {
-                auto TargetTy = TypeReg->getCompositeTyWithInner(
-                        RType, WiderTy);
-                RExpr = wrapWithCastTo(RExpr, TargetTy);
-                Op->setRightExpr(RExpr);
-                auto ResType = GetResType(LType, TargetTy);
-                annotateWithConst(Op, ResType);
-                return ResType;
+                auto Cast = wrapWithCastTo(RExpr, PM->TypeReg.getCompositeTyWithInner(
+                        RType, WiderTy));
+                Op->setRightExpr(Cast);
             }
+
+            auto ResTy = PM->TypeReg.getCompositeTyWithInner(
+                    LType, WiderTy);
+            annotate(Op, ResTy);
+            return ResTy;
         }
 
-            // If the left type is composite, and the right type is not, we cast
-            // the right type to the inner type of the left type if the inner type
-            // is wider than the right type. If the reverse is true, i.e. the right
-            // type is wider, then we cast the left type to a composite type with
-            // the same size as before but the inner being the right type. The
-            // result is always a composite type with equal size as the composite
-            // type but the inner type being the wider type.
         matchPattern(true, false): {
             auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
             auto WiderTy = getWiderType(LInner, RType);
@@ -417,6 +359,7 @@ Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
                 RExpr = wrapWithCastTo(RExpr, WiderTy);
                 Op->setRightExpr(RExpr);
             }
+
             auto ResTy = TypeReg->getCompositeTyWithInner(LType, WiderTy);
             annotateWithConst(Op, ResTy);
             return ResTy;
@@ -474,21 +417,22 @@ Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
 }
 
 Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
-    auto LeftExpr = Op->getLeftExpr();
-    auto RightExpr = Op->getRightExpr();
-    auto LeftType = visit(LeftExpr);
-    auto RightType = visit(RightExpr);
+    auto LExpr = Op->getLeftExpr();
+    auto RExpr = Op->getRightExpr();
+    auto LType = visit(LExpr);
+    auto RType = visit(RExpr);
+    auto BoolType = TypeReg->getBooleanTy();
 
     // If both of them are opaque types, we cast them to the opaque type target.
-    if (LeftType->isOpaqueTy() && RightType->isOpaqueTy()) {
+    if (LType->isOpaqueTy() && RType->isOpaqueTy()) {
         if (!OpaqueTyCastTarget)
             throw NullIdentityOpError(Op);
 
         if (!OpaqueTyCastTarget->isValidForComparisonOp())
             throw InvalidComparisonOpError(Op, OpaqueTyCastTarget->getTypeName());
 
-        auto LeftCast = wrapWithCastTo(LeftExpr, OpaqueTyCastTarget);
-        auto RightCast = wrapWithCastTo(RightExpr, OpaqueTyCastTarget);
+        auto LeftCast = wrapWithCastTo(LExpr, OpaqueTyCastTarget);
+        auto RightCast = wrapWithCastTo(RExpr, OpaqueTyCastTarget);
         Op->setLeftExpr(LeftCast);
         Op->setRightExpr(RightCast);
         annotateWithConst(Op, OpaqueTyCastTarget);
@@ -496,106 +440,192 @@ Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
     }
 
     // At least one of them is opaque.
-    if (LeftType->isOpaqueTy() || RightType->isOpaqueTy()) {
+    if (LType->isOpaqueTy() || RType->isOpaqueTy()) {
         //
-        if (LeftType->isOpaqueTy()) {
-            auto Cast = wrapWithCastTo(LeftExpr, RightType);
+        if (LType->isOpaqueTy()) {
+            auto Cast = wrapWithCastTo(LExpr, RType);
             Op->setLeftExpr(Cast);
-            LeftType = RightType;
+            LType = RType;
         } else {
-            auto Cast = wrapWithCastTo(RightExpr, LeftType);
+            auto Cast = wrapWithCastTo(RExpr, LType);
             Op->setRightExpr(Cast);
-            RightType = LeftType;
+            RType = LType;
         }
     }
 
+    if (RType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewRType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(RExpr, NewRType);
+        Op->setRightExpr(Cast);
+        RExpr = Cast;
+        RType = NewRType;
+    }
+
+    if (LType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
+        auto NewLType = PM->TypeReg.getVectorType(
+                PM->TypeReg.getIntegerTy());
+        auto Cast = wrapWithCastTo(LExpr, NewLType);
+        Op->setLeftExpr(Cast);
+        LExpr = Cast;
+        LType = NewLType;
+    }
+
     if (Op->getOpKind() == LogicalOp::EQ || Op->getOpKind() == LogicalOp::NEQ) {
-        if (!LeftType->isValidForEq())
-            throw InvalidEqualityOpError(Op, LeftType->getTypeName());
+        if (!LType->isValidForEq())
+            throw InvalidEqualityOpError(Op, LType->getTypeName());
 
-        if (!RightType->isValidForEq())
-            throw InvalidEqualityOpError(Op, RightType->getTypeName());
+        if (!RType->isValidForEq())
+            throw InvalidEqualityOpError(Op, RType->getTypeName());
 
-        if (LeftType->isSameTypeAs(RightType)) {
+        if (LType->isSameTypeAs(RType)) {
             PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
             return PM->TypeReg.getBooleanTy();
         }
 
-        if (LeftType->canPromoteTo(RightType)) {
-            auto Cast = wrapWithCastTo(LeftExpr, RightType);
-            Op->setLeftExpr(Cast);
-            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-            return PM->TypeReg.getBooleanTy();
+        matchBoolPair(LType->isCompositeTy(), RType->isCompositeTy()) {
+            matchPattern(true, true): {
+                if (!((isa<VectorTy>(LType) && isa<VectorTy>(RType)) ||
+                      (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
+                    throw runtime_error("Operation between incompatible "
+                                        "types " + LType->getTypeName() +
+                                        RType->getTypeName());
+
+                auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
+                auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
+                auto WiderTy = getWiderType(LInner, RInner);
+                if (!WiderTy)
+                    throw runtime_error("No suitable promotion possible");
+
+                if (!LInner->isSameTypeAs(WiderTy)) {
+                    auto Cast = wrapWithCastTo(LExpr, PM->TypeReg.getCompositeTyWithInner(
+                            LType, WiderTy));
+                    Op->setLeftExpr(Cast);
+                }
+
+                if (!RInner->isSameTypeAs(WiderTy)) {
+                    auto Cast = wrapWithCastTo(RExpr, PM->TypeReg.getCompositeTyWithInner(
+                            RType, WiderTy));
+                    Op->setRightExpr(Cast);
+                }
+                annotate(Op, BoolType);
+                return BoolType;
+            }
+
+            matchPattern(true, false): {
+                auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
+                auto WiderTy = getWiderType(LInner, RType);
+
+                if (!WiderTy)
+                    throw runtime_error("No suitable promotion possible");
+
+                if (!LInner->isSameTypeAs(WiderTy)) {
+                    auto TargetTy = TypeReg->getCompositeTyWithInner(
+                            LType, WiderTy);
+                    LExpr = wrapWithCastTo(LExpr, TargetTy);
+                    Op->setLeftExpr(LExpr);
+                    annotateWithConst(Op, BoolType);
+                    return BoolType;
+                }
+
+                if (!RType->isSameTypeAs(WiderTy)) {
+                    RExpr = wrapWithCastTo(RExpr, WiderTy);
+                    Op->setRightExpr(RExpr);
+                }
+
+                annotateWithConst(Op, BoolType);
+                return BoolType;
         }
 
-        if (RightType->canPromoteTo(LeftType)) {
-            auto Cast = wrapWithCastTo(RightExpr, LeftType);
-            Op->setRightExpr(Cast);
-            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-            return PM->TypeReg.getBooleanTy();
+            matchPattern(false, true): {
+            auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
+            auto WiderTy = getWiderType(RInner, LType);
+
+            if (!WiderTy)
+                throw runtime_error("No suitable promotion possible");
+
+            if (!RInner->isSameTypeAs(WiderTy)) {
+                auto TargetTy = TypeReg->getCompositeTyWithInner(
+                        RType, WiderTy);
+                RExpr = wrapWithCastTo(RExpr, TargetTy);
+                Op->setRightExpr(RExpr);
+                annotateWithConst(Op, BoolType);
+                return BoolType;
+            }
+
+            if (!LType->isSameTypeAs(WiderTy))  {
+                LExpr = wrapWithCastTo(LExpr, WiderTy);
+                Op->setLeftExpr(LExpr);
+            }
+            annotateWithConst(Op, BoolType);
+            return BoolType;
         }
 
-        //Check tuple promotion
-//        if (isa<TupleTy>(LeftType) && isa<TupleTy>(RightType)) {
-//            if(!(LeftType->isSameTypeAs(RightType) || LeftType->canPromoteTo(RightType)
-//                    || RightType->canPromoteTo(LeftType)))
-//                throw InvalidTupleComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
-//
-//            if (LeftType->canPromoteTo(RightType)) {
-//                auto Cast = PM->Builder.build<TypeCast>();
-//                Cast->copyCtx(Op);
-//                auto TupleType = cast<TupleTy>(RightType);
-//
-//                Cast->setExpr(LeftExpr);
-//                Cast->setTargetType(TupleType);
-//                Op->setLeftExpr(Cast);
-//                LeftType = Cast->getTargetType();
-//            }
-//
-//            if (RightType->canPromoteTo(LeftType)) {
-//                auto Cast = PM->Builder.build<TypeCast>();
-//                Cast->copyCtx(Op);
-//                auto TupleType = cast<TupleTy>(LeftType);
-//
-//                Cast->setExpr(RightExpr);
-//                Cast->setTargetType(TupleType);
-//                Op->setRightExpr(Cast);
-//                RightType = Cast->getTargetType();
-//            }
-//        }
+            matchPattern(false, false): {
+                auto WiderTy = getWiderType(LType, RType);
+                if (!LType->isSameTypeAs(WiderTy)) {
+                    auto Cast = wrapWithCastTo(LExpr, WiderTy);
+                    Op->setLeftExpr(Cast);
+                }
 
-        if (!LeftType->isSameTypeAs(RightType))
-            throw InvalidComparisonError(Op, LeftType->getTypeName(), RightType->getTypeName());
+                if (!RType->isSameTypeAs(WiderTy)) {
+                    auto Cast = wrapWithCastTo(RExpr, WiderTy);
+                    Op->setRightExpr(Cast);
+                }
 
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-        return PM->TypeReg.getBooleanTy();
+                annotateWithConst(Op, BoolType);
+                return BoolType;
+            }
+        }
 
     } else {
         // All other "logical ops" are only supported for booleans.
+        matchBoolPair(LType->isCompositeTy(), RType->isCompositeTy()) {
+            matchPattern(true, true): {
+                if (!((isa<VectorTy>(LType) && isa<VectorTy>(RType)) ||
+                      (isa<MatrixTy>(LType) && isa<MatrixTy>(RType))))
+                    throw runtime_error("Operation between incompatible "
+                                        "types " + LType->getTypeName() +
+                                        RType->getTypeName());
 
-        if (LeftType->getKind() == Type::TypeKind::T_Vector && RightType->getKind() == Type::TypeKind::T_Vector) {
-            auto LeftVecTy = cast<VectorTy>(LeftType);
-            auto RightVecTy = cast<VectorTy>(RightType);
-            if (!LeftVecTy->getInnerTy()->isSameTypeAs(RightVecTy->getInnerTy())) {
-                throw runtime_error("Vector types must be of the same type");
+                auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
+                auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
+                auto WiderTy = getWiderType(LInner, RInner);
+
+                if (!isa<BoolTy>(LInner) || !isa<BoolTy>(RInner))
+                    throw runtime_error("This operation is only supported for booleans");
+
+                annotate(Op, BoolType);
+                return BoolType;
             }
 
-            if (!LeftVecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
-                throw InvalidComparisonOpError(Op, LeftVecTy->getInnerTy()->getTypeName());
+            matchPattern(true, false): {
+                auto LInner = TypeRegistry::getInnerTyFromComposite(LType);
+
+                if (!isa<BoolTy>(LInner) || !isa<BoolTy>(RType))
+                    throw runtime_error("This operation is only supported for booleans");
+
+                annotateWithConst(Op, BoolType);
+                return BoolType;
             }
 
-            PM->setAnnotation<ExprTypeAnnotatorPass>(Op, LeftType);
-            return LeftType;
+            matchPattern(false, true): {
+                auto RInner = TypeRegistry::getInnerTyFromComposite(RType);
+
+                if (!isa<BoolTy>(RInner) || !isa<BoolTy>(LType))
+                    throw runtime_error("This operation is only supported for booleans");
+
+                annotateWithConst(Op, BoolType);
+                return BoolType;
+            }
+
+            matchPattern(false, false): {
+                if (!isa<BoolTy>(RType) || !isa<BoolTy>(LType))
+                    throw runtime_error("This operation is only supported for booleans");
+                annotateWithConst(Op, BoolType);
+                return BoolType;
+            }
         }
-
-        if (!isa<BoolTy>(LeftType))
-            throw InvalidLogicalOpError(Op, LeftType->getTypeName());
-
-        if (!isa<BoolTy>(RightType))
-            throw InvalidLogicalOpError(Op, RightType->getTypeName());
-
-        PM->setAnnotation<ExprTypeAnnotatorPass>(Op, PM->TypeReg.getBooleanTy());
-        return PM->TypeReg.getBooleanTy();
     }
 }
 
@@ -640,11 +670,34 @@ Type *ExprTypeAnnotatorPass::visitMemberAccess(MemberAccess *MAccess) {
 Type *ExprTypeAnnotatorPass::visitUnaryOp(UnaryOp *Op) {
     auto ChildType = visit(Op->getExpr());
     if (Op->getOpKind() == UnaryOp::NOT) {
-        if (!ChildType->isValidForUnaryNot())
+        if (!ChildType->isValidForUnaryNot()) {
+
+            if (isa<VectorTy>(ChildType) && dyn_cast<VectorTy>(ChildType)->getInnerTy()->isValidForUnaryNot()) {
+                auto NewVecTy = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), dyn_cast<VectorTy>(ChildType)->getSize());
+                annotate(Op, NewVecTy);
+                return NewVecTy;
+            } else if (isa<MatrixTy>(ChildType) && dyn_cast<MatrixTy>(ChildType)->getInnerTy()->isValidForUnaryNot()) {
+                auto NewMatTy = PM->TypeReg.getMatrixType(PM->TypeReg.getBooleanTy(), dyn_cast<MatrixTy>(ChildType)->getNumOfRows(), dyn_cast<MatrixTy>(ChildType)->getNumOfColumns());
+                annotate(Op, NewMatTy);
+                return NewMatTy;
+            }
+
             throw runtime_error("Unary not not supported for this type");
+        }
     } else {
-        if (!ChildType->isValidForUnaryAddOrSub())
+        if (!ChildType->isValidForUnaryAddOrSub()) {
+            if (isa<VectorTy>(ChildType) && dyn_cast<VectorTy>(ChildType)->getInnerTy()->isValidForUnaryAddOrSub()) {
+                auto NewVecTy = PM->TypeReg.getVectorType(PM->TypeReg.getBooleanTy(), dyn_cast<VectorTy>(ChildType)->getSize());
+                annotate(Op, NewVecTy);
+                return NewVecTy;
+            } else if (isa<MatrixTy>(ChildType) && dyn_cast<MatrixTy>(ChildType)->getInnerTy()->isValidForUnaryAddOrSub()) {
+                auto NewMatTy = PM->TypeReg.getMatrixType(PM->TypeReg.getBooleanTy(), dyn_cast<MatrixTy>(ChildType)->getNumOfRows(), dyn_cast<MatrixTy>(ChildType)->getNumOfColumns());
+                annotate(Op, NewMatTy);
+                return NewMatTy;
+            }
+
             throw runtime_error("Unary Add or Sub not supported for this type");
+        }
     }
     if (ChildType->isCompositeTy()) {
         auto ResType = TypeReg->getCompositeTyWithInner(
@@ -698,15 +751,27 @@ Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
 }
 
 Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
-    auto ExprType = visit(Cast->getExpr());
-    if (!isInferredSizedType(Cast->getTargetType())) {
-        annotate(Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
-        return Cast->getTargetType();
-    }
+    auto CastedTy = visit(Cast->getExpr());
+    matchBoolPair(CastedTy->isCompositeTy(), Cast->getTargetType()->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false): {
+            annotateWithConst(Cast, Cast->getTargetType());
+            return Cast->getTargetType();
+        }
 
-    copyOverCompositeSizeTypes(ExprType, Cast->getTargetType());
-    annotate(Cast, Cast->getTargetType());
-    return Cast->getTargetType();
+        matchPattern(true, false): {
+            throw runtime_error("Cannot cast a composite type to a scalar");
+        }
+
+        matchPattern(false, true): {
+            auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
+            if (!CastedTy->isSameTypeAs(InnerTy)) {
+                Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
+                annotateWithConst(Cast, Cast->getTargetType());
+                return Cast->getTargetType();
+            }
+        }
+    }
 }
 
 Type *ExprTypeAnnotatorPass::visitNullLiteral(NullLiteral *Null) {
@@ -720,16 +785,27 @@ Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
 }
 
 Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
-    auto ExprType = visit(Cast->getExpr());
-    visitTypeSizeExpressions(Cast->getTargetType());
-    if (!isInferredSizedType(Cast->getTargetType())) {
-        annotate(Cast, PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
-        return Cast->getTargetType();
-    }
+    auto CastedTy = visit(Cast->getExpr());
+    matchBoolPair(CastedTy->isCompositeTy(), Cast->getTargetType()->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false): {
+            annotateWithConst(Cast, Cast->getTargetType());
+            return Cast->getTargetType();
+        }
 
-    copyOverCompositeSizeTypes(ExprType, Cast->getTargetType());
-    annotate(Cast, Cast->getTargetType());
-    return Cast->getTargetType();
+        matchPattern(true, false): {
+            throw runtime_error("Cannot cast a composite type to a scalar");
+        }
+
+        matchPattern(false, true): {
+            auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
+            if (!CastedTy->isSameTypeAs(InnerTy)) {
+                Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
+                annotateWithConst(Cast, Cast->getTargetType());
+                return Cast->getTargetType();
+            }
+        }
+    }
 }
 
 Type *ExprTypeAnnotatorPass::visitBoolLiteral(BoolLiteral *Bool) {
@@ -743,26 +819,68 @@ Type *ExprTypeAnnotatorPass::visitCharLiteral(CharLiteral *Char) {
 }
 
 Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
-    auto BaseTy = visit(Ref->getBaseExpr());
-    if (!BaseTy)
-        throw runtime_error("Base type not set for index reference.");
-    if (BaseTy->getKind() != Type::TypeKind::T_Vector)
-        throw runtime_error("Base type is not a vector.");
     // TODO check if baseexpr is simply an ID?
-    auto VecTy = dyn_cast<VectorTy>(BaseTy);
-
-    auto IdxTy = visit(Ref->getIndexExpr());
-    if (!IdxTy)
-        throw runtime_error("Index type not set for index reference.");
     // TODO run pass to convert vector indexing to simple loop
-    if (!IdxTy->isSameTypeAs(PM->TypeReg.getIntegerTy()))
-        throw runtime_error("Index type is not an integer.");
+    auto BaseTy = visit(Ref->getBaseExpr());
+    if (isa<VectorTy>(BaseTy)) {
+        auto VecTy = dyn_cast<VectorTy>(BaseTy);
+        auto IdxTy = visit(Ref->getIndexExpr());
+        if (isa<IntegerTy>(IdxTy)) {
+            auto ResultTy = VecTy->getInnerTy();
+            ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        } else if (isa<VectorTy>(IdxTy)) {
+            auto IdxVecTy = dyn_cast<VectorTy>(IdxTy);
+            if (!isa<IntegerTy>(IdxVecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), IdxVecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    } else if (isa<MatrixTy>(BaseTy)) {
+        auto MatTy = dyn_cast<MatrixTy>(BaseTy);
+        auto Idx1Ty = visit(Ref->getIndexExpr());
+        auto Idx2Ty = visit(Ref->getIndex2Expr());
+        if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto ResultTy = MatTy->getInnerTy();
+            ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
 
-    auto ResultTy = VecTy->getInnerTy();
-    ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
-    return ResultTy;
+        } else if (isa<VectorTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()) || !isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getMatrixType(MatTy->getInnerTy(), Idx1VecTy->getSize(), Idx2VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
 
+        } else if (isa<VectorTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx1VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+
+        } else if (isa<IntegerTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx2VecTy->getSize(), false);
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    }
+    throw runtime_error("Base type is not a vector or matrix.");
 }
 
 Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
@@ -826,17 +944,42 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
     for (auto *ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
+        bool IsMatrix = ChildTy->getKind() == Type::TypeKind::T_Vector;
 
-        if (!ChildTy->isScalarTy())
-            throw std::runtime_error("Vector literal can only contain scalar types");
+        // If a vector has an inner type of vector of scalars, then it is a matrix
+        if (IsMatrix) {
+
+            auto InVecTy = dyn_cast<VectorTy>(ChildTy);
+            if (!InVecTy->getInnerTy()->isScalarTy()) {
+                throw runtime_error("Vector literal has a vector of vectors as an element.");
+            }
+            if (!WidestType) {
+                WidestType = ChildTy;
+                continue;
+            }
+
+            // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
+            if (WidestType->isScalarTy()) {
+                WidestType = ChildTy->getPromotedType(WidestType);
+                continue;
+            }
+
+            // All of this is done here since the type class should not be generating types, only the type registry
+            // should be doing that. This is to cover the special case where we have to use the type from one existing
+            // vector and the inner type from another vector.
+            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(WidestType));
+            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(WidestType)->getInnerTy());
+            WidestType = PM->TypeReg.getVectorType(PromotedTy, Size);
+
+        } else if (!ChildTy->isScalarTy()) {
+                throw std::runtime_error("Vector literal can only contain scalar types");
+        }
 
         if (IsFirst)
             WidestType = ChildTy, IsFirst = false;
         else
             WidestType = getWiderType(WidestType, ChildTy);
 
-        if (!WidestType)
-            throw runtime_error("Vector literal has members that are of incompatible type");
     }
 
     // Pass 2: Promote all elements to the highest type
@@ -849,28 +992,82 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
         VecLit->setExprAtPos(Casted, I);
     }
 
-    // Get the vector type
-    auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
-    cast<VectorTy>(VecTy)->setSizeExpr(getIntLiteralWithVal((long) VecLit->numOfChildren()));
-    annotate(VecLit, VecTy);
-    return VecTy;
+    if (isa<VectorTy>(WidestType)) {
+        auto VecTy = dyn_cast<VectorTy>(WidestType);
+        auto ResultTy = PM->TypeReg.getMatrixType(VecTy->getInnerTy(), VecLit->numOfChildren(), VecTy->getSize());
+        PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, ResultTy);
+        return ResultTy;
+    } else {
+        auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
+        annotate(VecLit, VecTy);
+        return VecTy;
+    }
 }
 
 Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
-    auto VecTy = dyn_cast<VectorTy>(BaseTy);
 
-    if (!VecTy)
-        throw std::runtime_error("Indexing can only be done on vector types");
+    if (isa<VectorTy>(BaseTy)) {
+        auto VecTy = dyn_cast<VectorTy>(BaseTy);
+        auto IdxTy = visit(Idx->getIndexExpr());
 
-    auto IdxTy = visit(Idx->getIndexExpr());
-    auto IntTy = dyn_cast<IntegerTy>(IdxTy);
-    if (!IntTy)
-        throw std::runtime_error("Indexing can only be done with integer types");
+        if (isa<IntegerTy>(IdxTy)) {
+            auto ResultTy = VecTy->getInnerTy();
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
 
-    auto ResultTy = VecTy->getInnerTy();
-    PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
-    return ResultTy;
+        } else if (isa<VectorTy>(IdxTy)) {
+            auto IdxVecTy = dyn_cast<VectorTy>(IdxTy);
+            if (!isa<IntegerTy>(IdxVecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), IdxVecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+
+    } else if (isa<MatrixTy>(BaseTy)) {
+        auto MatTy = dyn_cast<MatrixTy>(BaseTy);
+        auto Idx1Ty = visit(Idx->getIndexExpr());
+        auto Idx2Ty = visit(Idx->getIndex2Expr());
+        if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto ResultTy = MatTy->getInnerTy();
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<VectorTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()) || !isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getMatrixType(MatTy->getInnerTy(), Idx1VecTy->getSize(), Idx2VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<VectorTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
+            auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
+            if (!isa<IntegerTy>(Idx1VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx1VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+
+        } else if (isa<IntegerTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
+            auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
+            if (!isa<IntegerTy>(Idx2VecTy->getInnerTy()))
+                throw runtime_error("Index vector must be of integer type.");
+            // TODO add new pass to check bounds of index expressions
+            auto ResultTy = PM->TypeReg.getVectorType(MatTy->getInnerTy(), Idx2VecTy->getSize());
+            PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
+            return ResultTy;
+        }
+        throw runtime_error("Index type not set for index reference.");
+    }
+    throw runtime_error("Base type is not a vector or matrix.");
+
 }
 
 Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
@@ -925,23 +1122,55 @@ Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
 }
 
 Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
-    auto LVecTy = dyn_cast<VectorTy>(visit(Dot->getLHS()));
-    auto RVecTy = dyn_cast<VectorTy>(visit(Dot->getRHS()));
 
-    if (!LVecTy || !RVecTy)
-        throw std::runtime_error("Dot product can only be applied to vector types");
+    auto LHS = visit(Dot->getLHS());
+    auto RHS = visit(Dot->getRHS());
 
-    // If the inner types are not the same then the dot product is invalid.
-    if (!LVecTy->getInnerTy()->isSameTypeAs(RVecTy->getInnerTy()))
-        throw std::runtime_error("Dot product can only be applied to vector types"
-                                 " with the same inner type");
+    if (isa<VectorTy>(LHS) && isa<VectorTy>(RHS)) {
 
-    if (!LVecTy->isSameTypeAs(RVecTy))
-        throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
+        // Dot product
 
-    auto ResTy = LVecTy->getInnerTy();
-    annotateWithConst(Dot, ResTy);
-    return ResTy;
+        auto LVecTy = dyn_cast<VectorTy>(LHS);
+        auto RVecTy = dyn_cast<VectorTy>(RHS);
+
+        // If the inner types are not the same then the dot product is invalid.
+        if (!LVecTy->getInnerTy()->isSameTypeAs(RVecTy->getInnerTy()))
+            throw std::runtime_error("Dot product can only be applied to vector types"
+                                    " with the same inner type");
+
+        if (!LVecTy->isSameTypeAs(RVecTy))
+            throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
+
+        auto ResTy = LVecTy->getInnerTy();
+        annotateWithConst(Dot, ResTy);
+        return ResTy;
+
+    } else if (isa<MatrixTy>(LHS) && isa<MatrixTy>(RHS)) {
+
+        // Matrix multiplication
+
+        auto LHSMatTy = dyn_cast<MatrixTy>(LHS);
+        auto RHSMatTy = dyn_cast<MatrixTy>(RHS);
+
+        if (LHSMatTy->getNumOfColumns() != RHSMatTy->getNumOfRows()
+            && LHSMatTy->getNumOfRows() != -1 && RHSMatTy->getNumOfColumns() != -1)
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of compatible sizes");
+
+        auto LHSInnerTy = LHSMatTy->getInnerTy();
+        auto RHSInnerTy = RHSMatTy->getInnerTy();
+        if (!LHSInnerTy->isSameTypeAs(RHSInnerTy))
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of the same inner type");
+
+        if (!LHSInnerTy->isValidForArithOps())
+            throw std::runtime_error("Matrix multiplication can only be applied to matrices of arithmetic types");
+
+        auto ResTy = PM->TypeReg.getMatrixType(LHSInnerTy, LHSMatTy->getNumOfRows(), RHSMatTy->getNumOfColumns());
+        annotateWithConst(Dot, ResTy);
+        return ResTy;
+
+    }
+    throw std::runtime_error("Dot product/matrix multiplication can only be applied to vector/matrix types");
+
 }
 
 Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
