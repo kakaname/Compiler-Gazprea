@@ -57,6 +57,14 @@ struct VectorTy : public Type {
         return InnerTy;
     }
 
+    size_t getPromotedVectorSizeForMatrix(const VectorTy *TargetVec) const {
+
+        if (this->getSize() == -1 || TargetVec->getSize() == -1)
+            return -1;
+
+        return std::max(this->getSize(), TargetVec->getSize());
+    }
+
 private:
     int Size;
     const Type *InnerTy;

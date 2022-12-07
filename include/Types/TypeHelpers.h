@@ -118,10 +118,45 @@ const Type *getPromotedScalarType(const Type *BaseTy, const Type *TargetTy) {
 }
 
 
+
+//const Type *getPromotedVectorInMatrixType(const Type *BaseTy,
+//                                          const Type *TargetTy) {
+//    auto BaseVec = cast<VectorTy>(BaseTy);
+//    auto TargetVec = cast<VectorTy>(TargetTy);
+//
+//    auto InnerTy = getPromotedScalarType(BaseVec->getInnerTy(),
+//                                         TargetVec->getInnerTy());
+//    if (!InnerTy)
+//        return nullptr;
+//
+//    uint32_t Size;
+//    if (BaseVec->getSize() == -1 || TargetVec->getSize() == -1)
+//        Size = -1;
+//    else
+//        Size = std::max(BaseVec->getSize(), TargetVec->getSize());
+//
+//    return new VectorTy(InnerTy, Size);
+//
+//
+//}
+
+
 bool doesTupleSupportEq(const Type *Tup) {
     auto Members = cast<TupleTy>(Tup)->getMemberTypes();
     auto Pred = [&](const Type* T) { return T->isValidForEq();};
     return std::all_of(Members.begin(), Members.end(), Pred);
+}
+
+bool doesMatrixSupportEq(const Type *Mat) {
+    return cast<MatrixTy>(Mat)->getInnerTy()->isValidForEq();
+}
+
+bool doesMatrixSupportArithOps(const Type *Mat) {
+    return cast<MatrixTy>(Mat)->getInnerTy()->isValidForArithOps();
+}
+
+bool isMatrixValidForComparisonOps(const Type *Mat) {
+    return cast<MatrixTy>(Mat)->getInnerTy()->isValidForComparisonOp();
 }
 
 bool doesVectorSupportEq(const Type *Vec) {
@@ -173,6 +208,26 @@ std::string getStringTypeName(const Type *Ty) {
         TypeName += "*";
     else
         TypeName += std::to_string(NumOfElements);
+    TypeName += "])";
+    return TypeName;
+}
+
+std::string getMatrixTypeName(const Type *Ty) {
+    auto MatrixType = cast<MatrixTy>(Ty);
+    std::string TypeName = "matrix(";
+    TypeName += MatrixType->getInnerTy()->getTypeName();
+    TypeName += "[";
+    int NumOfRows = MatrixType->getNumOfRows();
+    int NumOfCols = MatrixType->getNumOfColumns();
+    if (NumOfRows < 0)
+        TypeName += "*";
+    else
+        TypeName += std::to_string(NumOfRows);
+    TypeName += ", ";
+    if (NumOfCols < 0)
+        TypeName += "*";
+    else
+        TypeName += std::to_string(NumOfCols);
     TypeName += "])";
     return TypeName;
 }
