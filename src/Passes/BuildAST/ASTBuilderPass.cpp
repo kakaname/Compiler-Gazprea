@@ -77,8 +77,6 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     } else
         Decl->setInitExpr(castToNodeVisit(ctx->expr()));
 
-    std::cout << Ident->getIdentType()->getKind();
-    std::cout << "\n";
 
     return cast<ASTNodeT>(Decl);
 }
@@ -271,8 +269,8 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     // determine type of inner
     auto Type = castToTypeVisit(ctx->type());
     bool isString = false;
-    if(Type->getKind() == Type::TypeKind::T_Vector){
-        std::cout << "hello world\n";
+
+    if(Type->getKind() == Type::TypeKind::T_String){
         // if it is type vector, it is a string then
         Type = PM->TypeReg.getCharTy(false);    
         isString = true;
@@ -280,12 +278,17 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
-    if (Size->MUL())
+    if (Size->MUL()){
+        if(isString)
+            return PM->TypeReg.getStringType(Type, -1, false);
         return PM->TypeReg.getVectorType(Type, -1, false);
+    }
 
     // TODO constant fold integer expressions if known
     try {
         auto VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+        if(isString)
+            return PM->TypeReg.getStringType(Type, (int) VecSize);
         return PM->TypeReg.getVectorType(Type, (int) VecSize);
     } catch (exception&) {}
 
@@ -295,8 +298,9 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     auto SizeTree = castToNodeVisit(Size->expr());
     PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
             make_pair(SizeTree, nullptr);
-    if(isString)
+    if(isString){
         return PM->TypeReg.getStringType(Type, -1, false);
+    }
 
     return PM->TypeReg.getVectorType(Type, -1, false);
 }
@@ -304,10 +308,9 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) {
 
     // determine type of inner
-    auto Type = PM->TypeReg.getCharTy(false);
 
     // if it is a stringType size is not specified
-    return PM->TypeReg.getStringType(Type);
+    return PM->TypeReg.getStringType(PM->TypeReg.getCharTy(false), -1, false);
 }
 
 // Ignore for part1

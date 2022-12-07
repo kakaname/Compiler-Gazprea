@@ -219,13 +219,8 @@ public:
     }
 
     void runAllPasses() {
-        int x = 0;
-        for (auto &Pass : Passes){
+        for (auto &Pass : Passes)
             Pass.runOnAST(*this, Root);
-            x += 1;
-            std::cout << x;
-            std::cout << "\n";
-        }
 
     }
 

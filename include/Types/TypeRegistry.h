@@ -37,6 +37,7 @@ class TypeRegistry {
     using ConstTypeIdPair = pair<bool, T>;
 
     using VectorTyId = ConstTypeIdPair<pair<const Type*, int>>;
+    using StringTyId = ConstTypeIdPair<pair<const Type*, int>>;
     using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
     using TupleTypeId = ConstTypeIdPair<pair<vector<const Type*>, map<string, int>>>;
     using FunctionTypeId = pair<vector<const Type*>, const Type*>;
@@ -45,7 +46,7 @@ class TypeRegistry {
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
     using VectorTyContainer = map<VectorTyId, unique_ptr<VectorTy>>;
-    using StringTyContainer = map<VectorTyId, unique_ptr<StringTy>>;
+    using StringTyContainer = map<StringTyId, unique_ptr<StringTy>>;
     using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
     using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
@@ -134,7 +135,7 @@ public:
         }
 
         auto NewStrTy = make_unique<StringTy>(StringTy(InnerTy, Size, IsConst));
-        VectorTyId Key{IsConst, {InnerTy, Size}};
+        StringTyId Key{IsConst, {InnerTy, Size}};
         auto Inserted = StringTypes.insert({Key, std::move(NewStrTy)});
         assert(Inserted.second && "We just checked that type wasn't in the map");
         return Inserted.first->second.get();

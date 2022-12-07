@@ -468,10 +468,6 @@ const Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitIdentifier(Identifier *Ident) const {
-    std::cout << "Identifier\n";
-    std::cout << Ident->getIdentType()->getKind();
-    std::cout << "dumb";
-    std::cout << "\n";
     assert(Ident->getIdentType() && "Identifier type unknown");
     annotate(Ident, Ident->getIdentType());
     return Ident->getIdentType();
@@ -836,6 +832,7 @@ const Type *ExprTypeAnnotatorPass::visitMemberReference(MemberReference *Ref) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitIdentReference(IdentReference *Ref) {
+
     visit(Ref->getIdentifier());
     auto IdentTy = Ref->getIdentifier()->getIdentType();
     assert(IdentTy && "Ident type not known in ident reference");
@@ -934,7 +931,6 @@ const Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
 const Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
 
-    std::cout << "StringLit\n";
 
     if (!StrLit->numOfChildren())
         throw runtime_error("Unimplemented");
@@ -1209,7 +1205,6 @@ bool ExprTypeAnnotatorPass::isTypeSizeKnown(const Type *Ty) {
 }
 
 const Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
-    std::cout << "Outstream\n";
     auto ExprTy = visit(Out->getOutStreamExpr());
     if (!ExprTy->isOpaqueTy())
         return nullptr;
