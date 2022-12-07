@@ -81,7 +81,7 @@ public:
         return T_Vector == Kind || T_Matrix == Kind;
     }
 
-    bool isSameTypeAs(const Type *T) const {
+    bool isSameTypeAs( Type *T) {
         switch (Kind) {
             case T_Int:
             case T_Bool:
@@ -102,7 +102,7 @@ public:
         }
     }
 
-    bool isValidForArithOps() const {
+    bool isValidForArithOps()  {
         if (Kind == T_Vector) {
             return doesVectorSupportArithOps(this);
         } else if (Kind == T_Matrix) {
@@ -111,8 +111,8 @@ public:
         return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
 
-    bool isValidForComparisonOp() const {
-        if (Kind == T_Vector) {
+    bool isValidForComparisonOp()  {
+        if (Kind == T_Vector)
             return isVectorValidForComparisonOps(this);
         } else if (Kind == T_Matrix) {
             return isMatrixValidForComparisonOps(this);
@@ -120,7 +120,7 @@ public:
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
-    bool isValidForUnaryNot() const {
+    bool isValidForUnaryNot()  {
         switch (Kind) {
             case T_Bool:
                 return true;
@@ -133,7 +133,7 @@ public:
         }
     }
 
-    bool isValidForUnaryAddOrSub() const {
+    bool isValidForUnaryAddOrSub()  {
         switch (Kind) {
             case T_Real:
             case T_Int:
@@ -148,7 +148,7 @@ public:
         }
     }
 
-    bool isValidForEq() const {
+    bool isValidForEq()  {
         switch (Kind) {
             case T_Real:
             case T_Int:
@@ -171,11 +171,11 @@ public:
                T_Int == Kind || T_Real == Kind;
     }
 
-    bool isCallable() const {
+    bool isCallable()  {
         return T_Function == Kind || T_Procedure == Kind;
     }
 
-    bool isOutputTy() const {
+    bool isOutputTy()  {
         return T_Identity == Kind || T_Null == Kind ||
                T_Bool == Kind || T_Char == Kind ||
                T_Int == Kind || T_Real == Kind ||
@@ -183,8 +183,7 @@ public:
                T_Vector == Kind || T_Matrix == Kind;
     }
 
-    bool canCastTo(const Type *T) const {
-        TypeKind Ty = T->getKind();
+    bool canCastTo( Type *T)  {
         switch (Kind) {
             case T_Bool:
             case T_Char:
@@ -201,7 +200,7 @@ public:
         }
     }
 
-    bool canPromoteTo(const Type *T) const {
+    bool canPromoteTo( Type *T)  {
         if (isSameTypeAs(T))
             return true;
 
@@ -226,6 +225,7 @@ public:
         }
     }
 
+     Type * getPromotedType( Type *T)  {
     // This function returns the promoted type of values within a matrix, which
     // already assumes at least one of the two inputs are matrices. This is due
     // to the fact that the matrix type has a unique vector promotion rule that
@@ -241,12 +241,10 @@ public:
 //        return getPromotedVectorInMatrixType(this, T);
 //
 //    }
-
-    const Type * getPromotedType(const Type *T) const {
         return getPromotedScalarType(this, T);
     }
 
-    bool isOpaqueTy() const {
+    bool isOpaqueTy() {
         return TypeKind::T_Null == Kind || TypeKind::T_Identity == Kind;
     }
 
@@ -254,14 +252,14 @@ public:
         return Kind;
     }
 
-    bool isValidForBy() const {
+    bool isValidForBy()  {
         return T_Interval == Kind || T_Vector == Kind;
     }
 
-    std::string getTypeName() const {
+    std::string getTypeName()  {
         std::string TypeName;
         if (isConst())
-            TypeName += "const ";
+            TypeName += " ";
         switch (Kind) {
             case T_Identity:
                 return TypeName + "identity";

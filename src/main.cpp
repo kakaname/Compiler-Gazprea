@@ -35,6 +35,7 @@
 #include "Passes/Transformations/SubExpressionCacheSet.h"
 #include "Passes/Transformations/BubbleGlobalDeclarationPass.h"
 #include "Passes/Utils/ASTPrinterPass.h"
+#include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
 
 #include <iostream>
 #include <fstream>
@@ -80,7 +81,6 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-//    Manager.registerPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
@@ -89,10 +89,10 @@ int main(int argc, char **argv) {
     Manager.registerPass(ScopeResolutionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
-
+//
+//
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
@@ -114,6 +114,10 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(SimplifyCompositeTypeCasting());
+    Manager.registerPass(ASTPrinterPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
@@ -121,7 +125,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
 //    auto CG = CodeGenPass(argv[2]);

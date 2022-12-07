@@ -35,7 +35,8 @@ struct EnsureDefinitionPass: public VisitorPass<EnsureDefinitionPass, void>  {
         auto Ty = dyn_cast<ProcedureTy>(MainTy);
         if (!Ty)
             throw std::runtime_error("The main must be a procedure");
-        auto CorrectMainTy = P.TypeReg.getProcedureType({}, P.TypeReg.getIntegerTy());
+        vector<Type*> Empty;
+        auto CorrectMainTy = P.TypeReg.getProcedureType(Empty, P.TypeReg.getIntegerTy());
         if (!Ty->isSameTypeAs(CorrectMainTy))
             throw std::runtime_error("The main must have type" + CorrectMainTy->getTypeName());
     };
@@ -43,6 +44,6 @@ struct EnsureDefinitionPass: public VisitorPass<EnsureDefinitionPass, void>  {
     set<string> Declared;
     set<string> Defined;
 
-    const Type *MainTy{nullptr};
+    Type *MainTy{nullptr};
 };
 #endif //GAZPREABASE_ENSURESINGLEDEFPASS_H

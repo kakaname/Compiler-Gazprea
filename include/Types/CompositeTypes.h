@@ -11,6 +11,7 @@
 #include <string>
 
 #include "Type.h"
+#include "AST/ASTNodes.h"
 
 using std::vector;
 using std::map;
@@ -27,7 +28,7 @@ struct IntervalTy : public Type {
     explicit IntervalTy(int Length):
         Type(TypeKind::T_Interval, true), Length(Length) {}
 
-    int isLengthKnown() const {
+    int isLengthKnown()  {
         return Length >= 0;
     }
 
@@ -42,20 +43,27 @@ struct VectorTy : public Type {
 
     VectorTy() = delete;
 
-    VectorTy(const Type *InnerTy, int Size, bool IsConst):
+    VectorTy(Type *InnerTy, int Size, bool IsConst):
         Type(TypeKind::T_Vector, IsConst), Size(Size), InnerTy(InnerTy) {}
 
-    bool isSizeKnown() const {
+    bool isSizeKnown() {
         return Size != -1;
     }
 
-    int getSize() const {
+    int getSize() {
         return Size;
     }
 
-    const Type *getInnerTy() const {
+     Type *getInnerTy() {
         return InnerTy;
     }
+
+    ASTNodeT *getSizeExpr() {
+        return SizeExpr;
+    }
+
+    void setSizeExpr(ASTNodeT *Expr) {
+        SizeExpr = Expr;
 
     size_t getPromotedVectorSizeForMatrix(const VectorTy *TargetVec) const {
 
@@ -66,8 +74,9 @@ struct VectorTy : public Type {
     }
 
 private:
+    ASTNodeT *SizeExpr{nullptr};
     int Size;
-    const Type *InnerTy;
+     Type *InnerTy;
 };
 
 struct MatrixTy : public Type {
@@ -77,48 +86,66 @@ struct MatrixTy : public Type {
 
     MatrixTy() = delete;
     
-    MatrixTy(const Type *InnerTy, pair<int, int> Dimensions,  bool IsConst):
+    MatrixTy(Type *InnerTy, pair<int, int> Dimensions,  bool IsConst):
         Type(TypeKind::T_Matrix, IsConst),
         InnerTy(InnerTy),
         Dimensions(std::move(Dimensions)) {}
 
-    int getNumOfRows() const {
+    int getNumOfRows()  {
         return Dimensions.first;
     };
 
-    int getNumOfColumns() const {
+    int getNumOfColumns()  {
         return Dimensions.second;
     };
 
-    bool isNumOfRowsIsKnown() const {
+    bool isNumOfRowsIsKnown()  {
         return Dimensions.first != -1;
     };
 
-    bool isNumOfColumnsIsKnown() const {
+    bool isNumOfColumnsIsKnown()  {
         return Dimensions.second != -1;
     };
 
-    bool isSizeKnown() const {
+    bool isSizeKnown()  {
         return isNumOfColumnsIsKnown() && isNumOfRowsIsKnown();
     }
 
-    bool isSameSizeAs(const MatrixTy *Mat) const {
+    bool isSameSizeAs(MatrixTy *Mat)  {
         return Mat->getNumOfColumns() == getNumOfColumns() &&
         Mat->getNumOfRows() == getNumOfRows();
     }
 
-    const Type *getInnerTy() const {
+     Type *getInnerTy() {
         return InnerTy;
     }
 
+    ASTNodeT *getRowSizeExpr() {
+        return RowSizeExpr;
+    }
+
+    void setRowSizeExpr(ASTNodeT *Expr) {
+        RowSizeExpr = Expr;
+    }
+
+    ASTNodeT *getColSizeExpr() {
+        return ColSizeExpr;
+    }
+
+    void setColSizeExpr(ASTNodeT *Expr) {
+        ColSizeExpr = Expr;
+    }
+
 private:
-    const Type *InnerTy;
+    ASTNodeT *RowSizeExpr{nullptr};
+    ASTNodeT *ColSizeExpr{nullptr};
+    Type *InnerTy;
     std::pair<int, int> Dimensions;
 };
 
 struct TupleTy : public Type {
 
-    using MemberTyContainer = vector<const Type*>;
+    using MemberTyContainer = vector<Type*>;
     using MappingsContainer = map<string, int>;
 
     static bool classof(const Type *T) {
@@ -127,28 +154,28 @@ struct TupleTy : public Type {
 
     TupleTy() = delete;
 
-    const Type *getMemberTypeAt(size_t Pos) const {
+    Type *getMemberTypeAt(size_t Pos) {
         if (Pos >= ContainedTypes.size())
             return nullptr;
         return ContainedTypes.at(Pos);
     }
 
-    size_t getNumOfMembers() const {
+    size_t getNumOfMembers() {
         return ContainedTypes.size();
     }
 
-    const vector<const Type *> &getMemberTypes() const {
+    vector<Type *> &getMemberTypes() {
         return ContainedTypes;
     }
 
-    int getMemberIdx(const string &Name) const {
+    int getMemberIdx(const string &Name)  {
         auto Res = Mappings.find(Name);
         if (Res == Mappings.end())
             return 0;
         return Res->second;
     }
 
-    const MappingsContainer &getMappings() const {
+     MappingsContainer &getMappings()  {
         return Mappings;
     }
 
@@ -167,34 +194,34 @@ struct FunctionTy : public Type {
         return T->getKind() == TypeKind::T_Function;
     }
 
-    using ParamTypeContainer = vector<const Type*>;
+    using ParamTypeContainer = vector<Type*>;
 
-    const Type *getParamTypeAt(size_t Pos) const {
+     Type *getParamTypeAt(size_t Pos)  {
         if (Pos >= Params.size())
             return nullptr;
         return Params.at(Pos);
     }
 
-    const ParamTypeContainer &getParamTypes() const {
+     ParamTypeContainer &getParamTypes()  {
         return Params;
     }
 
-    size_t getNumOfArgs() const {
+    size_t getNumOfArgs()  {
         return Params.size();
     }
 
-    const Type *getRetType() const {
+     Type *getRetType()  {
         return RetTy;
     }
 
     FunctionTy() = delete;
 
-    explicit FunctionTy(ParamTypeContainer Args, const Type *RetTy) :
+    explicit FunctionTy(ParamTypeContainer Args,  Type *RetTy) :
             Type(TypeKind::T_Function, true), Params(std::move(Args)), RetTy(RetTy) {}
 
 private:
     ParamTypeContainer Params;
-    const Type *RetTy;
+     Type *RetTy;
 };
 
 struct ProcedureTy : public Type {
@@ -202,34 +229,34 @@ struct ProcedureTy : public Type {
         return T->getKind() == TypeKind::T_Procedure;
     }
 
-    using ArgsTypeContainer = vector<const Type*>;
+    using ArgsTypeContainer = vector<Type*>;
 
-    const Type *getParamTypeAt(size_t Pos) const {
+     Type *getParamTypeAt(size_t Pos)  {
         if (Pos >= Args.size())
             return nullptr;
         return Args.at(Pos);
     }
 
-    const ArgsTypeContainer &getParamTypes() const {
+     ArgsTypeContainer &getParamTypes()  {
         return Args;
     }
 
-    const Type *getRetTy() const {
+     Type *getRetTy()  {
         return RetTy;
     };
 
-    size_t getNumOfArgs() const {
+    size_t getNumOfArgs()  {
         return Args.size();
     }
 
     ProcedureTy() = delete;
 
-    explicit ProcedureTy(ArgsTypeContainer Args, const Type* RetTy):
+    explicit ProcedureTy(ArgsTypeContainer Args,  Type* RetTy):
             Type(TypeKind::T_Procedure, true), Args(std::move(Args)), RetTy(RetTy) {}
 
 private:
     ArgsTypeContainer Args;
-    const Type *RetTy;
+     Type *RetTy;
 };
 
 #endif //GAZPREABASE_COMPOSITETYPES_H

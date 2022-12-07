@@ -187,7 +187,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     OS << Mod;
 }
 
-llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
+llvm::Type *CodeGenPass::getLLVMType(Type *Ty) {
     if (!Ty)
         return IR.getVoidTy();
 
@@ -224,21 +224,14 @@ llvm::Type *CodeGenPass::getLLVMType(const Type *Ty) {
     }
 }
 
-llvm::Type *CodeGenPass::getLLVMTupleType(const TupleTy *Tuple) {
+llvm::Type *CodeGenPass::getLLVMTupleType(TupleTy *Tuple) {
     vector<llvm::Type*> TupleTypes;
-    for (const Type *SubTy : Tuple->getMemberTypes())
+    for (auto SubTy : Tuple->getMemberTypes())
         TupleTypes.push_back(getLLVMType(PM->TypeReg.getConstTypeOf(SubTy)));
     return llvm::StructType::get(GlobalCtx, TupleTypes);
 }
 
-llvm::Type *CodeGenPass::getLLVMVectorType(const VectorTy *Vector) {
-    // Deprecated, uses array type
-    return llvm::ArrayType::get(getLLVMType(
-            PM->TypeReg.getConstTypeOf(Vector->getInnerTy())),
-            Vector->getSize());
-}
-
-llvm::Value *CodeGenPass::createAlloca(const Type *Ty) {
+llvm::Value *CodeGenPass::createAlloca(Type *Ty) {
     llvm::IRBuilder<> Builder(GlobalCtx);
     llvm::BasicBlock *BB = &CurrentFunction->front();
     Builder.SetInsertPoint(BB);
@@ -344,7 +337,7 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     return nullptr;
 }
 
-llvm::Value *CodeGenPass::declareGlobal(const string &Name, const Type *Ty) {
+llvm::Value *CodeGenPass::declareGlobal(const string &Name, Type *Ty) {
     llvm::Type *LLTy = getLLVMType(PM->TypeReg.getConstTypeOf(Ty));
     Mod.getOrInsertGlobal(Name, LLTy);
     llvm::GlobalVariable *GV = Mod.getNamedGlobal(Name);
@@ -555,8 +548,8 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    const Type *LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-    const Type *RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+    auto LeftType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RightType = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
     if (!RightType->isSameTypeAs(LeftType))
         throw std::runtime_error("Operation between different types should not"
                                      " have reached the code gen");
@@ -932,7 +925,7 @@ llvm::Value *CodeGenPass::visitConditionalElse(ConditionalElse *Cond) {
     return nullptr;
 }
 
-llvm::Value *CodeGenPass::getCastValue(Value *Val, const Type *SrcTy, const Type *DestTy) {
+llvm::Value *CodeGenPass::getCastValue(Value *Val, Type *SrcTy, Type *DestTy) {
 
     // RULES FOR CASTING BASED ON DestTy
 
@@ -1105,7 +1098,7 @@ llvm::Value *CodeGenPass::visitContinue(Continue *Continue) {
 
 llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     Value *ValToOut = visit(Stream->getOutStreamExpr());
-    const Type *ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
+    auto ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
 
     if (ValType->getKind() == Type::T_Vector) {
@@ -1198,7 +1191,7 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
 
 }
 
-llvm::Type *CodeGenPass::getLLVMFunctionType(const FunctionTy *FuncTy) {
+llvm::Type *CodeGenPass::getLLVMFunctionType(FunctionTy *FuncTy) {
     vector<llvm::Type*> ParamTypes;
     for (auto Ty: FuncTy->getParamTypes())
         ParamTypes.emplace_back(getLLVMType(Ty));
@@ -1206,7 +1199,7 @@ llvm::Type *CodeGenPass::getLLVMFunctionType(const FunctionTy *FuncTy) {
             llvm::FunctionType::get(getLLVMType(FuncTy->getRetType()), ParamTypes, false));
 }
 
-llvm::Type *CodeGenPass::getLLVMProcedureType(const ProcedureTy *ProcTy) {
+llvm::Type *CodeGenPass::getLLVMProcedureType(ProcedureTy *ProcTy) {
     vector<llvm::Type*> ParamTypes;
     for (auto Ty: ProcTy->getParamTypes())
         ParamTypes.emplace_back(getLLVMType(Ty));
@@ -1227,7 +1220,6 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
     auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
 
     if (isa<VectorTy>(VecTy)) {
-
         Value *Idx = visit(Ref->getIndexExpr());
         auto IdxTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
 
@@ -1281,7 +1273,7 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
         IR.getInt64(0), IR.getInt64(MemIdx->getVal() - 1)});
 }
 
-llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty,
+llvm::Function *CodeGenPass::getOrInsertFunction(Type *Ty,
                                                  const string &Name) {
 
     if (auto Func = Mod.getFunction(Name))
@@ -1299,7 +1291,7 @@ llvm::Function *CodeGenPass::getOrInsertFunction(const Type *Ty,
             : getLLVMType(ProcTy->getRetTy());
 
     vector<llvm::Type*> LLVMParamTys;
-    auto BuildLLVMTypes = [&](const Type *T) {
+    auto BuildLLVMTypes = [&](Type *T) {
         LLVMParamTys.emplace_back(getLLVMType(T));};
     std::for_each(ParamTys.begin(), ParamTys.end(), BuildLLVMTypes);
 
@@ -1450,7 +1442,7 @@ llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum T
     }
 }
 
-llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy) {
+llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy) {
     auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
     MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
     return MallocPtr;

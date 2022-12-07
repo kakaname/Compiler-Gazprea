@@ -34,7 +34,7 @@ void ReturnValuePromotionPass::visitReturn(Return *Ret) {
     Ret->setReturnExpr(Cast);
 }
 
-TypeCast *ReturnValuePromotionPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const {
+TypeCast *ReturnValuePromotionPass::wrapWithCastTo(ASTNodeT *Expr, Type *Ty) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);
     Cast->setExpr(Expr);

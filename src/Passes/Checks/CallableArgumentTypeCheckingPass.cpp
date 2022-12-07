@@ -38,7 +38,7 @@ void CallableArgumentTypeCheckingPass::visitFunctionCall(FunctionCall *Call) {
     }
 }
 
-TypeCast *CallableArgumentTypeCheckingPass::wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const {
+TypeCast *CallableArgumentTypeCheckingPass::wrapWithCastTo(ASTNodeT *Expr, Type *Ty) const {
     auto Cast = PM->Builder.build<TypeCast>();
     Cast->copyCtx(Expr);
     Cast->setExpr(Expr);

@@ -270,67 +270,52 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
+    // Size must be inferred.
     if (Size->MUL())
         return PM->TypeReg.getVectorType(Type, -1, false);
 
-    // TODO constant fold integer expressions if known
+    // Try to constant fold it.
+    long VecSize = -1;
     try {
-        auto VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
-        return PM->TypeReg.getVectorType(Type, (int) VecSize);
+        VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
     } catch (exception&) {}
 
     // If the size cannot be folded, then there must an expression
     // specifying the size.
-
     auto SizeTree = castToNodeVisit(Size->expr());
-    PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
-            make_pair(SizeTree, nullptr);
-
-    return PM->TypeReg.getVectorType(Type, -1, false);
+    auto VecTy = PM->TypeReg.getVectorType(Type, (int) VecSize, false);
+    cast<VectorTy>(VecTy)->setSizeExpr(SizeTree);
+    return VecTy;
 }
 
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
     auto InnerTy = castToTypeVisit(ctx->type());
 
     auto RowSizeExpr = ctx->expressionOrWildcard(0);
-
-    auto RowSize = [&]() {
-        if (RowSizeExpr->MUL())
-            return (long) -1;
-
-        try {
-            return std::any_cast<long>(Folder.visit(RowSizeExpr->expr()));
-        } catch (exception&) {}
-        auto RowSizeTree = castToNodeVisit(RowSizeExpr->expr());
-        PM->getResult<SelfT>()[{NodeToMarkForTypeSize, CurrentIdxToMark}] =
-                make_pair(RowSizeTree, nullptr);
-        return (long) -1;
-    }();
-
     auto ColSizeExpr = ctx->expressionOrWildcard(1);
 
-    auto ColSize = [&]() {
-        if (ColSizeExpr->MUL())
-            return (long) -1;
+    long Rows = -1;
+    long Cols = -1;
 
-        try {
-            return std::any_cast<long>(Folder.visit(ColSizeExpr->expr()));
-        } catch (exception&) {}
+    if (RowSizeExpr->expr()) {
+        try {Rows = std::any_cast<long>(Folder.visit(RowSizeExpr->expr()));}
+        catch (exception&) {};
+    }
 
-        auto ColSizeTree = castToNodeVisit(ColSizeExpr->expr());
+    if (ColSizeExpr->expr()) {
+        try {Cols = std::any_cast<long>(Folder.visit(ColSizeExpr->expr()));}
+        catch (exception&) {};
+    }
 
-        auto &ResultMap = PM->getResult<SelfT>();
-        auto Key = make_pair(NodeToMarkForTypeSize, CurrentIdxToMark);
-        auto Res = ResultMap.find(Key);
+    auto MatTy = PM->TypeReg.getMatrixType(InnerTy, Rows, Cols, false);
 
-        if (Res == ResultMap.end())
-            ResultMap[Key] = make_pair(nullptr, ColSizeTree);
-        else
-            ResultMap[Key] = make_pair(Res->second.first, ColSizeTree);
-        return (long) -1;
-    }();
+    if (RowSizeExpr->expr())
+        cast<MatrixTy>(MatTy)->setRowSizeExpr(castToNodeVisit(RowSizeExpr->expr()));
 
-    return PM->TypeReg.getMatrixType(InnerTy, (int) RowSize, (int) ColSize, false);
+    if (ColSizeExpr->expr())
+        cast<MatrixTy>(MatTy)->setColSizeExpr(castToNodeVisit(ColSizeExpr->expr()));
+
+    return MatTy;
 }
 
 
@@ -398,7 +383,7 @@ std::any ASTBuilderPass::visitFunctionDefinition(GazpreaParser::FunctionDefiniti
     FuncDef->setIdent(Ident);
 
 
-    vector<const Type*> ParamTypes;
+    vector<Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
     ParamList->setCtx(ctx);
@@ -455,7 +440,7 @@ std::any ASTBuilderPass::visitProcedureDeclr(GazpreaParser::ProcedureDeclrContex
         ProcDecl->addParamTy(ParamTy);
     }
 
-    const Type *ProcRetTy{nullptr};
+    Type *ProcRetTy{nullptr};
     if (ctx->type())
         ProcRetTy = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
 
@@ -476,7 +461,7 @@ std::any ASTBuilderPass::visitProcedureDefinition(GazpreaParser::ProcedureDefini
     Ident->setName(ctx->ID()->getText());
     ProcDef->setIdent(Ident);
 
-    vector<const Type*> ParamTypes;
+    vector<Type*> ParamTypes;
 
     auto ParamList = PM->Builder.build<ParameterList>();
     ParamList->setCtx(ctx);
@@ -965,7 +950,7 @@ std::any ASTBuilderPass::visitAndExpr(GazpreaParser::AndExprContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitTupleType(GazpreaParser::TupleTypeContext *ctx) {
-    vector<const Type*> MemberTypes;
+    vector<Type*> MemberTypes;
     map<string, int> Mappings;
     int Idx = 1;
     for (auto *Member : ctx->tupleTypeDecl()->tupleMemberType()) {
@@ -1157,8 +1142,8 @@ std::any ASTBuilderPass::visitRealLit5(GazpreaParser::RealLit5Context *ctx) {
     auto RealLit = PM->Builder.build<RealLiteral>();
     RealLit->setCtx(ctx);
 
-    RealLit->setVal(ctx->getText());
-
+    string realVal = ctx->INTLITERAL()->getText() + ".";
+    RealLit->setVal(realVal);
     return cast<ASTNodeT>(RealLit);
 }
 
@@ -1167,6 +1152,16 @@ std::any ASTBuilderPass::visitRealLit6(GazpreaParser::RealLit6Context *ctx) {
     RealLit->setCtx(ctx);
 
     string realVal = "." + ctx->INTLITERAL()->getText();
+    RealLit->setVal(realVal);
+
+    return cast<ASTNodeT>(RealLit);
+}
+
+std::any ASTBuilderPass::visitRealLit7(GazpreaParser::RealLit7Context *ctx) {
+    auto RealLit = PM->Builder.build<RealLiteral>();
+    RealLit->setCtx(ctx);
+
+    string realVal = ctx->INTLITERAL(0)->getText() + "." + ctx->INTLITERAL(1)->getText();
     RealLit->setVal(realVal);
 
     return cast<ASTNodeT>(RealLit);
