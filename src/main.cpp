@@ -124,8 +124,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
-//    auto CG = CodeGenPass(argv[2]);
-//    CG.runOnAST(Manager, Manager.getRoot());
+    auto CG = CodeGenPass(argv[2]);
+    CG.runOnAST(Manager, Manager.getRoot());
     return 0;
 
 }

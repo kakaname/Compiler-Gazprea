@@ -66,7 +66,6 @@ public:
         std::cout << "NoOp" << '\n';
     }
 
-    // ignored for part1
     void visitDomainLoop(DomainLoop *Loop) {
         std::cout << "DomainLoop" << "\n";
     }

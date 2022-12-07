@@ -95,8 +95,6 @@ public:
 
     std::any visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) override;
 
-    std::any visitIterDomain(GazpreaParser::IterDomainContext *ctx) override;
-
     std::any visitTypeDef(GazpreaParser::TypeDefContext *ctx) override;
 
     std::any visitOutput(GazpreaParser::OutputContext *ctx) override;

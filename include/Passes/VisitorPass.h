@@ -91,9 +91,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
-    // ignored for part1
     RetT visitDomainLoop(DomainLoop *Loop) {
-        throw std::runtime_error("Unimplemented");
+        visit(Loop->getID());
+        visit(Loop->getDomain());
+        visit(Loop->getBody());
+        return RetT();
     }
 
     RetT visitIntLiteral(IntLiteral *IntLit) {
