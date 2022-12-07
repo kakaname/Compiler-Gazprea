@@ -27,6 +27,10 @@ struct vector *rt_vector_new(enum vector_type type, u_int64_t size) {
     return v;
 }
 
+char rt_vector_out_of_bounds(struct vector *v, u_int64_t idx) {
+    return (idx >= v->size) ? 1 : 0;
+}
+
 struct vector *rt_vector_not(struct vector *a) {
     struct vector *res = rt_vector_new(a->type, a->size);
     VECTOR_DATA_INIT_SINGLE(char)

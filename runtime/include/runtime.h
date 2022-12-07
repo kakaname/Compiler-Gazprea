@@ -74,7 +74,6 @@ res_data[i] = a_data[i*stride];            \
 }
 #define VECTOR_ACCESS(type) \
 type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecked) { \
-                            \
     if (idx >= v->size) {   \
         if (unchecked) {  \
             return 0; \
