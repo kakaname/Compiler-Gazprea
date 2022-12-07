@@ -33,6 +33,7 @@ struct IntervalTy : public Type {
     }
 
 private:
+    ASTNodeT *LengthExpr{nullptr};
     int Length;
 };
 
@@ -69,7 +70,7 @@ struct VectorTy : public Type {
 private:
     ASTNodeT *SizeExpr{nullptr};
     int Size;
-     Type *InnerTy;
+    Type *InnerTy;
 };
 
 struct MatrixTy : public Type {
@@ -111,6 +112,14 @@ struct MatrixTy : public Type {
 
      Type *getInnerTy() {
         return InnerTy;
+    }
+
+    void setRowSize(int RowSize) {
+        Dimensions.first = RowSize;
+    }
+
+    void setColumnSize(int ColumnSize) {
+        Dimensions.second = ColumnSize;
     }
 
     ASTNodeT *getRowSizeExpr() {
