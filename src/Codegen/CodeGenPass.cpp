@@ -46,6 +46,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     ScanBool = Mod.getOrInsertFunction(
             "rt_scan_bool", llvm::FunctionType::get(
                     LLVMCharTy, {}, false));
+    PowInt = Mod.getOrInsertFunction(
+            "rt_ipow", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMIntTy, LLVMIntTy}, false));
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
@@ -476,15 +479,7 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
             case ArithmeticOp::MOD:
                 return IR.CreateSRem(LeftOperand, RightOperand);
             case ArithmeticOp::EXP:
-                LeftOperand = IR.CreateSIToFP(LeftOperand, LLVMRealTy);
-                llvm::Value *RetVal = IR.CreateIntrinsic(
-                        llvm::Intrinsic::experimental_constrained_powi,
-                        {LLVMRealTy, LLVMIntTy, llvm::Type::getMetadataTy(
-                                GlobalCtx), llvm::Type::getMetadataTy(
-                                        GlobalCtx)},
-                        {LeftOperand, RightOperand, RoundingMD, ExceptionMD}
-                );
-                return IR.CreateFPToSI(RetVal, LLVMIntTy);
+                return IR.CreateCall(PowInt, {LeftOperand, RightOperand});
 
         }
     } else if (isa<RealTy>(ResultType)) {
