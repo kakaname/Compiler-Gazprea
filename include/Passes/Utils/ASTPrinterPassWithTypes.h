@@ -274,6 +274,10 @@ public:
         std::cout << "Append" << "\n";
     }
 
+    void visitIndexReference(IndexReference *Idx) {
+        std::cout << "IndexRef" << "\n";
+    }
+
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         PM = &PManager;

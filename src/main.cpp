@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
 
 
-    //Manager.registerPass(ChangeMemAccessToMemRef());
+    Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
