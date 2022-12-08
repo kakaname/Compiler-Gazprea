@@ -114,7 +114,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
     PrintString = Mod.getOrInsertFunction(
             "rt_print_string", llvm::FunctionType::get(
-                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+                    LLVMVoidTy, {LLVMVectorPtrTy}, false));
     VectorOOB = Mod.getOrInsertFunction(
             "rt_vector_out_of_bounds", llvm::FunctionType::get(
                     LLVMCharTy, {LLVMVectorPtrTy, LLVMIntTy}, false));
@@ -1364,10 +1364,7 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     if (ValType->getKind() == Type::T_Matrix)
         return IR.CreateCall(PrintMatrix, {ValToOut});
     if (ValType->getKind() == Type::T_String) {
-        // TODO temporary store
-        auto Str = IR.CreateAlloca(LLVMVectorTy);
-        IR.CreateStore(ValToOut, Str);
-        return IR.CreateCall(PrintString, {Str});
+        return IR.CreateCall(PrintString, {ValToOut});
     }
 
     switch (ValType->getKind()) {
