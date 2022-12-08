@@ -1,9 +1,57 @@
+#include <ctype.h>
+#include <limits.h>
 #include "runtime.h"
+#include "stream_state.h"
+
 
 struct stream_store s = {0, 0, 0, 0, 0, {0}};
 
-// TODO test limits of integer
 
+stream_state_t stream = STREAM_STATE_INITIALIZER;
+
+static void consume_next_n(int n) {
+    for (int i = 0; i < n; i++) {
+        stream.buf[stream.pop_idx] = (char) getchar();
+        stream.pop_idx = (stream.pop_idx + 1) % STREAM_BUF_LEN;
+    }
+}
+
+static int put_data_in_read_buf() {
+    int current_pop_idx = stream.pop_idx;
+    int characters_read = 0;
+
+    // Read in the spaces.
+    while (characters_read < STREAM_BUF_LEN - 1 && isspace(stream.buf[current_pop_idx])) {
+        stream.scan_buf[characters_read++] = stream.buf[current_pop_idx];
+        current_pop_idx = (current_pop_idx + 1) % STREAM_BUF_LEN;
+    }
+
+    while (characters_read < STREAM_BUF_LEN - 1 && !isspace(stream.buf[current_pop_idx])) {
+        stream.scan_buf[characters_read++] = stream.buf[current_pop_idx];
+        current_pop_idx = (current_pop_idx + 1) % STREAM_BUF_LEN;
+    }
+
+    if (characters_read > 1024) {
+        fprintf(stderr, "Had to look ahead more than kB of input to find next token");
+        exit(1);
+    }
+
+    stream.scan_buf[characters_read] = 0;
+    return characters_read;
+}
+
+int64_t stream_state() {
+    return stream.state;
+}
+
+void rt_stream_in_init() {
+    for (int i = 0; i < STREAM_BUF_LEN; i++)
+        stream.buf[i] = getchar();
+}
+
+static char has_input_ended() {
+    return stream.buf[stream.pop_idx] == EOF;
+}
 
 void rt_print_matrix(struct matrix *m) {
     printf("[");
@@ -118,226 +166,111 @@ void rt_print_bool(int64_t b) {
     printf("%c", b ? 'T' : 'F');
 }
 
-void queue_char(char c) {
-    // check if the buffer is full
-    if ((s.back + 1) % 1025 == s.front) {
-        ERR_BUFFER_OVERFLOW();
-    } else {
-        s.buffer[s.back] = c;
-        s.back = (s.back + 1) % 1025;
-    }
-}
-
-char dequeue_char() {
-    // check if the buffer is empty
-    if (s.front == s.back) {
-        ERR_BUFFER_OVERFLOW();
-    } else {
-        char c = s.buffer[s.front];
-        s.front = (s.front + 1) % 1025;
-        return c;
-    }
-}
-
-char dequeue_curr_char() {
-    // check if the buffer is empty
-    if (s.curr == s.back) {
-        ERR_BUFFER_OVERFLOW();
-    } else {
-        char c = s.buffer[s.curr];
-        s.curr = (s.curr + 1) % 1025;
-        return c;
-    }
-}
-
-
-char consume_char() {
-    char c;
-    if (s.back + 1 == s.front) ERR_BUFFER_OVERFLOW();
-    // check if the buffer is empty
-    if (s.front == s.back) {
-        // read from the stream
-        if (s.eof) { return -1; }
-        if (scanf("%c", &c) == EOF) {
-            s.eof = 1;
-            c = -1;
-        }
-        queue_char(c);
-        s.front = s.back;
-    } else {
-        // read from the buffer
-        c = dequeue_char();
-    }
-
-    return c;
-}
-
-char is_ws(char c) {
-    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
-}
-
-
-char* peek_token(char eof_ss) {
-    char c;
-    s.curr = s.front;
-    size_t ws_start = s.front;
-    // check if the buffer is empty
-    while (1) {
-        if (s.curr == s.back) {
-            // read from the stream
-            if (s.back + 1 == s.front) ERR_BUFFER_OVERFLOW();
-            if (scanf("%c", &c) == EOF) {
-                if (s.eof) {
-                    s.stream_state = eof_ss;
-                    return NULL;
-                }
-                s.eof = 1;
-                c = 0;
-            }
-            queue_char(c);
-            s.curr = s.back;
-        } else {
-            // read from the buffer
-            c = dequeue_curr_char();
-        }
-        size_t len = s.front > s.back ? (1024 - s.front + s.back) : (s.back - s.front);
-        if ((is_ws(c) || s.eof) && len > 1 && !is_ws(s.buffer[(s.curr - 2) % 1025])) break;
-        if (is_ws(c)) ws_start = s.curr;
-    }
-
-    // calculate size of token
-    size_t buffer_size = ws_start > s.back ? (1024 - ws_start + s.back + 1) : (s.back - ws_start - 1) + 1;
-
-    // copy the token into a new buffer
-    char *token = malloc(buffer_size + 1);
-    size_t i = 0;
-    while (i != buffer_size) {
-        token[i] = s.buffer[ws_start];
-        ws_start = (ws_start + 1) % 1025;
-        i++;
-    }
-
-    token[i-1] = '\0';
-    return token;
-}
-
-void consume_to_curr() {
-    // set front of buffer to current position
-    s.front = (s.curr - 1) % 1025;
-}
-
-void consume_to_curr_one() {
-    s.front = s.curr;
-}
-
-void consume_single() {
-    // increment front of buffer
-    s.front = (s.front + 1) % 1025;
-}
-
-char peek_next() {
-    char c = ' ';
-    // While the current char is whitespace, we have not reached the end of file, or
-    while (is_ws(c) && !s.eof && (s.back + 1) % 1025 != s.front) {
-        // check if the buffer is empty
-        if (s.curr == s.back) {
-            // read from the stream
-            if (scanf("%c", &c) == EOF) {
-                s.eof = 1;
-            }
-            // put the character back
-            s.buffer[s.back] = c;
-            s.back = (s.back + 1) % 1025;
-        } else {
-            // read from the buffer
-            c = s.buffer[s.curr];
-        }
-        s.curr = (s.curr + 1) % 1025;
-    }
-
-    if (s.eof) {
-        return EOF;
-    } else {
-        return c;
-    }
-}
-
-char peek_char() {
-    // reset peek to beginning
-    s.curr = s.front;
-    return peek_next();
-
-}
-
 char rt_scan_char() {
-    // TODO fix one missing after final
-    char temp = consume_char();
-    s.stream_state = 0;
-    return temp;
+    // If the stream has ended we just set the state and return -1 for
+    // the character.
+    if (has_input_ended()) {
+        stream.state = 2;
+        return -1;
+    }
+
+    char char_from_buf = stream.buf[stream.pop_idx];
+    consume_next_n(1);
+    return char_from_buf;
 }
 
 char rt_scan_bool() {
-    char c = peek_char();
-    if (c == 'T') {
-        consume_to_curr_one();
-        s.stream_state = 0;
-        return 1;
-    } else if (c == 'F') {
-        consume_to_curr_one();
-        s.stream_state = 0;
-        return 0;
-    } else if (c == EOF) {
-        consume_single();
-        s.stream_state = 1;
-        return 0;
-    } else {
-        consume_single();
-        s.stream_state = 2;
+
+    if (has_input_ended()) {
+        stream.state = 2;
         return 0;
     }
-}
 
+    int buf_len = put_data_in_read_buf();
+    char bool;
+    int consumed;
+    sscanf(stream.scan_buf, " %c%n", &bool, &consumed);
 
-float scan_real_err(char val) {
-    s.stream_state = val;
-    return 0.0f;
-}
+    // There are some extra characters in the buffer.
+    if (consumed != buf_len) {
+        stream.state = 1;
+        return 0;
+    }
 
-int64_t scan_int_err(char val) {
-    s.stream_state = val;
-    return 0;
+    if (bool != 'T' && bool != 'F') {
+        stream.state = 1;
+        return 0;
+    }
+
+    consume_next_n(buf_len);
+    return bool == 'T';
 }
 
 int64_t rt_scan_int() {
 
-    char *token = peek_token(2);
-    if (token == NULL) return scan_int_err(2);
+    if (has_input_ended()) {
+        stream.state = 2;
+        return 0;
+    }
 
-    // convert the token to an int64_t
-    char *end;
-    int64_t num = strtol(token, &end, 10);
-    if (end == token) return scan_int_err(1);
-    if (!is_ws(*end) && *end != '\0') return scan_int_err(1);
-    s.stream_state = 0;
+    int buf_len = put_data_in_read_buf();
+    int64_t read_in_int;
+    int consumed;
+    if (!sscanf(stream.scan_buf, " %ld%n", &read_in_int, &consumed)) {
+        stream.state = 1;
+        return 0;
+    }
 
-    free(token);
-    consume_to_curr();
+    // There are some extra characters in the buffer.
+    if (consumed != buf_len) {
+        stream.state = 1;
+        return 0;
+    }
 
-    return num;
+    char *without_ws = stream.scan_buf;
+
+    while (isspace(without_ws))
+        ++without_ws;
+
+
+    // If without space, the buf len is more than 11, then obviously its an error
+    // as the min int32 takes 11 characters to represent.
+    if (strlen(without_ws) > 11) {
+        stream.state = 1;
+        return 0;
+    }
+
+    if (read_in_int < INT_MIN || read_in_int > INT_MAX) {
+        stream.state = 1;
+        return 0;
+    }
+
+    consume_next_n(buf_len);
+    return read_in_int;
 }
 
 float rt_scan_real() {
-    char *token = peek_token(2);
-    if (token == NULL) return scan_real_err(2);
+    if (has_input_ended()) {
+        stream.state = 2;
+        return 0.0f;
+    }
 
-    char *end;
-    float num = strtof(token, &end);
-    if (end == token) return scan_real_err(1);
-    if (!is_ws(*end) && *end != '\0') return scan_real_err(1);
+    int buf_len = put_data_in_read_buf();
 
-    s.stream_state = 0;
+    float read_in_float;
+    int consumed;
 
-    free(token);
-    consume_to_curr();
-    return num;
+    if (!sscanf(stream.scan_buf, " %f%n", &read_in_float, &consumed)) {
+        stream.state = 1;
+        return 0.0f;
+    }
+
+    if (consumed != buf_len) {
+        stream.state = 1;
+        return 0.0f;
+    }
+
+    consume_next_n(buf_len);
+    return read_in_float;
 }
+

@@ -934,18 +934,6 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
     IntInterval->setLowerExpr(Upper);
     IntInterval->setUpperExpr(Lower);
 
-    // Add the check for the intervals to be equal
-//    auto Check = PM->Builder.build<ComparisonOp>();
-//    Check->setCtx(ctx);
-//    Check->setOp(ComparisonOp::GTEQ);
-//    Check->setLeftExpr(Lower);
-//    Check->setRightExpr(Upper);
-//    Check->setParent(IntInterval);
-//    IntInterval->addCheck(Check);
-
-    if (ctx->BY())
-        throw std::runtime_error("Unimplemented: By");
-
     return cast<ASTNodeT>(IntInterval);
 }
 
@@ -1021,18 +1009,20 @@ std::any ASTBuilderPass::visitStmt(GazpreaParser::StmtContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclContext *ctx) {
-    auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
-    auto Expr = castToNodeVisit(ctx->expr());
     auto Decl = PM->Builder.build<Declaration>();
+    auto Expr = castToNodeVisit(ctx->expr());
+    auto Ident = PM->Builder.build<Identifier>();
+    if (ctx->type()) {
+        auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+        Decl->setIdentType(Type);
+        Ident->setIdentType(Type);
+    }
     // TODO intervals here too
     Decl->setCtx(ctx);
-    Decl->setIdentType(Type);
     Decl->setInitExpr(Expr);
     Decl->setConst();
-    auto Ident = PM->Builder.build<Identifier>();
     Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
-    Ident->setIdentType(Type);
     Decl->setIdent(Ident);
     return cast<ASTNodeT>(Decl);
 }

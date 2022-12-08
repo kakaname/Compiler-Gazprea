@@ -161,62 +161,21 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             if (auto VecTy = dyn_cast<VectorTy>(Decl->getIdentType())) {
                 // If the size is known, we don't change the type and let it
                 // potentially fail when the AssignmentTypeCheckerPass runs.
-                if (VecTy->isSizeKnown())
+                if (!VecTy->getSizeExpr())
                     break;
 
                 // If the size was specified as an expression, visit it to
                 // resolve references.
-                if (VecTy->getSizeExpr()) {
-                    visit(VecTy->getSizeExpr());
-                    break;
-                }
-                // Otherwise the size must be inferred.
-                auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
-                assert(ExprVecTy && "Trying to assign non vector to vector with inferred size");
-                auto NewDeclType = cast<VectorTy>(PM->TypeReg.getVectorType(
-                        VecTy->getInnerTy(), ExprVecTy->getSize(),
-                        Decl->IsConst));
-
-                NewDeclType->setSizeExpr(ExprVecTy->getSizeExpr());
-
-                Decl->setIdentType(NewDeclType);
-                Decl->getIdentifier()->setIdentType(NewDeclType);
+                visit(VecTy->getSizeExpr());
                 break;
             }
 
             if (auto MatTy = dyn_cast<MatrixTy>(Decl->getIdentType())) {
-                if (MatTy->isSizeKnown())
-                    break;
+                if (MatTy->getRowSizeExpr())
+                    visit(MatTy->getRowSizeExpr());
 
-                // If the size was specified as an expression, we do nothing
-                // and let the AssignmentTypeCheckerPass handle it.
-                auto Dimensions = make_pair(MatTy->getRowSizeExpr(),
-                                            MatTy->getColSizeExpr());
-
-                // If either one of them has an expression, we bail
-                if (Dimensions.first || Dimensions.second)
-                    break;
-
-                auto ExprMatTy = dyn_cast<MatrixTy>(ExprType);
-                assert(ExprMatTy && "Trying to assign non matrix to matrix "
-                                    "of unknown size");
-
-                auto NumOfRows = MatTy->isNumOfRowsIsKnown() ?
-                        MatTy->getNumOfRows() : ExprMatTy->getNumOfRows();
-                auto NumOfCols = MatTy->isNumOfColumnsIsKnown() ?
-                        MatTy->getNumOfColumns() : MatTy->getNumOfRows();
-
-                auto NewDeclType = cast<MatrixTy>(PM->TypeReg.getMatrixType(
-                        MatTy->getInnerTy(),
-                        NumOfRows,
-                        NumOfCols,
-                        Decl->IsConst));
-                NewDeclType->setColSizeExpr(ExprMatTy->getColSizeExpr());
-                NewDeclType->setRowSizeExpr(ExprMatTy->getRowSizeExpr());
-
-                Decl->setIdentType(NewDeclType);
-                Decl->getIdentifier()->setIdentType(NewDeclType);
-                break;
+                if (MatTy->getColSizeExpr())
+                    visit(MatTy->getColSizeExpr());
             }
         } while (false);
 
@@ -480,8 +439,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         Gen->getRowDomainVar()->setReferred(RowSym);
         CurrentScope->declareInScope(Gen->getRowDomainVar()->getName(), RowSym);
 
-
-
         Type* ColumnDomainVarTy = nullptr;
 
         if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))) {
@@ -493,7 +450,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         auto ColumnSym = PM->SymTable.defineObject(Gen->getColumnDomainVar()->getName(), ColumnDomainVarTy);
         Gen->getColumnDomainVar()->setReferred(ColumnSym);
         CurrentScope->declareInScope(Gen->getColumnDomainVar()->getName(), ColumnSym);
-
 
         visit(Gen->getExpr());
 

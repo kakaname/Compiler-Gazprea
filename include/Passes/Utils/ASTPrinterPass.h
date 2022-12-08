@@ -154,7 +154,7 @@ public:
     }
 
     void visitTypeCast(TypeCast *Cast) {
-        std::cout << "TypeCast" << "\n";
+        std::cout << "TypeCast( " << Cast->getTargetType()->getTypeName() << ")\n";
     }
 
     void visitLogicalOp(LogicalOp *Op);
