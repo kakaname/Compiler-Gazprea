@@ -722,6 +722,20 @@ Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
     return TupleTy;
 }
 
+Type *ExprTypeAnnotatorPass::visitTupleDestruct(TupleDestruct *TupDestr) {
+    vector<Type*> ChildTypes;
+    for (auto *ChildExpr : *TupDestr) {
+        auto ChildTy = visit(ChildExpr);
+        ChildTy = PM->TypeReg.getVarTypeOf(ChildTy);
+        ChildTypes.emplace_back(ChildTy);
+    }
+    map<string, int> Temp{};
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
+    TupleTy = PM->TypeReg.getVarTypeOf(TupleTy);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(TupDestr, TupleTy);
+    return TupleTy;
+}
+
 Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
