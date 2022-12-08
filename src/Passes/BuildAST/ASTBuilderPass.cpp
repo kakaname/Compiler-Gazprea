@@ -909,9 +909,6 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 //    Check->setParent(IntInterval);
 //    IntInterval->addCheck(Check);
 
-    if (ctx->BY())
-        throw std::runtime_error("Unimplemented: By");
-
     return cast<ASTNodeT>(IntInterval);
 }
 
