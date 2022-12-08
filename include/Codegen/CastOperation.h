@@ -37,9 +37,9 @@ template<> struct CastOperation<Type::TypeKind::T_Int> {
         switch (SrcTy->getKind()) {
             case Type::TypeKind::T_Char:
             case Type::TypeKind::T_Bool:
-                return IR.CreateZExt(Val, IR.getInt32Ty());
+                return IR.CreateZExt(Val, IR.getInt64Ty());
             case Type::TypeKind::T_Real:
-                return IR.CreateFPToSI(Val, IR.getInt32Ty());
+                return IR.CreateFPToSI(Val, IR.getInt64Ty());
             default:
                 throw std::runtime_error("Tried to cast some type to integer that can't be"
                        " casted to integer");

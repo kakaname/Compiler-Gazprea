@@ -15,7 +15,7 @@ struct SimplifyTupleCasting : VisitorPass<SimplifyTupleCasting, void> {
     void visitExplicitCast(ExplicitCast *Cast);
 
     MemberAccess *buildMemberAccess(ASTNodeT *BaseExpr, int Idx) const;
-    TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, Type *Target) const;
 
     void runOnAST(ASTPassManager &P, ASTNodeT *Root) {
         PM = &P;

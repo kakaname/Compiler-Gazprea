@@ -15,7 +15,7 @@ using llvm::dyn_cast;
 using llvm::isa;
 
 
-bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
+bool isValidTupleCast(Type *BaseType, Type *TargetTy) {
     auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
@@ -31,7 +31,7 @@ bool isValidTupleCast(const Type *BaseType, const Type *TargetTy) {
     return true;
 }
 
-bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
+bool isSameTupleTypeAs(Type *BaseType, Type *TargetTy) {
     auto BaseTy = cast<TupleTy>(BaseType);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
@@ -48,7 +48,7 @@ bool isSameTupleTypeAs(const Type* BaseType, const Type *TargetTy) {
     return true;
 }
 
-bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
+bool isSameVectorAs(Type* BaseType, Type *TargetTy) {
     auto BaseTy = cast<VectorTy>(BaseType);
     auto TargetVecTy = dyn_cast<VectorTy>(TargetTy);
 
@@ -69,7 +69,7 @@ bool isSameVectorAs(const Type* BaseType, const Type *TargetTy) {
     return BaseTy->getSize() == TargetVecTy->getSize();
 }
 
-bool isSameStringAs(const Type* BaseType, const Type *TargetTy) {
+bool isSameStringAs(Type* BaseType, Type *TargetTy) {
     auto BaseTy = cast<StringTy>(BaseType);
     auto TargetStrTy = dyn_cast<StringTy>(TargetTy);
 
@@ -90,7 +90,7 @@ bool isSameStringAs(const Type* BaseType, const Type *TargetTy) {
     return BaseTy->getSize() == TargetStrTy->getSize();
 }
 
-bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
+bool canPromoteTupleTo(Type *BaseTy, Type *TargetTy) {
     auto BaseTuple = cast<TupleTy>(BaseTy);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
 
@@ -107,7 +107,7 @@ bool canPromoteTupleTo(const Type *BaseTy, const Type *TargetTy) {
     return true;
 }
 
-const Type *getPromotedScalarType(const Type *BaseTy, const Type *TargetTy) {
+Type *getPromotedScalarType(Type *BaseTy, Type *TargetTy) {
     if (BaseTy->isSameTypeAs(TargetTy))
         return BaseTy;
     if (BaseTy->canPromoteTo(TargetTy))
@@ -117,61 +117,38 @@ const Type *getPromotedScalarType(const Type *BaseTy, const Type *TargetTy) {
     return nullptr;
 }
 
-
-
-//const Type *getPromotedVectorInMatrixType(const Type *BaseTy,
-//                                          const Type *TargetTy) {
-//    auto BaseVec = cast<VectorTy>(BaseTy);
-//    auto TargetVec = cast<VectorTy>(TargetTy);
-//
-//    auto InnerTy = getPromotedScalarType(BaseVec->getInnerTy(),
-//                                         TargetVec->getInnerTy());
-//    if (!InnerTy)
-//        return nullptr;
-//
-//    uint32_t Size;
-//    if (BaseVec->getSize() == -1 || TargetVec->getSize() == -1)
-//        Size = -1;
-//    else
-//        Size = std::max(BaseVec->getSize(), TargetVec->getSize());
-//
-//    return new VectorTy(InnerTy, Size);
-//
-//
-//}
-
-
-bool doesTupleSupportEq(const Type *Tup) {
+bool doesTupleSupportEq(Type *Tup) {
     auto Members = cast<TupleTy>(Tup)->getMemberTypes();
-    auto Pred = [&](const Type* T) { return T->isValidForEq();};
+    auto Pred = [&](Type* T) { return T->isValidForEq();};
     return std::all_of(Members.begin(), Members.end(), Pred);
 }
 
-bool doesMatrixSupportEq(const Type *Mat) {
+
+bool doesMatrixSupportEq(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForEq();
 }
 
-bool doesMatrixSupportArithOps(const Type *Mat) {
+bool doesMatrixSupportArithOps(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForArithOps();
 }
 
-bool isMatrixValidForComparisonOps(const Type *Mat) {
+bool isMatrixValidForComparisonOps(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForComparisonOp();
 }
 
-bool doesVectorSupportEq(const Type *Vec) {
+bool doesVectorSupportEq(Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForEq();
 }
 
-bool doesVectorSupportArithOps(const Type *Vec) {
+bool doesVectorSupportArithOps(Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForArithOps();
 }
 
-bool isVectorValidForComparisonOps(const Type *Vec) {
+bool isVectorValidForComparisonOps(Type *Vec) {
     return cast<VectorTy>(Vec)->getInnerTy()->isValidForComparisonOp();
 }
 
-std::string getTupleTypeName(const Type *Ty) {
+std::string getTupleTypeName(Type *Ty) {
     auto TupleType = cast<TupleTy>(Ty);
     std::string TypeName = "tuple(";
     size_t NumOfMembers = TupleType->getNumOfMembers();
@@ -184,7 +161,7 @@ std::string getTupleTypeName(const Type *Ty) {
     return TypeName;
 }
 
-std::string getVectorTypeName(const Type *Ty) {
+std::string getVectorTypeName(Type *Ty) {
     auto VectorType = cast<VectorTy>(Ty);
     std::string TypeName = "vector(";
     TypeName += VectorType->getInnerTy()->getTypeName();
@@ -198,7 +175,7 @@ std::string getVectorTypeName(const Type *Ty) {
     return TypeName;
 }
 
-std::string getStringTypeName(const Type *Ty) {
+std::string getStringTypeName(Type *Ty) {
     auto StringType = cast<StringTy>(Ty);
     std::string TypeName = "string(";
     TypeName += StringType->getInnerTy()->getTypeName();
@@ -212,7 +189,7 @@ std::string getStringTypeName(const Type *Ty) {
     return TypeName;
 }
 
-std::string getMatrixTypeName(const Type *Ty) {
+std::string getMatrixTypeName(Type *Ty) {
     auto MatrixType = cast<MatrixTy>(Ty);
     std::string TypeName = "matrix(";
     TypeName += MatrixType->getInnerTy()->getTypeName();
@@ -232,7 +209,7 @@ std::string getMatrixTypeName(const Type *Ty) {
     return TypeName;
 }
 
-string getFunctionTypeName(const Type *Ty) {
+string getFunctionTypeName(Type *Ty) {
     auto FuncTy = cast<FunctionTy>(Ty);
     std::string TypeName = "function(";
     size_t NumOfMembers = FuncTy->getNumOfArgs();
@@ -246,7 +223,7 @@ string getFunctionTypeName(const Type *Ty) {
     return TypeName;
 };
 
-string getProcedureTypeName(const Type *Ty) {
+string getProcedureTypeName(Type *Ty) {
     auto ProcTy = cast<ProcedureTy>(Ty);
     std::string TypeName = "procedure(";
     size_t NumOfMembers = ProcTy->getNumOfArgs();
@@ -264,7 +241,7 @@ string getProcedureTypeName(const Type *Ty) {
 };
 
 
-bool isSameFuncAs(const Type* Base, const Type* Other) {
+bool isSameFuncAs(Type* Base, Type* Other) {
     auto FuncTy = cast<FunctionTy>(Base);
     auto OtherFunc = dyn_cast<FunctionTy>(Other);
 
@@ -280,7 +257,7 @@ bool isSameFuncAs(const Type* Base, const Type* Other) {
 
     return OtherFunc->getRetType()->isSameTypeAs(FuncTy->getRetType());
 };
-bool isSameProcAs(const Type *Base, const Type *Other) {
+bool isSameProcAs(Type *Base, Type *Other) {
     auto ProcTy = cast<ProcedureTy>(Base);
     auto OtherProc = dyn_cast<ProcedureTy>(Other);
 
@@ -304,21 +281,21 @@ bool isSameProcAs(const Type *Base, const Type *Other) {
     return ProcTy->getRetTy()->isSameTypeAs(OtherProc->getRetTy());
 }
 
-bool canPromoteIntegerTo(const Type *TargetTy) {
+bool canPromoteIntegerTo(Type *TargetTy) {
     if (TargetTy->isCompositeTy())
         return canPromoteIntegerTo(TypeRegistry::getInnerTyFromComposite(
                 TargetTy));
     return isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy);
 }
 
-bool canPromoteRealTo(const Type* TargetTy) {
+bool canPromoteRealTo(Type* TargetTy) {
     if (TargetTy->isCompositeTy())
         return canPromoteRealTo(TypeRegistry::getInnerTyFromComposite(
                 TargetTy));
     return isa<RealTy>(TargetTy);
 }
 
-bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
+bool canPromoteVectorTo(Type* BaseTy, Type* TargetTy) {
     auto BaseVec = cast<VectorTy>(BaseTy);
     auto TargetVec = dyn_cast<VectorTy>(TargetTy);
 
@@ -334,7 +311,7 @@ bool canPromoteVectorTo(const Type* BaseTy, const Type* TargetTy) {
 }
 
 
-bool canCastBoolCharIntTo(const Type* TargetTy) {
+bool canCastBoolCharIntTo(Type* TargetTy) {
     switch (TargetTy->getKind()) {
         case Type::T_Bool:
         case Type::T_Char:
@@ -348,7 +325,7 @@ bool canCastBoolCharIntTo(const Type* TargetTy) {
     }
 }
 
-bool canCastRealTo(const Type* TargetTy) {
+bool canCastRealTo(Type* TargetTy) {
     if (isa<RealTy>(TargetTy) || isa<IntegerTy>(TargetTy))
         return true;
 
@@ -358,21 +335,21 @@ bool canCastRealTo(const Type* TargetTy) {
     return false;
 }
 
-bool isVectorValidForUnaryNot(const Type* T) {
+bool isVectorValidForUnaryNot(Type* T) {
     return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryNot();
 };
-bool isMatrixValidForUnaryNot(const Type* T) {
+bool isMatrixValidForUnaryNot(Type* T) {
     return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryNot();
 }
 
-bool isVectorValidForUnaryAddSub(const Type *T) {
+bool isVectorValidForUnaryAddSub(Type *T) {
     return cast<VectorTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
 }
-bool isMatrixValidForUnaryAddSub(const Type *T) {
+bool isMatrixValidForUnaryAddSub(Type *T) {
     return cast<MatrixTy>(T)->getInnerTy()->isValidForUnaryAddOrSub();
 }
 
-bool canCastVectorTo(const Type *Base, const Type *TargetTy) {
+bool canCastVectorTo(Type *Base, Type *TargetTy) {
     auto BaseVec = cast<VectorTy>(Base);
     auto VecTy = dyn_cast<VectorTy>(TargetTy);
     if (!VecTy)

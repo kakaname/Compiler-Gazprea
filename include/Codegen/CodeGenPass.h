@@ -57,7 +57,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee ScanReal;
     llvm::FunctionCallee ScanChar;
     llvm::FunctionCallee ScanBool;
+    llvm::FunctionCallee PowInt;
     llvm::FunctionCallee Malloc;
+    llvm::FunctionCallee VectorNew;
     llvm::FunctionCallee VectorConcat;
     llvm::FunctionCallee VectorDotProductInt;
     llvm::FunctionCallee VectorDotProductReal;
@@ -79,6 +81,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
     llvm::FunctionCallee VectorComp;
+    llvm::FunctionCallee VectorOOB;
     llvm::FunctionCallee PrintMatrix;
     llvm::FunctionCallee MatrixNew;
     llvm::FunctionCallee MatrixPopulateRow;
@@ -102,6 +105,18 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorCopy;
     llvm::FunctionCallee MatrixSetVector;
     llvm::FunctionCallee MatrixMul;
+
+
+    // Casting functions
+    llvm::FunctionCallee GetSameVectorAs;
+    llvm::FunctionCallee GetSameMatrixAs;
+    llvm::FunctionCallee GetCastedVector;
+    llvm::FunctionCallee GetCastedMatrix;
+    llvm::FunctionCallee GetVectorWithValue;
+    llvm::FunctionCallee GetMatrixWithValue;
+
+    // Init runtime
+    llvm::FunctionCallee InitRuntimeStream;
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
@@ -145,8 +160,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndex(Index *Idx);
     llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
     llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
-
-    // ignored for part1
     llvm::Value *visitDomainLoop(DomainLoop *Loop);
     llvm::Value *visitIntLiteral(IntLiteral *IntLit);
     static llvm::Value *visitNullLiteral(NullLiteral *NullLit);
@@ -162,6 +175,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
     llvm::Value *visitUnaryOp(UnaryOp *Op);
     llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
+    llvm::Value *visitFilter(Filter *Flt);
     llvm::Value *visitFunctionDecl(FunctionDecl *Decl);
     llvm::Value *visitProcedureDecl(ProcedureDecl *Decl);
     llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
@@ -184,22 +198,22 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitByOp(ByOp *By);
 
     uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
-    llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *createAlloca(Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
     llvm::Value *CreateStringStruct(uint64_t size, bool malloc = false);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
     llvm::Value *CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy);
+    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
-    llvm::Value *getCastValue(llvm::Value *Val, const Type *SrcTy, const Type *DestTy);
-    llvm::Type *getLLVMTupleType(const TupleTy *Tuple);
-    llvm::Type *getLLVMFunctionType(const FunctionTy *FuncTy);
-    llvm::Type *getLLVMProcedureType(const ProcedureTy *ProcTy);
-    llvm::Type *getLLVMVectorType(const VectorTy *VecTy);
-    llvm::Type *getLLVMType(const Type *Ty);
-    llvm::Value *declareGlobal(const string &Name, const Type *Ty);
+    llvm::Value *getCastValue(llvm::Value *Val, Type *SrcTy, Type *DestTy);
+    llvm::Type *getLLVMTupleType(TupleTy *Tuple);
+    llvm::Type *getLLVMFunctionType(FunctionTy *FuncTy);
+    llvm::Type *getLLVMProcedureType(ProcedureTy *ProcTy);
+    llvm::Type *getLLVMType(Type *Ty);
+    llvm::Value *declareGlobal(const string &Name, Type *Ty);
     void assignGlobals();
 
-    llvm::Function *getOrInsertFunction(const Type *Ty, const string &Name);
+    llvm::Function *getOrInsertFunction(Type *Ty, const string &Name);
 };
 
 

@@ -58,10 +58,7 @@ conditional : IF expr stmt              # ifConditional
 loop : LOOP stmt                 #infiniteLoop
      | LOOP WHILE expr stmt      #whileLoop
      | LOOP stmt WHILE expr SC   #doWhileLoop
-     | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
-
-// I don't quite understand this one
-iterDomain : ID GET expr;
+     | LOOP (ID IN expr) (COMMA ID IN expr)* stmt      #domainLoop;
 
 typeDef : TYPEDEF type ID SC;
 
@@ -145,7 +142,7 @@ block : LBRACE (stmt)* RBRACE ;
 expr: LPAREN expr RPAREN                    # bracketExpr
     | ID PERIOD (ID | INTLITERAL)           # memberAccess
     | expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexExpr
-    | expr DD expr (BY expr)?               # rangeExpr
+    | expr DD expr                           # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr op=EXP expr        # expExpr
     | expr op=(MUL | DIV | MOD | DOTPROD) expr   # mulDivModDotProdExpr // A better name perhaps
@@ -179,9 +176,9 @@ realLit : ExponentialLiteral1             #realLit1
         | ExponentialLiteral2             #realLit2
         | ExponentialLiteral3             #realLit3
         | ExponentialLiteral4             #realLit4
-        | INTLITERAL PERIOD                        #realLit5
+        | INTLITERAL PERIOD               #realLit5
         | PERIOD INTLITERAL               #realLit6
-        | INTLITERAL PERIOD INTLITERAL  #realLit7
+        | INTLITERAL PERIOD INTLITERAL    #realLit7
         ;
 
 // --- LEXER RULES ---

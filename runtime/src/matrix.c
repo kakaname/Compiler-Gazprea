@@ -45,9 +45,6 @@ void rt_matrix_populate_row(struct matrix *m, struct vector *v, u_int64_t row) {
     // Because of prior casting logic, this runtime function assumes the column size
     // and vector size are equal
     if (m->cols != v->size) {
-        printf("m->cols = %d, v->size = %d", m->cols, v->size);
-        printf("first item in vector: %d", ((int64_t *) v->data)[1]);
-        printf("Here");
         exit(1);
     }
 

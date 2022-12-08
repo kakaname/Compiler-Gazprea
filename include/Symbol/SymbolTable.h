@@ -28,19 +28,19 @@ class SymbolTable: public ResourceIdMixin<SymbolTable>{
     SymbolContainer<TypeSymbol> Types;
 
 public:
-    ObjectSymbol *defineObject(string Name, const Type *Ty) {
+    ObjectSymbol *defineObject(string Name, Type *Ty) {
         auto NewObj = make_unique<ObjectSymbol>(ObjectSymbol(Ty, std::move(Name)));
         auto Inserted = Objects.insert({++Id, std::move(NewObj)});
         return Inserted.first->second.get();
     }
 
-    TypeSymbol *defineTypeSymbol(string Name, const Type *Ty) {
+    TypeSymbol *defineTypeSymbol(string Name, Type *Ty) {
         auto NewTySym = make_unique<TypeSymbol>(TypeSymbol(std::move(Name), Ty));
         auto Inserted = Types.insert({++Id, std::move(NewTySym)});
         return Inserted.first->second.get();
     }
 
-    ScopedSymbol *defineScopedSymbol(string Name, const Type *Ty, map<string, int> Members) {
+    ScopedSymbol *defineScopedSymbol(string Name, Type *Ty, map<string, int> Members) {
         auto NewObj = make_unique<ScopedSymbol>(ScopedSymbol(std::move(Name), Ty, std::move(Members)));
         auto Inserted = ScopedSyms.insert({++Id, std::move(NewObj)});
         return Inserted.first->second.get();
