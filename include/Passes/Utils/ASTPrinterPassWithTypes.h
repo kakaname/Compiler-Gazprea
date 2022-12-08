@@ -275,7 +275,7 @@ public:
     }
 
     void visitIndexReference(IndexReference *Idx) {
-        std::cout << "IndexRef" << "\n";
+        std::cout << "IndexRef(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Idx)->getTypeName() << ")" << "\n";
     }
 
 

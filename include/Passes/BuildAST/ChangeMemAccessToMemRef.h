@@ -7,6 +7,8 @@
 
 #include "Passes/VisitorPass.h"
 #include "Passes/PassManager.h"
+#include "Symbol/Symbol.h"
+#include "Passes/BuildAST/ExprTypeAnnotatorPass.h"
 
 struct ChangeMemAccessToMemRef : public VisitorPass<ChangeMemAccessToMemRef, void> {
     void visitProcedureCall(ProcedureCall *Call);
