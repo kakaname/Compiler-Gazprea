@@ -50,7 +50,7 @@ set(
 	"Passes/BuildAST/AddingFreeNodesForReturnPass.cpp"
 	"Passes/Transformations/VectorScalarOpTransformationPass.cpp"
 	"Passes/Transformations/SimplifyCompositeTypeCasting.cpp"
-	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp")
+	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp" Passes/BuildAST/AddingFreeNodesForContinueBreak.cpp ../include/Passes/BuildAST/AddingFreeNodesForContinueBreak.h)
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
