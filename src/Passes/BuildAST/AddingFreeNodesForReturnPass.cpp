@@ -2,9 +2,9 @@
 // Created by Chen on 2022-11-28.
 //
 
-#include "Passes/BuildAST/AddingFreeNodesPass.h"
+#include "Passes/BuildAST/AddingFreeNodesForReturnPass.h"
 
-void AddingFreeNodesPass::visitFunctionDef(FunctionDef *FuncDef) {
+void AddingFreeNodesForReturnPass::visitFunctionDef(FunctionDef *FuncDef) {
     // Get all the parameters type of vector or matrix
     for(auto Child : *FuncDef->getParamList()) {
         auto Parameter = dyn_cast<Identifier>(Child);
@@ -19,7 +19,7 @@ void AddingFreeNodesPass::visitFunctionDef(FunctionDef *FuncDef) {
     FuncFreedIdentifiers.clear();
 }
 
-void AddingFreeNodesPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
+void AddingFreeNodesForReturnPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
     // Get all the parameters type of vector or matrix
     for(auto Child : *ProcedureDef->getParamList()) {
         auto Parameter = dyn_cast<Identifier>(Child);
@@ -34,7 +34,7 @@ void AddingFreeNodesPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
     FuncFreedIdentifiers.clear();
 }
 
-void AddingFreeNodesPass::visitBlock(Block *Blk) {
+void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
     bool HasReturn = false;
     Return *ReturnStat = nullptr;
     vector<Identifier *> LocalFreedIdentifiers;
@@ -56,12 +56,6 @@ void AddingFreeNodesPass::visitBlock(Block *Blk) {
         else if (dyn_cast<Return>(Child)) {
             HasReturn = true;
             ReturnStat = dyn_cast<Return>(Child);
-        }
-        else if (auto ContinueStat = dyn_cast<Continue>(Child)) {
-
-        }
-        else if (auto BreakStat = dyn_cast<Break>(Child)) {
-
         }
     }
 
@@ -104,7 +98,7 @@ void AddingFreeNodesPass::visitBlock(Block *Blk) {
 }
 
 
-void AddingFreeNodesPass::addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident) {
+void AddingFreeNodesForReturnPass::addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident) {
     auto NewIdent = PM->Builder.build<Identifier>();
     NewIdent->setName(Ident->getName());
     NewIdent->setReferred(Ident->getReferred());

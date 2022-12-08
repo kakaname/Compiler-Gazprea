@@ -47,7 +47,7 @@ set(
 	"Passes/Checks/ProcedureCallStatCheckPass.cpp"
 	"${CMAKE_CURRENT_SOURCE_DIR}/Codegen/CastOperation.cpp"
 	"Passes/Transformations/BubbleGlobalDeclarationPass.cpp"
-	"Passes/BuildAST/AddingFreeNodesPass.cpp"
+	"Passes/BuildAST/AddingFreeNodesForReturnPass.cpp"
 	"Passes/Transformations/VectorScalarOpTransformationPass.cpp"
 	"Passes/Transformations/SimplifyCompositeTypeCasting.cpp"
 	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp")
