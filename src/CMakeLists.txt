@@ -50,7 +50,8 @@ set(
 	"Passes/BuildAST/AddingFreeNodesPass.cpp"
 	"Passes/Transformations/VectorScalarOpTransformationPass.cpp"
 	"Passes/Transformations/SimplifyCompositeTypeCasting.cpp"
-	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp")
+	"Passes/Transformations/VectorScalarAppendTransformationPass.cpp"
+	"Passes/Transformations/TupleUnpackToAssign.cpp")
 
 # Build our executable from the source files.
 add_executable(gazc ${gazprea_src_files})
