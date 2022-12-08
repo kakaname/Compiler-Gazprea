@@ -68,6 +68,7 @@ IndexReference *ChangeMemAccessToMemRef::getRefFromIndex(Index *Index) const {
     auto IndexRef = PM->Builder.build<IndexReference>();
     IndexRef->setBaseExpr(Index->getBaseExpr());
     IndexRef->setIndexExpr(Index->getIndexExpr());
+    IndexRef->setIndex2Expr(Index->getIndex2Expr());
     return IndexRef;
 }
 
