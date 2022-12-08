@@ -38,7 +38,7 @@
         }\
 
 
-static int64_t *get_seq_idx(int64_t size) {
+int64_t *rt_get_seq_idx(int64_t size) {
     int64_t *idx = malloc(size * sizeof(int64_t));
     for (int64_t i = 0; i < size; i++)
         idx[i] = i;
@@ -112,7 +112,7 @@ static void cast_scalar_value(void *src, void *dest,
     }
 }
 
-static void* get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val) {
+void* rt_get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val) {
     switch (type) {
         case VECTOR_TYPE_BOOL:
         case VECTOR_TYPE_CHAR: {
@@ -143,8 +143,8 @@ struct vector *rt_get_same_vector_as(struct vector *target, void *data) {
     struct vector *new_vec = malloc(sizeof(struct vector));
     new_vec->type = target->type;
     new_vec->size = target->size;
-    new_vec->data = get_data_alloc_for_vec(target->size, target->type, data);
-    new_vec->idx = get_seq_idx(target->size);
+    new_vec->data = rt_get_data_alloc_for_vec(target->size, target->type, data);
+    new_vec->idx = rt_get_seq_idx(target->size);
     return new_vec;
 }
 
@@ -154,7 +154,7 @@ struct matrix *rt_get_same_matrix_as(struct matrix *target, void *data) {
     new_mat->rows = target->rows;
     new_mat->cols = target->cols;
     new_mat->data = malloc(target->rows * sizeof(struct vector*));
-    new_mat->idx = get_seq_idx(target->rows);
+    new_mat->idx = rt_get_seq_idx(target->rows);
     for (int64_t i = 0; i < target->rows; i++)
         new_mat->data[i] = rt_get_same_vector_as(target->data[target->idx[i]], data);
     return new_mat;
@@ -166,9 +166,9 @@ struct vector *rt_get_casted_vector(struct vector *base,
     struct vector *new_vec = malloc(sizeof(struct vector));
     new_vec->type = base->type;
     new_vec->size = target_size;
-    new_vec->idx = get_seq_idx(target_size);
-
-    void *new_alloc = get_data_alloc_for_vec(target_size, target_type, NULL);
+    new_vec->idx = rt_get_seq_idx(target_size);
+sssssssssssssssssssssssssssssssssssssss
+    void *new_alloc = rt_get_data_alloc_for_vec(target_size, target_type, NULL);
     switch (base->type) {
         case VECTOR_TYPE_BOOL: {
             unsigned char *casted_base = (unsigned char *) base->data;
@@ -206,7 +206,7 @@ struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
     new_mat->rows = target_rows;
     new_mat->cols = target_cols;
     new_mat->type = target_type;
-    new_mat->idx = get_seq_idx(target_rows);
+    new_mat->idx = rt_get_seq_idx(target_rows);
 
     struct vector **new_alloc = malloc(sizeof(struct vector *) * target_rows);
 
@@ -218,8 +218,8 @@ struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
         struct vector *row = malloc(sizeof (struct vector));
         row->type = target_type;
         row->size = target_cols;
-        row->idx = get_seq_idx(target_cols);
-        row->data = get_data_alloc_for_vec(target_cols, target_type, NULL);
+        row->idx = rt_get_seq_idx(target_cols);
+        row->data = rt_get_data_alloc_for_vec(target_cols, target_type, NULL);
         new_alloc[i] = row;
     }
     return new_mat;
@@ -228,8 +228,8 @@ struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
 struct vector *rt_get_vector_with_value(int64_t size, enum vector_type type, void *value) {
     struct vector *new_vec = malloc(sizeof (struct vector));
     new_vec->size = size;
-    new_vec->idx = get_seq_idx(size);
-    new_vec->data = get_data_alloc_for_vec(size, type, value);
+    new_vec->idx = rt_get_seq_idx(size);
+    new_vec->data = rt_get_data_alloc_for_vec(size, type, value);
     new_vec->type = type;
     return new_vec;
 }
@@ -238,7 +238,7 @@ struct matrix *rt_get_matrix_with_value(int64_t rows, int64_t cols, enum vector_
     struct matrix *new_mat = malloc(sizeof (struct matrix));
     new_mat->rows = rows;
     new_mat->cols = cols;
-    new_mat->idx = get_seq_idx(rows);
+    new_mat->idx = rt_get_seq_idx(rows);
     new_mat->type = type;
     struct vector **data = malloc(sizeof (struct vector*) * rows);
 
