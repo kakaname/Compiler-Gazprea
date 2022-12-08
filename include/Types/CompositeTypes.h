@@ -88,24 +88,24 @@ struct StringTy : public Type {
 
     StringTy() = delete;
 
-    StringTy(const Type *InnerTy, int Size, bool IsConst):
+    StringTy(Type *InnerTy, int Size, bool IsConst):
         Type(TypeKind::T_String, IsConst), Size(Size), InnerTy(InnerTy) {}
 
-    bool isSizeKnown() const {
+    bool isSizeKnown()  {
         return Size != -1;
     }
 
-    int getSize() const {
+    int getSize()  {
         return Size;
     }
 
-    const Type *getInnerTy() const {
+    Type *getInnerTy()  {
         return InnerTy;
     }
 
 private:
     int Size;
-    const Type *InnerTy;
+    Type *InnerTy;
 };
 
 struct MatrixTy : public Type {

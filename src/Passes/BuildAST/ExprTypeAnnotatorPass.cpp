@@ -1010,7 +1010,7 @@ Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
     if (!StrLit->numOfChildren())
         throw runtime_error("Unimplemented");
 
-    const Type *CharTy = PM->TypeReg.getCharTy();
+    Type *CharTy = PM->TypeReg.getCharTy();
 
     // Get the vector type
     auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());

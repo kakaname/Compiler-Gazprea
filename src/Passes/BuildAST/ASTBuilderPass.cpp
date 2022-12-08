@@ -335,7 +335,7 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     if(isString){
         return PM->TypeReg.getStringType(Type, -1, false);
-    k
+    }
     return VecTy;
 }
 
