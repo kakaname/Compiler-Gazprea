@@ -10,9 +10,12 @@
 
 struct ChangeMemAccessToMemRef : public VisitorPass<ChangeMemAccessToMemRef, void> {
     void visitProcedureCall(ProcedureCall *Call);
+    void visitAssignment(Assignment *Assign);
 
 
     IdentReference *getRefFromIdent(Identifier *Ident) const;
+
+    IndexReference *getRefFromIndex(Index *Index) const;
 
     MemberReference *getRefFromMemAccess(MemberAccess *Access) const;
 

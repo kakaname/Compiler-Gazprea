@@ -1125,6 +1125,7 @@ struct IdentReference : public TreeNode {
     IdentReference() : TreeNode(TreeNodeKind::N_AST_IdentReference) {}
 };
 
+
 struct MemberReference : public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t MemberIdx = 1;
