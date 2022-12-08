@@ -51,12 +51,14 @@ void ChangeMemAccessToMemRef::visitAssignment(Assignment *Assign) {
         return;
     }
 
-    auto MemberAcc = dyn_cast<MemberAccess>(AssignedTo);
-    auto Ident = dyn_cast<Identifier>(MemberAcc->getMemberExpr());
-    assert(!Ident->getIdentType()->isConst() && "Malformed assignment");
-
-    Assign->setAssignedTo(getRefFromMemAccess(MemberAcc));
+    if (auto MemberAcc = dyn_cast<MemberAccess>(AssignedTo)) {
+        auto Ident = dyn_cast<Identifier>(MemberAcc->getMemberExpr());
+        assert(!Ident->getIdentType()->isConst() && "Malformed assignment");
+        Assign->setAssignedTo(getRefFromMemAccess(MemberAcc));
+        return;
+    }
 }
+
 
 IdentReference *ChangeMemAccessToMemRef::getRefFromIdent(Identifier *Ident) const {
     auto IdentRef = PM->Builder.build<IdentReference>();

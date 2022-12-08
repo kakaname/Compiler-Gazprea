@@ -121,7 +121,7 @@ void rt_print_bool(int64_t b) {
 void queue_char(char c) {
     // check if the buffer is full
     if ((s.back + 1) % 1025 == s.front) {
-        ERR_BUFFER_OVERFLOW();
+        //ERR_BUFFER_OVERFLOW();
     } else {
         s.buffer[s.back] = c;
         s.back = (s.back + 1) % 1025;
@@ -131,7 +131,7 @@ void queue_char(char c) {
 char dequeue_char() {
     // check if the buffer is empty
     if (s.front == s.back) {
-        ERR_BUFFER_OVERFLOW();
+        //ERR_BUFFER_OVERFLOW();
     } else {
         char c = s.buffer[s.front];
         s.front = (s.front + 1) % 1025;
@@ -142,7 +142,7 @@ char dequeue_char() {
 char dequeue_curr_char() {
     // check if the buffer is empty
     if (s.curr == s.back) {
-        ERR_BUFFER_OVERFLOW();
+        //ERR_BUFFER_OVERFLOW();
     } else {
         char c = s.buffer[s.curr];
         s.curr = (s.curr + 1) % 1025;
@@ -153,7 +153,9 @@ char dequeue_curr_char() {
 
 char consume_char() {
     char c;
-    if (s.back + 1 == s.front) ERR_BUFFER_OVERFLOW();
+    if (s.back + 1 == s.front) {
+        //ERR_BUFFER_OVERFLOW();
+    }
     // check if the buffer is empty
     if (s.front == s.back) {
         // read from the stream
@@ -185,7 +187,9 @@ char* peek_token(char eof_ss) {
     while (1) {
         if (s.curr == s.back) {
             // read from the stream
-            if (s.back + 1 == s.front) ERR_BUFFER_OVERFLOW();
+            if (s.back + 1 == s.front) {
+                //ERR_BUFFER_OVERFLOW();
+            }
             if (scanf("%c", &c) == EOF) {
                 if (s.eof) {
                     s.stream_state = eof_ss;

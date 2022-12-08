@@ -36,6 +36,7 @@
 #include "Passes/Transformations/BubbleGlobalDeclarationPass.h"
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
+#include "Passes/BuildAST/ChangeMemAccessToMemRef.h"
 
 #include <iostream>
 #include <fstream>
@@ -125,6 +126,9 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
+
+
+    //Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();

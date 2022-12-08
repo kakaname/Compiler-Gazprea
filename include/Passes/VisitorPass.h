@@ -554,8 +554,8 @@ public:
         if (auto *MemRef = dyn_cast<MemberReference>(Node))
             return callVisitMemberReferenceImpl(MemRef);
 
-        if (auto *IndexRef = dyn_cast<IdentReference>(Node))
-            return callVisitIdentReferenceImpl(IndexRef);
+        if (auto *IndentRef = dyn_cast<IdentReference>(Node))
+            return callVisitIdentReferenceImpl(IndentRef);
 
         if (auto *Decl = dyn_cast<Declaration>(Node))
             return callVisitDeclarationImpl(Decl);
