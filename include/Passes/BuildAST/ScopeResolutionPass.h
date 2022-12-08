@@ -102,6 +102,39 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Root);
     }
 
+    void visitDomainLoop(DomainLoop *Loop) {
+
+        visit(Loop->getDomain());
+
+        // Declare new scope for just the domain expression
+        // The block will handle its own scope
+        auto BlkScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(BlkScope);
+        CurrentScope = BlkScope;
+
+        // Now, we are inside the "Loop Domain Scope" which does not include the domain
+        // scope. To ensure this, we visited it above before we created a new scope.
+
+        // Here, we declare a new variable, using the inner type of the domain as
+        // the inferred expression type
+        auto ExprType = runTypeAnnotator(Loop->getDomain());
+        assert(ExprType && "need to know type");
+        if (!isa<VectorTy>(ExprType))
+            throw runtime_error("Domain must be a vector type or promotable to one");
+        auto InnerType = dyn_cast<VectorTy>(ExprType)->getInnerTy();
+        InnerType = PM->TypeReg.getVarTypeOf(InnerType);
+        Loop->getID()->setIdentType(InnerType);
+        auto Sym = PM->SymTable.defineObject(Loop->getID()->getName(), InnerType);
+        Loop->getID()->setReferred(Sym);
+        CurrentScope->declareInScope(Loop->getID()->getName(), Sym);
+
+        visit(Loop->getBody());
+
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+
+
+    }
+
     void visitDeclaration(Declaration *Decl) {
         visit(Decl->getInitExpr());
         auto ExprType = runTypeAnnotator(Decl->getInitExpr(), Decl->getIdentType());

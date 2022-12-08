@@ -78,6 +78,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
     llvm::FunctionCallee VectorComp;
+    llvm::FunctionCallee VectorOOB;
     llvm::FunctionCallee PrintMatrix;
     llvm::FunctionCallee MatrixNew;
     llvm::FunctionCallee MatrixPopulateRow;
@@ -154,8 +155,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndex(Index *Idx);
     llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
     llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
-
-    // ignored for part1
     llvm::Value *visitDomainLoop(DomainLoop *Loop);
     llvm::Value *visitIntLiteral(IntLiteral *IntLit);
     static llvm::Value *visitNullLiteral(NullLiteral *NullLit);

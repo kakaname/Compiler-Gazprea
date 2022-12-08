@@ -194,16 +194,50 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
     return cast<ASTNodeT>(Loop);
 }
 
-// Ignore for part1
 std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) {
-    throw std::runtime_error("Unimplemented: Domain Loop");
-}
 
-// Ignore for part1
-std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) {
-    throw std::runtime_error("Unimplemented: IterDomain");
-}
 
+    // Set the statement body
+    auto Body = castToNodeVisit(ctx->stmt());
+    Block *Blk;
+    if (!isa<Block>(Body)) {
+        Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+    } else {
+        Blk = dyn_cast<Block>(Body);
+    }
+
+    auto Exprs = ctx->expr();
+    auto IDs = ctx->ID();
+    auto Size = Exprs.size();
+
+    DomainLoop *Loop;
+    for (size_t i = Size - 1; i >= 0; i--) {
+        if (i == -1) break;
+        Loop = PM->Builder.build<DomainLoop>();
+        Loop->setCtx(ctx);
+        Loop->setBody(Blk);
+        auto thisExpr = ctx->expr(i);
+        Loop->setDomain(castToNodeVisit(thisExpr));
+        Blk->setParent(Loop);
+
+
+        // Create Identifier
+        auto ID = PM->Builder.build<Identifier>();
+        ID->setCtx(ctx);
+        ID->setName(IDs[i]->getText());
+
+        Loop->setID(ID);
+
+        Blk = wrapStmtInBlock(Loop);
+        Blk->setCtx(ctx);
+
+    }
+
+
+    return cast<ASTNodeT>(Loop);
+
+}
 
 std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();

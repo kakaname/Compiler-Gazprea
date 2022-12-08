@@ -361,10 +361,39 @@ struct ConditionalLoop: public TreeNode {
 
     ConditionalLoop() : TreeNode(TreeNodeKind::N_AST_ConditionalLoop) {}
 };
-// ignored for part1
+
 struct DomainLoop: public TreeNode {
+
+    static constexpr int IDIdx = 0;
+    static constexpr int DomainIdx = 1;
+    static constexpr int BodyIdx = 2;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_DomainLoop;
+    }
+
+    void setID(Identifier *ID) {
+        setChildAt(IDIdx, ID);
+    }
+
+    void setBody(Block *Body) {
+        setChildAt(BodyIdx, Body);
+    }
+
+    void setDomain(ASTNodeT *Domain) {
+        setChildAt(DomainIdx, Domain);
+    }
+
+    Block *getBody() {
+        return dyn_cast<Block>(getChildAt(BodyIdx));
+    }
+
+    Identifier *getID() {
+        return dyn_cast<Identifier>(getChildAt(IDIdx));
+    }
+
+    ASTNodeT *getDomain() {
+        return getChildAt(DomainIdx);
     }
 
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}

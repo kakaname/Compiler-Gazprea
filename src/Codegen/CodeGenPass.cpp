@@ -84,7 +84,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
     VectorBy = Mod.getOrInsertFunction(
             "rt_vector_by", llvm::FunctionType::get(
-                    LLVMVectorPtrTy, {LLVMVectorTy, LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorNot = Mod.getOrInsertFunction(
             "rt_vector_not", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
@@ -106,6 +106,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+    VectorOOB = Mod.getOrInsertFunction(
+            "rt_vector_out_of_bounds", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMVectorPtrTy, LLVMIntTy}, false));
     PrintMatrix = Mod.getOrInsertFunction(
             "rt_print_matrix", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMMatrixPtrTy}, false));
@@ -836,9 +839,70 @@ llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
     return nullptr;
 }
 
-// ignored for part1
 llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
-    assert(false && "DomainLoop not implemented");
+
+    llvm::BasicBlock *Header = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_header", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_body", CurrentFunction);
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "loop_end", CurrentFunction);
+
+    LoopBeginBlocks.push(Header);
+    LoopEndBlocks.push(LoopEnd);
+
+    auto Domain = visit(Loop->getDomain());
+    auto DomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Loop->getDomain());
+    assert(isa<VectorTy>(DomainTy) && "Domain must be a vector");
+    auto VecTy = dyn_cast<VectorTy>(DomainTy);
+
+    auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+    IR.CreateStore(IR.getInt64(-1), IterIndex);
+
+    auto IterItem = createAlloca(PM->TypeReg.getConstTypeOf(VecTy->getInnerTy()));
+    SymbolMap[Loop->getID()->getReferred()] = IterItem;
+
+    IR.CreateBr(Header);
+
+    IR.SetInsertPoint(Header);
+    auto OldIdx = IR.CreateLoad(IterIndex);
+    auto Idx = IR.CreateAdd(OldIdx, IR.getInt64(1));
+    IR.CreateStore(Idx, IterIndex);
+    llvm::Value *OOB = IR.CreateCall(VectorOOB, {Domain, Idx});
+    OOB = IR.CreateICmpEQ(OOB, IR.getInt8(1));
+    IR.CreateCondBr(OOB, LoopEnd, LoopBody);
+
+    IR.SetInsertPoint(LoopBody);
+    llvm::Value *Item;
+    switch (VecTy->getInnerTy()->getKind()) {
+        case Type::T_Int:
+            Item = IR.CreateCall(VectorAccessInt, {Domain, Idx, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            Item = IR.CreateCall(VectorAccessFloat, {Domain, Idx, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            Item = IR.CreateCall(VectorAccessChar, {Domain, Idx, IR.getInt64(0)});
+            Item = IR.CreateICmpNE(Item, IR.getInt8(0));
+            break;
+        case Type::T_Char:
+            Item = IR.CreateCall(VectorAccessChar, {Domain, Idx, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+    IR.CreateStore(Item, IterItem);
+    visit(Loop->getBody());
+    IR.CreateBr(Header);
+
+    IR.SetInsertPoint(LoopEnd);
+
+    LoopBeginBlocks.pop();
+    LoopEndBlocks.pop();
+
+    return nullptr;
+
 }
 
 llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
@@ -1412,7 +1476,6 @@ llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
         auto Child = Blk->getChildAt(I);
         visit(Child);
     }
-    return nullptr;
     // TODO free unnecessary vectors
     return nullptr;
 }
