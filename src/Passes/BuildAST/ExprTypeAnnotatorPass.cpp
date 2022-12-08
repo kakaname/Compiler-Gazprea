@@ -766,11 +766,12 @@ Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
                 annotateWithConst(Cast, Cast->getTargetType());
                 return Cast->getTargetType();
             }
+            return Cast->getTargetType();
         }
     }
 }
@@ -800,11 +801,12 @@ Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
                 annotateWithConst(Cast, Cast->getTargetType());
                 return Cast->getTargetType();
             }
+            return Cast->getTargetType();
         }
     }
 }
@@ -1075,7 +1077,7 @@ Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
     auto IntTy = TypeReg->getIntegerTy();
 
     if (Upper->isOpaqueTy()) {
-        Int->setUpperExpr(wrapWithCastTo(Int->getLowerExpr(), IntTy));
+        Int->setUpperExpr(wrapWithCastTo(Int->getUpperExpr(), IntTy));
         Upper = IntTy;
     }
 
@@ -1086,8 +1088,6 @@ Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
 
     if (!isa<IntegerTy>(Lower) && !isa<IntegerTy>(Upper))
         throw runtime_error("Interval bounds must be integers");
-
-    // TODO: Check constant folding.
 
     annotateWithConst(Int, TypeReg->getIntervalTy());
     return TypeReg->getIntervalTy();
@@ -1248,7 +1248,7 @@ Type *ExprTypeAnnotatorPass::getWiderType(Type *Ty1, Type *Ty2) {
     if (Ty2->canPromoteTo(Ty1))
         return Ty1;
 
-    return nullptr;
+    throw runtime_error("No suitable promotion found!");
 }
 
 bool ExprTypeAnnotatorPass::isTypeSizeKnown(Type *Ty) {

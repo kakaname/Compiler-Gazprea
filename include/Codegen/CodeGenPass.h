@@ -112,6 +112,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetVectorWithValue;
     llvm::FunctionCallee GetMatrixWithValue;
 
+    // Init runtime
+    llvm::FunctionCallee InitRuntimeStream;
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
@@ -170,6 +172,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
     llvm::Value *visitUnaryOp(UnaryOp *Op);
     llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
+    llvm::Value *visitFilter(Filter *Flt);
     llvm::Value *visitFunctionDecl(FunctionDecl *Decl);
     llvm::Value *visitProcedureDecl(ProcedureDecl *Decl);
     llvm::Value *visitFunctionCall(FunctionCall *FuncCall);

@@ -5,7 +5,6 @@
 #include "runtime.h"
 
 #define GET_CASTED_VEC_LOOP_INNER(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
-    printf("from inner cast loop\n Target size is %ld", TARGET_SIZE);                                                                                      \
     for (int64_t i = 0; i < TARGET_SIZE; ++i) { \
         if(i < BASE->size) {    \
             cast_scalar_value(&CASTED_BASE[BASE->idx[i]], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
@@ -22,13 +21,12 @@
                 break;                                                              \
             }\
             case VECTOR_TYPE_INT: {                                                 \
-                printf("Called inner cast loop for target int ");                                                                    \
                 int64_t *casted_alloc = (int64_t *) NEW_ALLOC;\
                 GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
                 break;                                                              \
             }\
             case VECTOR_TYPE_FLOAT: {\
-                float *casted_alloc = (float *) NEW_ALLOC;\
+                float *casted_alloc = (float *) NEW_ALLOC;                          \
                 GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
                 break;\
             }\
@@ -49,7 +47,6 @@ static int64_t *get_seq_idx(int64_t size) {
 
 static void cast_scalar_value(void *src, void *dest,
                        enum vector_type src_ty, enum vector_type dest_ty) {
-    printf("called scalar cast for: %d, %d", (int ) src_ty, (int ) dest_ty);
     switch (dest_ty) {
         case VECTOR_TYPE_BOOL:
             switch (src_ty) {
@@ -172,7 +169,6 @@ struct vector *rt_get_casted_vector(struct vector *base,
     new_vec->idx = get_seq_idx(target_size);
 
     void *new_alloc = get_data_alloc_for_vec(target_size, target_type, NULL);
-
     switch (base->type) {
         case VECTOR_TYPE_BOOL: {
             unsigned char *casted_base = (unsigned char *) base->data;
@@ -190,19 +186,14 @@ struct vector *rt_get_casted_vector(struct vector *base,
             break;
         }
         case VECTOR_TYPE_CHAR: {
-            printf("Casting character vector to target:  %ld ", target_type);
             unsigned char *casted_base = (unsigned char *) base->data;
             GET_CASTED_VEC_LOOP(base, new_alloc, target_size, target_type, casted_base);
-            printf("Finished casting\n");
             break;
         }
         default:
             {}
     }
     new_vec->data = new_alloc;
-    printf("%ld", new_vec->size);
-    for (int i = 0; i< new_vec->size; i++)
-        printf("%c ", *((unsigned char *)new_vec->data + i));
     return new_vec;
 }
 
@@ -239,6 +230,7 @@ struct vector *rt_get_vector_with_value(int64_t size, enum vector_type type, voi
     new_vec->size = size;
     new_vec->idx = get_seq_idx(size);
     new_vec->data = get_data_alloc_for_vec(size, type, value);
+    new_vec->type = type;
     return new_vec;
 }
 
