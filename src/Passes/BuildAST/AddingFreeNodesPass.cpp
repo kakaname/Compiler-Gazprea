@@ -36,6 +36,7 @@ void AddingFreeNodesPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
 
 void AddingFreeNodesPass::visitBlock(Block *Blk) {
     bool HasReturn = false;
+    Return *ReturnStat = nullptr;
     vector<Identifier *> LocalFreedIdentifiers;
     int NumOfFreedIdentifiers = 0;
 
@@ -54,6 +55,13 @@ void AddingFreeNodesPass::visitBlock(Block *Blk) {
             visit(Child);
         else if (dyn_cast<Return>(Child)) {
             HasReturn = true;
+            ReturnStat = dyn_cast<Return>(Child);
+        }
+        else if (auto ContinueStat = dyn_cast<Continue>(Child)) {
+
+        }
+        else if (auto BreakStat = dyn_cast<Break>(Child)) {
+
         }
     }
 
@@ -61,20 +69,45 @@ void AddingFreeNodesPass::visitBlock(Block *Blk) {
 
     if (HasReturn) {
         for (auto Node : FuncFreedIdentifiers) {
-            FreeN->addFreedIdentifier(Node);
+            addFreedIdentifier(FreeN, Node);
         }
+        auto ReturnResultTy = PM->getAnnotation<ExprTypeAnnotatorPass>(ReturnStat->getReturnExpr());
+
+        // A new variable
+        auto ReturnResultSym = PM->SymTable.defineObject("", ReturnResultTy);
+        auto ReturnResultIdent = PM->Builder.build<Identifier>();
+        ReturnResultIdent->setIdentType(ReturnResultTy);
+        ReturnResultIdent->setReferred(ReturnResultSym);
+
+        // A new declaration
+        auto ReturnResultDeclar = PM->Builder.build<Declaration>();
+        ReturnResultDeclar->setIdentType(ReturnResultTy);
+        ReturnResultDeclar->setIdent(ReturnResultIdent);
+        ReturnResultDeclar->setInitExpr(ReturnStat->getReturnExpr());
+
+        Blk->insertChildBefore(ReturnResultDeclar, FreeN);
+        // Add the Free Node before the return statement
+        Blk->insertChildBefore(ReturnStat, FreeN);
+        // change the expression of the return statement
+        ReturnStat->setReturnExpr(ReturnResultIdent);
     }
     else {
         for (auto Node : LocalFreedIdentifiers) {
-            FreeN->addFreedIdentifier(Node);
+            addFreedIdentifier(FreeN, Node);
         }
+        Blk->addChild(FreeN);   // Add the Free Node to the end of the block
     }
-
-    // Add the Free Node to the end of the block
-    Blk->addChild(FreeN);
-
 
     for (int I = 0; I < NumOfFreedIdentifiers; I++) {
         FuncFreedIdentifiers.pop_back();
     }
+}
+
+
+void AddingFreeNodesPass::addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident) {
+    auto NewIdent = PM->Builder.build<Identifier>();
+    NewIdent->setName(Ident->getName());
+    NewIdent->setReferred(Ident->getReferred());
+    NewIdent->setIdentType(Ident->getIdentType());
+    FreeNode->addChild(FreeNode);
 }

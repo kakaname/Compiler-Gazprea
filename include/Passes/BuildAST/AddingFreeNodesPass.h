@@ -23,7 +23,8 @@ struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
 
     void visitBlock(Block *Blk);
 
-    
+
+    void addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident);
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");

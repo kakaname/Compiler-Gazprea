@@ -1176,10 +1176,6 @@ struct MemberReference : public TreeNode {
 struct FreeNode : public TreeNode {
     vector<ASTNodeT *> FreedIdentifiers;
 
-    void addFreedIdentifier(ASTNodeT *Node) {
-        FreedIdentifiers.push_back(Node);
-    }
-
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FreeNode;
     }
