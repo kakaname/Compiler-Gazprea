@@ -87,12 +87,14 @@ int main(int argc, char **argv) {
             SubExpressionCacheSet());
 
     Manager.registerPass(ScopeResolutionPass());
-    Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
+//    Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
-//
-//
+    Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
+
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());

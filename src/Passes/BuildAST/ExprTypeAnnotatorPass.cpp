@@ -766,11 +766,12 @@ Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
                 annotateWithConst(Cast, Cast->getTargetType());
                 return Cast->getTargetType();
             }
+            return Cast->getTargetType();
         }
     }
 }
@@ -800,11 +801,12 @@ Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
                 annotateWithConst(Cast, Cast->getTargetType());
                 return Cast->getTargetType();
             }
+            return Cast->getTargetType();
         }
     }
 }
@@ -1002,6 +1004,21 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     }
 }
 
+Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
+
+
+    if (!StrLit->numOfChildren())
+        throw runtime_error("Unimplemented");
+
+    Type *CharTy = PM->TypeReg.getCharTy();
+
+    // Get the vector type
+    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    annotate(StrLit, StrTy);
+    return StrTy;
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
 
@@ -1075,7 +1092,7 @@ Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
     auto IntTy = TypeReg->getIntegerTy();
 
     if (Upper->isOpaqueTy()) {
-        Int->setUpperExpr(wrapWithCastTo(Int->getLowerExpr(), IntTy));
+        Int->setUpperExpr(wrapWithCastTo(Int->getUpperExpr(), IntTy));
         Upper = IntTy;
     }
 
@@ -1086,8 +1103,6 @@ Type *ExprTypeAnnotatorPass::visitInterval(Interval *Int) {
 
     if (!isa<IntegerTy>(Lower) && !isa<IntegerTy>(Upper))
         throw runtime_error("Interval bounds must be integers");
-
-    // TODO: Check constant folding.
 
     annotateWithConst(Int, TypeReg->getIntervalTy());
     return TypeReg->getIntervalTy();
@@ -1177,6 +1192,27 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
 
+    if (isa<StringTy>(LType) && isa<StringTy>(RType)) {
+
+        auto LVecTy = cast<StringTy>(LType);
+        auto RVecTy = cast<StringTy>(RType);
+
+
+        auto ResLen = [&]() {
+            // If either of the sizes is unknown, the result size is unknown.
+            if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
+                return -1;
+            // Otherwise both sizes are known and the result has size as the sum
+            // of the two.
+            return LVecTy->getSize() + RVecTy->getSize();
+        }();
+
+        auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
+        annotateWithConst(Concat, ResTy);
+        return ResTy;
+
+    }
+
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
                             " a vector");
@@ -1248,7 +1284,7 @@ Type *ExprTypeAnnotatorPass::getWiderType(Type *Ty1, Type *Ty2) {
     if (Ty2->canPromoteTo(Ty1))
         return Ty1;
 
-    return nullptr;
+    throw runtime_error("No suitable promotion found!");
 }
 
 bool ExprTypeAnnotatorPass::isTypeSizeKnown(Type *Ty) {

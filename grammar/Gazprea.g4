@@ -58,10 +58,7 @@ conditional : IF expr stmt              # ifConditional
 loop : LOOP stmt                 #infiniteLoop
      | LOOP WHILE expr stmt      #whileLoop
      | LOOP stmt WHILE expr SC   #doWhileLoop
-     | LOOP iterDomain stmt      #domainLoop; // I don't quite understand this one
-
-// I don't quite understand this one
-iterDomain : ID GET expr;
+     | LOOP (ID IN expr) (COMMA ID IN expr)* stmt      #domainLoop;
 
 typeDef : TYPEDEF type ID SC;
 
@@ -145,7 +142,7 @@ block : LBRACE (stmt)* RBRACE ;
 expr: LPAREN expr RPAREN                    # bracketExpr
     | ID PERIOD (ID | INTLITERAL)           # memberAccess
     | expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexExpr
-    | expr DD expr               # rangeExpr
+    | expr DD expr                           # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr op=EXP expr        # expExpr
     | expr op=(MUL | DIV | MOD | DOTPROD) expr   # mulDivModDotProdExpr // A better name perhaps
@@ -171,7 +168,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
-    | StringLiteral                         # stringLiteral
+    | StringLit                             # stringLiteral
     ;
 
 
@@ -185,7 +182,7 @@ realLit : ExponentialLiteral1             #realLit1
         ;
 
 // --- LEXER RULES ---
-StringLiteral: '"' (('\\' '"') | .)*?  '"';
+StringLit: '"' (('\\' '"') | .)*?  '"';
 
 ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
@@ -212,6 +209,7 @@ PUT : '->' ;
 GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
+DOUBLEQUOTE : '"';
 
 // Ops
 ADD : '+' ;
@@ -276,6 +274,7 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
+
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;
 LineComment : '//' ~[\r\n]* -> skip ;

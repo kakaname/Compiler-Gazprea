@@ -361,10 +361,39 @@ struct ConditionalLoop: public TreeNode {
 
     ConditionalLoop() : TreeNode(TreeNodeKind::N_AST_ConditionalLoop) {}
 };
-// ignored for part1
+
 struct DomainLoop: public TreeNode {
+
+    static constexpr int IDIdx = 0;
+    static constexpr int DomainIdx = 1;
+    static constexpr int BodyIdx = 2;
+
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_DomainLoop;
+    }
+
+    void setID(Identifier *ID) {
+        setChildAt(IDIdx, ID);
+    }
+
+    void setBody(Block *Body) {
+        setChildAt(BodyIdx, Body);
+    }
+
+    void setDomain(ASTNodeT *Domain) {
+        setChildAt(DomainIdx, Domain);
+    }
+
+    Block *getBody() {
+        return dyn_cast<Block>(getChildAt(BodyIdx));
+    }
+
+    Identifier *getID() {
+        return dyn_cast<Identifier>(getChildAt(IDIdx));
+    }
+
+    ASTNodeT *getDomain() {
+        return getChildAt(DomainIdx);
     }
 
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}
@@ -1204,6 +1233,27 @@ struct VectorLiteral: public TreeNode {
     
 };
 
+struct StringLiteral: public TreeNode {
+    // vector but changed for different -> std_output;
+    const Type *MemType;
+    int vecSize;    
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_StringLiteral;
+    }
+
+
+    void setExprAtPos(ASTNodeT *Member, size_t location) {
+        setChildAt(location, Member);
+    } 
+
+    ASTNodeT *getExprAtPos(size_t location) {
+        return getChildAt(location);
+    }
+
+    StringLiteral() : TreeNode(TreeNodeKind::N_AST_StringLiteral) {};
+    
+};
 struct DotProduct: public TreeNode {
     static constexpr size_t LHSIdx = 0;
     static constexpr size_t RHSIdx = 1;

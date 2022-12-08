@@ -6,6 +6,7 @@ gen/
 
 # Ignore CLion files
 cmake-build*/
+build/
 .idea/
 
 .DS_Store

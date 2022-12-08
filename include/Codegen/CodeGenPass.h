@@ -57,7 +57,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee ScanReal;
     llvm::FunctionCallee ScanChar;
     llvm::FunctionCallee ScanBool;
+    llvm::FunctionCallee PowInt;
     llvm::FunctionCallee Malloc;
+    llvm::FunctionCallee VectorNew;
     llvm::FunctionCallee VectorConcat;
     llvm::FunctionCallee VectorDotProductInt;
     llvm::FunctionCallee VectorDotProductReal;
@@ -74,10 +76,12 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorNot;
     llvm::FunctionCallee VectorSub;
     llvm::FunctionCallee PrintVector;
+    llvm::FunctionCallee PrintString;
     llvm::FunctionCallee VectorLogical;
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
     llvm::FunctionCallee VectorComp;
+    llvm::FunctionCallee VectorOOB;
     llvm::FunctionCallee PrintMatrix;
     llvm::FunctionCallee MatrixNew;
     llvm::FunctionCallee MatrixPopulateRow;
@@ -111,6 +115,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetVectorWithValue;
     llvm::FunctionCallee GetMatrixWithValue;
 
+    // Init runtime
+    llvm::FunctionCallee InitRuntimeStream;
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
@@ -154,8 +160,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndex(Index *Idx);
     llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
     llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
-
-    // ignored for part1
     llvm::Value *visitDomainLoop(DomainLoop *Loop);
     llvm::Value *visitIntLiteral(IntLiteral *IntLit);
     static llvm::Value *visitNullLiteral(NullLiteral *NullLit);
@@ -171,6 +175,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitExplicitCast(ExplicitCast *ExplicitCast);
     llvm::Value *visitUnaryOp(UnaryOp *Op);
     llvm::Value *visitFunctionDef(FunctionDef *FuncDef);
+    llvm::Value *visitFilter(Filter *Flt);
     llvm::Value *visitFunctionDecl(FunctionDecl *Decl);
     llvm::Value *visitProcedureDecl(ProcedureDecl *Decl);
     llvm::Value *visitFunctionCall(FunctionCall *FuncCall);
@@ -185,6 +190,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndexReference(IndexReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
     llvm::Value *visitVectorLiteral(VectorLiteral *VecLit);
+    llvm::Value *visitStringLiteral(StringLiteral *String);
     llvm::Value *visitBlock(Block *Blk);
     llvm::Value *visitInterval(Interval *Interval);
     llvm::Value *visitConcat(Concat *Con);
@@ -194,6 +200,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
     llvm::Value *createAlloca(Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
+    llvm::Value *CreateStringStruct(uint64_t size, bool malloc = false);
+    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
+    llvm::Value *CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, Type *SrcTy, Type *DestTy);

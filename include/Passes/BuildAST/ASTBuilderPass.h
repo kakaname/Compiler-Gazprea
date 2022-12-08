@@ -95,8 +95,6 @@ public:
 
     std::any visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx) override;
 
-    std::any visitIterDomain(GazpreaParser::IterDomainContext *ctx) override;
-
     std::any visitTypeDef(GazpreaParser::TypeDefContext *ctx) override;
 
     std::any visitOutput(GazpreaParser::OutputContext *ctx) override;
@@ -111,6 +109,8 @@ public:
     std::any visitTupleType(GazpreaParser::TupleTypeContext *ctx) override;
 
     std::any visitVectorType(GazpreaParser::VectorTypeContext *ctx) override;
+
+    std::any visitStringType(GazpreaParser::StringTypeContext *ctx) override;
 
     std::any visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) override;
 
@@ -175,6 +175,8 @@ public:
     std::any visitIndexExpr(GazpreaParser::IndexExprContext *ctx) override;
 
     std::any visitTupleLiteral(GazpreaParser::TupleLiteralContext *ctx) override;
+
+    std::any visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) override;
 
     std::any visitVectorLiteral(GazpreaParser::VectorLiteralContext *ctx) override;
 

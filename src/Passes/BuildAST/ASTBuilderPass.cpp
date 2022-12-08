@@ -77,6 +77,7 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     } else
         Decl->setInitExpr(castToNodeVisit(ctx->expr()));
 
+
     return cast<ASTNodeT>(Decl);
 }
 
@@ -194,16 +195,50 @@ std::any ASTBuilderPass::visitDoWhileLoop(GazpreaParser::DoWhileLoopContext *ctx
     return cast<ASTNodeT>(Loop);
 }
 
-// Ignore for part1
 std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) {
-    throw std::runtime_error("Unimplemented: Domain Loop");
-}
 
-// Ignore for part1
-std::any ASTBuilderPass::visitIterDomain(GazpreaParser::IterDomainContext *ctx) {
-    throw std::runtime_error("Unimplemented: IterDomain");
-}
 
+    // Set the statement body
+    auto Body = castToNodeVisit(ctx->stmt());
+    Block *Blk;
+    if (!isa<Block>(Body)) {
+        Blk = wrapStmtInBlock(Body);
+        Blk->setCtx(ctx);
+    } else {
+        Blk = dyn_cast<Block>(Body);
+    }
+
+    auto Exprs = ctx->expr();
+    auto IDs = ctx->ID();
+    auto Size = Exprs.size();
+
+    DomainLoop *Loop;
+    for (size_t i = Size - 1; i >= 0; i--) {
+        if (i == -1) break;
+        Loop = PM->Builder.build<DomainLoop>();
+        Loop->setCtx(ctx);
+        Loop->setBody(Blk);
+        auto thisExpr = ctx->expr(i);
+        Loop->setDomain(castToNodeVisit(thisExpr));
+        Blk->setParent(Loop);
+
+
+        // Create Identifier
+        auto ID = PM->Builder.build<Identifier>();
+        ID->setCtx(ctx);
+        ID->setName(IDs[i]->getText());
+
+        Loop->setID(ID);
+
+        Blk = wrapStmtInBlock(Loop);
+        Blk->setCtx(ctx);
+
+    }
+
+
+    return cast<ASTNodeT>(Loop);
+
+}
 
 std::any ASTBuilderPass::visitTypeDef(GazpreaParser::TypeDefContext *ctx) {
     auto &GlobalScope = PM->getResource<ScopeTreeNode>();
@@ -267,17 +302,29 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine type of inner
     auto Type = castToTypeVisit(ctx->type());
+    bool isString = false;
+
+    if(Type->getKind() == Type::TypeKind::T_String){
+        // if it is type vector, it is a string then
+        Type = PM->TypeReg.getCharTy(false);    
+        isString = true;
+    }
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
-    // Size must be inferred.
-    if (Size->MUL())
+    if (Size->MUL()){
+        if(isString)
+            return PM->TypeReg.getStringType(Type, -1, false);
         return PM->TypeReg.getVectorType(Type, -1, false);
+    }
 
     // Try to constant fold it.
     long VecSize = -1;
     try {
         VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+        if(isString)
+            return PM->TypeReg.getStringType(Type, (int) VecSize);
+        return PM->TypeReg.getVectorType(Type, (int) VecSize);
     } catch (exception&) {}
 
     // If the size cannot be folded, then there must an expression
@@ -285,9 +332,22 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     auto SizeTree = castToNodeVisit(Size->expr());
     auto VecTy = PM->TypeReg.getVectorType(Type, (int) VecSize, false);
     cast<VectorTy>(VecTy)->setSizeExpr(SizeTree);
+
+    if(isString){
+        return PM->TypeReg.getStringType(Type, -1, false);
+    }
     return VecTy;
 }
 
+std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) {
+
+    // determine type of inner
+
+    // if it is a stringType size is not specified
+    return PM->TypeReg.getStringType(PM->TypeReg.getCharTy(false), -1, false);
+}
+
+// Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
     auto InnerTy = castToTypeVisit(ctx->type());
 
@@ -871,6 +931,71 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
     return cast<ASTNodeT>(VectorLit);;
 }
 
+
+
+std::any ASTBuilderPass::visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) {
+    auto StringLit = PM->Builder.build<StringLiteral>();
+    StringLit->setCtx(ctx);
+
+    std::string CharVal = ctx->StringLit()->getText();
+
+    long len = CharVal.length();
+    bool escapeSequence = false;
+
+    for(long i=1;i<len-1;i++){
+        char Val;
+        if(escapeSequence == true){ // for special characters
+            switch (CharVal[i]) {
+                case '0':
+                    Val = 0x00;
+                    break;
+                case 'a':
+                    Val = 0x07;
+                    break;
+                case 'b':
+                    Val = 0x08;
+                    break;
+                case 't':
+                    Val = 0x09;
+                    break;
+                case 'n':
+                    Val = 0x0A;
+                    break;
+                case 'r':
+                    Val = 0x0D;
+                    break;
+                case '\"':
+                    Val = 0x22;
+                    break;
+                case '\'':
+                    Val = 0x27;
+                    break;
+                case '\\':
+                    Val = 0x5C;
+                    break;
+                default:
+                    Val = CharVal[i];
+                    break;
+            }
+
+            escapeSequence = false;
+        }else if(CharVal[i] == '\\'){ // next value is special character
+            escapeSequence = true;
+            continue;
+        }else{ // is normal character
+            Val = CharVal[i];
+        }
+
+        auto CharLit = PM->Builder.build<CharLiteral>();
+        CharLit->setCtx(ctx);
+        CharLit->setCharacter(Val);
+        StringLit->addChild(cast<ASTNodeT>(CharLit));
+        
+    }
+
+    return cast<ASTNodeT>(StringLit);
+}
+
 // ignored for part1
 std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
     auto ConcatOp = PM->Builder.build<Concat>();
@@ -899,15 +1024,6 @@ std::any ASTBuilderPass::visitRangeExpr(GazpreaParser::RangeExprContext *ctx) {
 
     IntInterval->setLowerExpr(Upper);
     IntInterval->setUpperExpr(Lower);
-
-    // Add the check for the intervals to be equal
-//    auto Check = PM->Builder.build<ComparisonOp>();
-//    Check->setCtx(ctx);
-//    Check->setOp(ComparisonOp::GTEQ);
-//    Check->setLeftExpr(Lower);
-//    Check->setRightExpr(Upper);
-//    Check->setParent(IntInterval);
-//    IntInterval->addCheck(Check);
 
     return cast<ASTNodeT>(IntInterval);
 }
@@ -984,18 +1100,20 @@ std::any ASTBuilderPass::visitStmt(GazpreaParser::StmtContext *ctx) {
 }
 
 std::any ASTBuilderPass::visitGlobalIdentDecl(GazpreaParser::GlobalIdentDeclContext *ctx) {
-    auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
-    auto Expr = castToNodeVisit(ctx->expr());
     auto Decl = PM->Builder.build<Declaration>();
+    auto Expr = castToNodeVisit(ctx->expr());
+    auto Ident = PM->Builder.build<Identifier>();
+    if (ctx->type()) {
+        auto Type = PM->TypeReg.getConstTypeOf(castToTypeVisit(ctx->type()));
+        Decl->setIdentType(Type);
+        Ident->setIdentType(Type);
+    }
     // TODO intervals here too
     Decl->setCtx(ctx);
-    Decl->setIdentType(Type);
     Decl->setInitExpr(Expr);
     Decl->setConst();
-    auto Ident = PM->Builder.build<Identifier>();
     Ident->setCtx(ctx);
     Ident->setName(ctx->ID()->getText());
-    Ident->setIdentType(Type);
     Decl->setIdent(Ident);
     return cast<ASTNodeT>(Decl);
 }
