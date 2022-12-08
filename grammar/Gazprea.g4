@@ -176,9 +176,9 @@ realLit : ExponentialLiteral1             #realLit1
         | ExponentialLiteral2             #realLit2
         | ExponentialLiteral3             #realLit3
         | ExponentialLiteral4             #realLit4
-        | INTLITERAL PERIOD                        #realLit5
+        | INTLITERAL PERIOD               #realLit5
         | PERIOD INTLITERAL               #realLit6
-        | INTLITERAL PERIOD INTLITERAL  #realLit7
+        | INTLITERAL PERIOD INTLITERAL    #realLit7
         ;
 
 // --- LEXER RULES ---

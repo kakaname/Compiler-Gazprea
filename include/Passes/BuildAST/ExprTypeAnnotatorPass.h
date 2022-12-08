@@ -14,64 +14,76 @@
 #include "Passes/BuildAST/ConvertIdentMemberAccessToIdxPass.h"
 #include "Common/MatchBoolPair.h"
 
-struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, const Type*> {
-    using AnnotationT = const Type*;
+struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
+    using AnnotationT = Type*;
 
-    const Type *visitArithmeticOp(ArithmeticOp *Op);
-    const Type *visitComparisonOp(ComparisonOp *Op);
-    const Type *visitLogicalOp(LogicalOp *Op);
-    const Type *visitUnaryOp(UnaryOp *Op);
-    const Type *visitIdentifier(Identifier *Ident) const;
-    const Type *visitMemberAccess(MemberAccess *MAccess);
-    const Type *visitIndex(Index *Idx);
-    const Type *visitIndexReference(IndexReference *IdxRef);
-    const Type *visitMemberReference(MemberReference *Ref);
-    const Type *visitIdentReference(IdentReference *Ref);
-    const Type *visitFunctionCall(FunctionCall *Call);
-    const Type *visitProcedureCall(ProcedureCall *Call);
-    const Type *visitIntLiteral(IntLiteral *Int) const;
-    const Type *visitRealLiteral(RealLiteral *Real) const ;
-    const Type *visitTupleLiteral(TupleLiteral *TupLit);
-    const Type *visitVectorLiteral(VectorLiteral *VecLit);
-    const Type *visitTypeCast(TypeCast *Cast);
-    const Type *visitExplicitCast(ExplicitCast *Cast);
-    const Type *visitNullLiteral(NullLiteral *Null);
-    const Type *visitIdentityLiteral(IdentityLiteral *Identity);
-    const Type *visitBoolLiteral(BoolLiteral *Bool);
-    const Type *visitCharLiteral(CharLiteral *Char);
-    const Type *visitInterval(Interval *Int);
-    const Type *visitByOp(ByOp *By);
-    const Type *visitDotProduct(DotProduct *Dot);
-    const Type *visitConcat(Concat *Concat);
-    const Type *visitOutStream(OutStream *Out);
-    const Type *visitConditionalLoop(ConditionalLoop *Loop);
-    const Type *visitConditional(Conditional *Cond);
-    const Type *visitConditionalElse(ConditionalElse *Cond);
+    Type *visitArithmeticOp(ArithmeticOp *Op);
+    Type *visitComparisonOp(ComparisonOp *Op);
+    Type *visitLogicalOp(LogicalOp *Op);
+    Type *visitUnaryOp(UnaryOp *Op);
+    Type *visitIdentifier(Identifier *Ident) const;
+    Type *visitMemberAccess(MemberAccess *MAccess);
+    Type *visitIndex(Index *Idx);
+    Type *visitIndexReference(IndexReference *IdxRef);
+    Type *visitMemberReference(MemberReference *Ref);
+    Type *visitIdentReference(IdentReference *Ref);
+    Type *visitFunctionCall(FunctionCall *Call);
+    Type *visitProcedureCall(ProcedureCall *Call);
+    Type *visitIntLiteral(IntLiteral *Int) const;
+    Type *visitRealLiteral(RealLiteral *Real) const ;
+    Type *visitTupleLiteral(TupleLiteral *TupLit);
+    Type *visitVectorLiteral(VectorLiteral *VecLit);
+    Type *visitTypeCast(TypeCast *Cast);
+    Type *visitExplicitCast(ExplicitCast *Cast);
+    Type *visitNullLiteral(NullLiteral *Null);
+    Type *visitIdentityLiteral(IdentityLiteral *Identity);
+    Type *visitBoolLiteral(BoolLiteral *Bool);
+    Type *visitCharLiteral(CharLiteral *Char);
+    Type *visitInterval(Interval *Int);
+    Type *visitByOp(ByOp *By);
+    Type *visitDotProduct(DotProduct *Dot);
+    Type *visitConcat(Concat *Concat);
+    Type *visitOutStream(OutStream *Out);
+    Type *visitConditionalLoop(ConditionalLoop *Loop);
+    Type *visitConditional(Conditional *Cond);
+    Type *visitConditionalElse(ConditionalElse *Cond);
+    Type *visitGenerator(Generator *Gen);
+    Type *visitMatrixGenerator(MatrixGenerator *Gen);
+    Type *visitFilter(Filter *Filter);
 
 
-    void setOpaqueTyCastTargetTy(const Type *Ty) {
+    void setOpaqueTyCastTargetTy(Type *Ty) {
         OpaqueTyCastTarget = Ty;
     }
 
-    void annotate(ASTNodeT *Node, const Type *Ty) const {
+    void annotate(ASTNodeT *Node, Type *Ty) const {
         PM->setAnnotation<ExprTypeAnnotatorPass>(Node, Ty);
     }
 
-    void annotateWithConst(ASTNodeT *Node, const Type *Ty) const {
+    void annotateWithConst(ASTNodeT *Node, Type *Ty) const {
         annotate(Node, PM->TypeReg.getConstTypeOf(Ty));
     }
 
-    TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Target) const;
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, Type *Target) const;
 
-    static const Type *getWiderType(const Type *Ty1, const Type *Ty2);
+    static Type *getWiderType(Type *Ty1, Type *Ty2);
 
-    static bool isTypeSizeKnown(const Type *Ty);
+    static bool isTypeSizeKnown(Type *Ty);
+
+    IntLiteral *getIntLiteralWithVal(long Val);
+
+    ArithmeticOp *getAddOpBetween(ASTNodeT* N1, ASTNodeT* N2);
+
+    void visitTypeSizeExpressions(Type*);
 
     void runOnAST(ASTPassManager &Manager, ASTNodeT *Root);
 
     explicit ExprTypeAnnotatorPass() = default;
 
+    static bool isInferredSizedType(Type *Ty);
+    void copyOverCompositeSizeTypes(Type *Src, Type *Dest);
+
     ASTPassManager *PM{};
     TypeRegistry *TypeReg{};
-    const Type *OpaqueTyCastTarget{nullptr};
+    Type *OpaqueTyCastTarget{nullptr};
 };

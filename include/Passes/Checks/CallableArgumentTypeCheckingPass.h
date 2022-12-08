@@ -13,7 +13,7 @@ struct CallableArgumentTypeCheckingPass : VisitorPass<CallableArgumentTypeChecki
     void visitProcedureCall(ProcedureCall *Call);
 
 
-    TypeCast *wrapWithCastTo(ASTNodeT *Expr, const Type *Ty) const;
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, Type *Ty) const;
 
     void runOnAST(ASTPassManager &M, ASTNodeT *Root) {
         PM = &M;

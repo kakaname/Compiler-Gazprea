@@ -30,21 +30,21 @@ struct Symbol {
 
     Symbol() = delete;
 
-    explicit Symbol(SymbolKind Kind, string Name, const Type* Ty):
+    explicit Symbol(SymbolKind Kind, string Name, Type* Ty):
         Kind(Kind), Name(std::move(Name)), Ty(Ty) {}
 
     const string &getName() const{
         return Name;
     }
 
-    const Type *getSymbolType() const {
+    Type *getSymbolType() const {
         return Ty;
     }
 
 private:
     SymbolKind Kind;
     string Name;
-    const Type* Ty;
+    Type* Ty;
 };
 
 
@@ -55,7 +55,7 @@ public:
         return S->getKind() == Symbol::S_ObjectSymbol;
     }
 
-    explicit ObjectSymbol(const Type* Ty, string Name):
+    explicit ObjectSymbol(Type* Ty, string Name):
         Symbol(SymbolKind::S_ObjectSymbol, std::move(Name), Ty) {}
 };
 
@@ -67,16 +67,16 @@ public:
 // t.1;
 
 class TypeSymbol: public Symbol {
-    const Type *Ty;
+    Type *Ty;
 public:
     static bool classof(const Symbol *S) {
         return S->getKind() == SymbolKind::S_TypeSymbol;
     }
 
-    TypeSymbol(string Name, const Type *Ty):
+    TypeSymbol(string Name, Type *Ty):
     Symbol(SymbolKind::S_TypeSymbol, std::move(Name), nullptr), Ty(Ty) {}
 
-    const Type *getType() const {
+    Type *getType() const {
         return Ty;
     }
 };
@@ -88,7 +88,7 @@ public:
         return S->getKind() == SymbolKind::S_ScopedSymbol;
     }
 
-    ScopedSymbol(string Name, const Type *Ty, map<string, int> Members):
+    ScopedSymbol(string Name, Type *Ty, map<string, int> Members):
         Symbol(SymbolKind::S_ScopedSymbol, std::move(Name), Ty), Members(std::move(Members)) {}
 
     int getMemberIndex(const string& Member) const {

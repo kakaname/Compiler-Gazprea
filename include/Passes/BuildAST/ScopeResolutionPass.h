@@ -28,21 +28,21 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
         return N->getKind() == TreeNode::N_ScopeTreeNode;
     }
 
-    using SymbolMapT = map<string, const Symbol *>;
+    using SymbolMapT = map<string, Symbol *>;
 
     SymbolMapT SymbolsInScope;
     SymbolMapT TypeSymbolsInScope;
     // Note: The type symbols is only really relevant for global scopes
 
-    void declareInScope(const string& Name, const Symbol *Sym) {
+    void declareInScope(const string& Name, Symbol *Sym) {
         declareHelper(Name, Sym, &SymbolsInScope);
     }
 
-    void declareType(const string& Name, const Symbol *Sym) {
+    void declareType(const string& Name, Symbol *Sym) {
         declareHelper(Name, Sym, &TypeSymbolsInScope);
     }
 
-    const Symbol *resolveType(const string &Name) {
+    Symbol *resolveType(const string &Name) {
         auto Res = TypeSymbolsInScope.find(Name);
         if (Res != TypeSymbolsInScope.end())
             return Res->second;
@@ -74,7 +74,7 @@ struct ScopeTreeNode: public TreeNode, ResourceIdMixin<ScopeTreeNode> {
 
 private:
 
-    void declareHelper(const string& Name, const Symbol *Sym, SymbolMapT *ScopeMap) {
+    void declareHelper(const string& Name, Symbol *Sym, SymbolMapT *ScopeMap) {
         auto Res = ScopeMap->find(Name);
         if (Res != ScopeMap->end())
             throw std::runtime_error("Tried to redeclare when already in scope");
@@ -87,7 +87,6 @@ private:
 
 
 struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
-
 
     ScopeTreeNode *CurrentScope;
     ASTPassManager *PM;
@@ -150,6 +149,8 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             Decl->setIdentType(ExprType);
             Decl->getIdentifier()->setIdentType(ExprType);
         }
+
+
         ExprAnnotator.setOpaqueTyCastTargetTy(nullptr);
 
         // Infer the size from the expression type.
@@ -163,16 +164,20 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
                 if (VecTy->isSizeKnown())
                     break;
 
-                // If the size was specified as an expression, we do nothing
-                // and let the AssignmentTypeCheckerPass handle it.
-                if (PM->getResult<ASTBuilderPass>().find({Decl, 0})->second.first)
+                // If the size was specified as an expression, visit it to
+                // resolve references.
+                if (VecTy->getSizeExpr()) {
+                    visit(VecTy->getSizeExpr());
                     break;
-
+                }
+                // Otherwise the size must be inferred.
                 auto ExprVecTy = dyn_cast<VectorTy>(ExprType);
                 assert(ExprVecTy && "Trying to assign non vector to vector with inferred size");
-                auto NewDeclType = PM->TypeReg.getVectorType(
+                auto NewDeclType = cast<VectorTy>(PM->TypeReg.getVectorType(
                         VecTy->getInnerTy(), ExprVecTy->getSize(),
-                        Decl->IsConst);
+                        Decl->IsConst));
+
+                NewDeclType->setSizeExpr(ExprVecTy->getSizeExpr());
 
                 Decl->setIdentType(NewDeclType);
                 Decl->getIdentifier()->setIdentType(NewDeclType);
@@ -185,7 +190,10 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
 
                 // If the size was specified as an expression, we do nothing
                 // and let the AssignmentTypeCheckerPass handle it.
-                auto Dimensions = PM->getResult<ASTBuilderPass>().find({Decl, 0})->second;
+                auto Dimensions = make_pair(MatTy->getRowSizeExpr(),
+                                            MatTy->getColSizeExpr());
+
+                // If either one of them has an expression, we bail
                 if (Dimensions.first || Dimensions.second)
                     break;
 
@@ -198,11 +206,14 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
                 auto NumOfCols = MatTy->isNumOfColumnsIsKnown() ?
                         MatTy->getNumOfColumns() : MatTy->getNumOfRows();
 
-                auto NewDeclType = PM->TypeReg.getMatrixType(
+                auto NewDeclType = cast<MatrixTy>(PM->TypeReg.getMatrixType(
                         MatTy->getInnerTy(),
                         NumOfRows,
                         NumOfCols,
-                        Decl->IsConst);
+                        Decl->IsConst));
+                NewDeclType->setColSizeExpr(ExprMatTy->getColSizeExpr());
+                NewDeclType->setRowSizeExpr(ExprMatTy->getRowSizeExpr());
+
                 Decl->setIdentType(NewDeclType);
                 Decl->getIdentifier()->setIdentType(NewDeclType);
                 break;
@@ -360,7 +371,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Call->getArgsList());
         visit(Call->getIdentifier());
 
-        vector<const Type*> ParamTypes;
+        vector<Type*> ParamTypes;
 
         if (auto ProcTy = dyn_cast<ProcedureTy>(
                 Call->getIdentifier()->getIdentType())) {
@@ -385,7 +396,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         visit(Call->getArgsList());
         visit(Call->getIdentifier());
 
-        vector<const Type*> ParamTypes;
+        vector<Type*> ParamTypes;
 
         if (auto ProcTy = dyn_cast<FunctionTy>(
                 Call->getIdentifier()->getIdentType())) {
@@ -419,12 +430,128 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
     }
 
-    const Type *runTypeAnnotator(ASTNodeT *Node, const Type *Ty = nullptr) {
+    void visitGenerator(Generator *Gen) {
+        // Resolve the domain first.
+        visit(Gen->getDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        Type* DomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))) {
+            DomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getDomain()))) {
+            DomainVarTy = PM->TypeReg.getIntegerTy();
+        }
+
+        auto Sym = PM->SymTable.defineObject(Gen->getDomainVar()->getName(), DomainVarTy);
+        Gen->getDomainVar()->setReferred(Sym);
+        CurrentScope->declareInScope(Gen->getDomainVar()->getName(), Sym);
+
+        visit(Gen->getExpr());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+    void visitMatrixGenerator(MatrixGenerator *Gen) {
+        // Resolve the domain first.
+        visit(Gen->getRowDomain());
+        visit(Gen->getColumnDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        Type* RowDomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))) {
+            RowDomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getRowDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getRowDomain()))) {
+            RowDomainVarTy = PM->TypeReg.getIntegerTy();
+        }
+        auto RowSym = PM->SymTable.defineObject(Gen->getRowDomainVar()->getName(), RowDomainVarTy);
+        Gen->getRowDomainVar()->setReferred(RowSym);
+        CurrentScope->declareInScope(Gen->getRowDomainVar()->getName(), RowSym);
+
+
+
+        Type* ColumnDomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))) {
+            ColumnDomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Gen->getColumnDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Gen->getColumnDomain()))) {
+            ColumnDomainVarTy = PM->TypeReg.getIntegerTy();
+        }
+        auto ColumnSym = PM->SymTable.defineObject(Gen->getColumnDomainVar()->getName(), ColumnDomainVarTy);
+        Gen->getColumnDomainVar()->setReferred(ColumnSym);
+        CurrentScope->declareInScope(Gen->getColumnDomainVar()->getName(), ColumnSym);
+
+
+        visit(Gen->getExpr());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+    void visitFilter(Filter *Filter) {
+        // Resolve the domain first.
+        visit(Filter->getDomain());
+
+        // Introduce a new scope
+        auto NewScope = PM->Builder.build<ScopeTreeNode>();
+        CurrentScope->addChild(NewScope);
+        CurrentScope = NewScope;
+
+        Type* DomainVarTy = nullptr;
+
+        if (dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))) {
+            DomainVarTy =  dyn_cast<VectorTy>(runTypeAnnotator(Filter->getDomain()))->getInnerTy();
+        }
+        else if (dyn_cast<IntervalTy>(runTypeAnnotator(Filter->getDomain()))) {
+            DomainVarTy = PM->TypeReg.getIntegerTy();
+        }
+        auto Sym = PM->SymTable.defineObject(Filter->getDomainVar()->getName(), DomainVarTy);
+        Filter->getDomainVar()->setReferred(Sym);
+        CurrentScope->declareInScope(Filter->getDomainVar()->getName(), Sym);
+
+        visit(Filter->getPredicatedList());
+
+        // Set back the scope
+        CurrentScope = cast<ScopeTreeNode>(CurrentScope->getParent());
+    }
+
+
+    Type *runTypeAnnotator(ASTNodeT *Node, Type *Ty = nullptr) {
         ExprAnnotator.setOpaqueTyCastTargetTy(Ty);
         ExprAnnotator.runOnAST(*PM, Node);
         return PM->getAnnotation<ExprTypeAnnotatorPass>(Node);
     }
 
+    void visitExplicitCast(ExplicitCast *Cast) {
+        visit(Cast->getExpr());
+        if (auto VecTy = dyn_cast<VectorTy>(Cast->getTargetType())) {
+            if (VecTy->getSizeExpr())
+                visit(VecTy->getSizeExpr());
+            return;
+        }
+
+        if (auto MatTy = dyn_cast<MatrixTy>(Cast->getTargetType())) {
+            if (MatTy->getColSizeExpr())
+                visit(MatTy->getColSizeExpr());
+
+            if (MatTy->getRowSizeExpr())
+                visit(MatTy->getRowSizeExpr());
+            return;
+        }
+    }
 };
 
 #endif //GAZPREABASE_SCOPERESOLUTIONPASS_H

@@ -36,11 +36,11 @@ class TypeRegistry {
     template<typename T>
     using ConstTypeIdPair = pair<bool, T>;
 
-    using VectorTyId = ConstTypeIdPair<pair<const Type*, int>>;
-    using MatrixTypeId = ConstTypeIdPair<pair<const Type*, pair<int, int>>>;
-    using TupleTypeId = ConstTypeIdPair<pair<vector<const Type*>, map<string, int>>>;
-    using FunctionTypeId = pair<vector<const Type*>, const Type*>;
-    using ProcedureTypeId = pair<vector<const Type*>, const Type*>;
+    using VectorTyId = ConstTypeIdPair<pair< Type*, int>>;
+    using MatrixTypeId = ConstTypeIdPair<pair< Type*, pair<int, int>>>;
+    using TupleTypeId = ConstTypeIdPair<pair<vector< Type*>, map<string, int>>>;
+    using FunctionTypeId = pair<vector< Type*>,  Type*>;
+    using ProcedureTypeId = pair<vector< Type*>,  Type*>;
 
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
@@ -65,6 +65,14 @@ class TypeRegistry {
     ProcudureTypeContainer ProcedureTypes;
     IntervalTypeContainer IntervalTypes;
 
+    using UnknownVectorTyContainer = map<long, unique_ptr<Type>>;
+    using UnknownMatrixTyContainer = map<long, unique_ptr<Type>>;
+
+    UnknownVectorTyContainer UnknownVectors;
+    UnknownMatrixTyContainer UnknownMatrices;
+
+    long CurrentId{};
+
 
 public:
     explicit TypeRegistry(): NullType(), IdentityType(),
@@ -73,31 +81,31 @@ public:
                              IntegerTypes{IntegerTy(false), IntegerTy(true)},
                              RealTypes{RealTy(false), RealTy(true)} {};
 
-    const Type *getNullTy() {
+     Type *getNullTy() {
         return &NullType;
     }
 
-    const Type *getIdentityTy() {
+     Type *getIdentityTy() {
         return &IdentityType;
     }
 
-    const Type *getBooleanTy(bool Const = true) {
+     Type *getBooleanTy(bool Const = true) {
         return &BooleanTypes[Const];
     }
 
-    const Type *getCharTy(bool Const = true) {
+     Type *getCharTy(bool Const = true) {
         return &CharacterTypes[Const];
     }
 
-    const Type *getIntegerTy(bool Const = true) {
+     Type *getIntegerTy(bool Const = true) {
         return &IntegerTypes[Const];
     }
 
-    const Type *getRealTy(bool Const = true) {
+     Type *getRealTy(bool Const = true) {
         return &RealTypes[Const];
     }
 
-    const Type *getIntervalTy(int Length = -1) {
+     Type *getIntervalTy(int Length = -1) {
         auto Res = IntervalTypes.find(Length);
         if (Res != IntervalTypes.end())
             return Res->second.get();
@@ -108,34 +116,49 @@ public:
         return Inserted.first->second.get();
     }
 
-    const Type *getVectorType(const Type *InnerTy, int Size = -1, bool IsConst = true) {
-        auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
-        if (Res != VectorTypes.end())
-            return Res->second.get();
+     Type *getVectorType( Type *InnerTy, int Size = -1, bool IsConst = true) {
 
-        auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
-        VectorTyId Key{IsConst, {InnerTy, Size}};
-        auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
-        assert(Inserted.second && "We just checked that type wasn't in the map");
-        return Inserted.first->second.get();
+//         if (Size < 0) {
+         auto Inserted = UnknownVectors.insert({
+             CurrentId++,
+             make_unique<VectorTy>(InnerTy, Size, IsConst)});
+         return Inserted.first->second.get();
+//         }
+
+//        auto Res = VectorTypes.find({IsConst, {InnerTy, Size}});
+//        if (Res != VectorTypes.end())
+//            return Res->second.get();
+//
+//        auto NewVecTy = make_unique<VectorTy>(VectorTy(InnerTy, Size, IsConst));
+//        VectorTyId Key{IsConst, {InnerTy, Size}};
+//        auto Inserted = VectorTypes.insert({Key, std::move(NewVecTy)});
+//        assert(Inserted.second && "We just checked that type wasn't in the map");
+//        return Inserted.first->second.get();
     }
 
-    const Type *getMatrixType(const Type *InnerTy, int Rows = -1, int Cols = -1 ,
-                              bool IsConst = true) {
-        MatrixTypeId Key{IsConst, {InnerTy, pair{Rows, Cols}}};
-        auto Res = MatrixTypes.find(Key);
-        if (Res != MatrixTypes.end()) {
-            return Res->second.get();
-        }
-        auto NewMatrixTy = make_unique<MatrixTy>(
-                MatrixTy(InnerTy,{Rows, Cols}, IsConst));
-        auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
-        assert(Inserted.second && "We just check that type wasn't in the map");
+    Type *getMatrixType(Type *InnerTy, int Rows = -1, int Cols = -1 ,
+                          bool IsConst = true) {
+//        if (Rows < 0 || Cols < 0) {
+         auto Inserted = UnknownVectors.insert({CurrentId++,
+        make_unique<MatrixTy>(InnerTy, std::make_pair(Rows, Cols), IsConst)});
         return Inserted.first->second.get();
+//        }
+
+
+//        MatrixTypeId Key{IsConst, {InnerTy, pair{Rows, Cols}}};
+//        auto Res = MatrixTypes.find(Key);
+//        if (Res != MatrixTypes.end()) {
+//            return Res->second.get();
+//        }
+//        auto NewMatrixTy = make_unique<MatrixTy>(
+//                MatrixTy(InnerTy,{Rows, Cols}, IsConst));
+//        auto Inserted = MatrixTypes.insert({Key, std::move(NewMatrixTy)});
+//        assert(Inserted.second && "We just check that type wasn't in the map");
+//        return Inserted.first->second.get();
     }
 
-    const Type *getTupleType(const TupleTy::MemberTyContainer &ContainedTypes,
-                             const map<string, int>& Mappings,
+     Type *getTupleType(TupleTy::MemberTyContainer &ContainedTypes,
+                              map<string, int>& Mappings,
                              bool IsConst = true) {
         TupleTypeId Key{IsConst,  pair{ContainedTypes, Mappings}};
         auto Res = TupleTypes.find(Key);
@@ -149,7 +172,7 @@ public:
         return Inserted.first->second.get();
     }
 
-    const Type *getFunctionType(const FunctionTy::ParamTypeContainer& Args, const Type *RetTy) {
+     Type *getFunctionType( FunctionTy::ParamTypeContainer& Args,  Type *RetTy) {
         pair Key{Args, RetTy};
         auto Res = FunctionTypes.find(Key);
         if (Res != FunctionTypes.end())
@@ -161,7 +184,7 @@ public:
         return Inserted.first->second.get();
     }
 
-    const Type *getProcedureType(const ProcedureTy::ArgsTypeContainer& Args, const Type *RetTy) {
+     Type *getProcedureType( ProcedureTy::ArgsTypeContainer& Args,  Type *RetTy) {
         pair Key{Args, RetTy};
         auto Res = ProcedureTypes.find(Key);
         if (Res != ProcedureTypes.end())
@@ -174,7 +197,7 @@ public:
     }
 
 
-    const Type *getConstTypeOf(const Type *Ty) {
+     Type *getConstTypeOf(Type *Ty) {
         if (isa<NullTy>(Ty))
             return getNullTy();
 
@@ -196,15 +219,22 @@ public:
         if (isa<IntervalTy>(Ty))
             return getIntervalTy(true);
 
-        if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
+        if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
+            auto RetTy = getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
+            cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
+            return RetTy;
+        }
 
-        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
-                                 Mat->getNumOfColumns(), true);
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty)) {
+            auto RetTy = getMatrixType(getConstTypeOf(Mat->getInnerTy()), Mat->getNumOfRows(),
+                                     Mat->getNumOfColumns(), true);
+            cast<MatrixTy>(RetTy)->setColSizeExpr(Mat->getColSizeExpr());
+            cast<MatrixTy>(RetTy)->setRowSizeExpr(Mat->getRowSizeExpr());
+            return RetTy;
+        }
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
-            vector<const Type*> VarMembers;
+            vector<Type*> VarMembers;
             for (auto Mem: Tup->getMemberTypes())
                 VarMembers.emplace_back(getConstTypeOf(Mem));
             return getTupleType(VarMembers, Tup->getMappings(), true);
@@ -213,7 +243,7 @@ public:
         assert(false && "Should not be reachable.");
     }
 
-    const Type *getVarTypeOf(const Type *Ty) {
+     Type *getVarTypeOf(Type *Ty) {
         if (isa<NullTy>(Ty))
             return getNullTy();
 
@@ -235,15 +265,22 @@ public:
         if (isa<IntervalTy>(Ty))
             return getIntervalTy(false);
 
-        if (auto *Vec = dyn_cast<VectorTy>(Ty))
-            return getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+        if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
+            auto RetTy = getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
+            cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
+            return RetTy;
+        }
 
-        if (auto *Mat = dyn_cast<MatrixTy>(Ty))
-            return getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
+        if (auto *Mat = dyn_cast<MatrixTy>(Ty)) {
+            auto RetTy = getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
                                  Mat->getNumOfColumns(), false);
+            cast<MatrixTy>(RetTy)->setColSizeExpr(Mat->getColSizeExpr());
+            cast<MatrixTy>(RetTy)->setRowSizeExpr(Mat->getRowSizeExpr());
+            return RetTy;
+        }
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
-            vector<const Type*> VarMembers;
+            vector< Type*> VarMembers;
             for (auto Mem: Tup->getMemberTypes())
                 VarMembers.emplace_back(getVarTypeOf(Mem));
             return getTupleType(VarMembers, Tup->getMappings(), false);
@@ -252,7 +289,7 @@ public:
         assert(false && "Should not be reachable.");
     }
 
-    const Type *getCompositeTyWithInner(const Type *OldTy, const Type *InnerTy) {
+     Type *getCompositeTyWithInner(Type *OldTy, Type *InnerTy) {
         if (auto VecTy = dyn_cast<VectorTy>(OldTy))
             return getVectorType(InnerTy, VecTy->getSize(), VecTy->isConst());
 
@@ -263,7 +300,7 @@ public:
         throw std::runtime_error("Only vectors or matrices may be passed as OldTy");
     }
 
-    static const Type *getInnerTyFromComposite(const Type *Ty) {
+    static  Type *getInnerTyFromComposite(Type *Ty) {
         if (auto VecTy = dyn_cast<VectorTy>(Ty))
             return VecTy->getInnerTy();
 
