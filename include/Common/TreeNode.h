@@ -72,6 +72,7 @@ public:
         N_AST_VectorLiteral,
         N_AST_Interval,
         N_AST_FreeNode,
+        N_AST_TupleDestruct,
         // Split AST nodes from tree node.
         N_ScopeTreeNode,
         N_AST_Generator,
