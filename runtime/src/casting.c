@@ -167,7 +167,6 @@ struct vector *rt_get_casted_vector(struct vector *base,
     new_vec->type = base->type;
     new_vec->size = target_size;
     new_vec->idx = rt_get_seq_idx(target_size);
-sssssssssssssssssssssssssssssssssssssss
     void *new_alloc = rt_get_data_alloc_for_vec(target_size, target_type, NULL);
     switch (base->type) {
         case VECTOR_TYPE_BOOL: {

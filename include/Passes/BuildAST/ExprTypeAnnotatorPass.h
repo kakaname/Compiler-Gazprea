@@ -32,6 +32,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
     Type *visitIntLiteral(IntLiteral *Int) const;
     Type *visitRealLiteral(RealLiteral *Real) const ;
     Type *visitTupleLiteral(TupleLiteral *TupLit);
+    Type *visitStringLiteral(StringLiteral *StrLit);
     Type *visitVectorLiteral(VectorLiteral *VecLit);
     Type *visitTypeCast(TypeCast *Cast);
     Type *visitExplicitCast(ExplicitCast *Cast);
@@ -50,7 +51,6 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
     Type *visitGenerator(Generator *Gen);
     Type *visitMatrixGenerator(MatrixGenerator *Gen);
     Type *visitFilter(Filter *Filter);
-
 
     void setOpaqueTyCastTargetTy(Type *Ty) {
         OpaqueTyCastTarget = Ty;

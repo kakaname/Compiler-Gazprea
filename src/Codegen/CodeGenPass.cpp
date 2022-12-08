@@ -99,7 +99,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
     PrintVector = Mod.getOrInsertFunction(
             "rt_print_vector", llvm::FunctionType::get(
-                    LLVMVoidTy, {LLVMVectorPtrTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorEq = Mod.getOrInsertFunction(
             "rt_vector_eq", llvm::FunctionType::get(
                     LLVMCharTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
@@ -111,7 +111,10 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
-                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+    PrintString = Mod.getOrInsertFunction(
+            "rt_print_string", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy}, false));
     VectorOOB = Mod.getOrInsertFunction(
             "rt_vector_out_of_bounds", llvm::FunctionType::get(
                     LLVMCharTy, {LLVMVectorPtrTy, LLVMIntTy}, false));
@@ -258,6 +261,8 @@ llvm::Type *CodeGenPass::getLLVMType(Type *Ty) {
             return ConstConv(LLVMVectorPtrTy, Ty->isConst());
         case Type::TypeKind::T_Matrix:
             return ConstConv(LLVMMatrixPtrTy, Ty->isConst());
+        case Type::TypeKind::T_String:
+            return ConstConv(LLVMVectorPtrTy, Ty->isConst());
         default:
             throw std::runtime_error("Unknown type in backend");
     }
@@ -372,7 +377,9 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     // Declarations always get the space for the entire value.
     auto Loc = createAlloca(PM->TypeReg.getConstTypeOf(DeclType));
     IR.CreateStore(InitValue, Loc);
+    // Flag 1
     SymbolMap[Decl->getIdentifier()->getReferred()] = Loc;
+
     return nullptr;
 }
 
@@ -1356,6 +1363,9 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
 
     if (ValType->getKind() == Type::T_Matrix)
         return IR.CreateCall(PrintMatrix, {ValToOut});
+    if (ValType->getKind() == Type::T_String) {
+        return IR.CreateCall(PrintString, {ValToOut});
+    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -1621,6 +1631,35 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
 }
 
+llvm::Value *CodeGenPass::visitStringLiteral(StringLiteral *StrLit) {
+    auto StrTy = dyn_cast<StringTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(StrLit));
+    assert(StrTy && "Invalid string type");
+
+    auto StrSize = StrTy->getSize();
+    assert(StrSize >= 0 && "All vector literals should have a size");
+
+
+    llvm::Value *Result = CreateStringStruct(StrSize, true);
+    auto MallocPtr = CreateStringMallocPtrAccess(Result, StrTy);
+
+    // store the elements in the vector
+    for (int i = 0; i < StrSize; i++) {
+        auto Elem = StrLit->getChildAt(i);
+        auto ElemVal = visit(Elem);
+        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        if (StrTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
+            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
+        IR.CreateStore(ElemVal, ElemPtr);
+    }
+
+    auto ResultLoc = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Result, ResultLoc);
+
+    return ResultLoc;
+
+}
+
+
 uint64_t CodeGenPass::TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind) {
     switch (Kind) {
         case Type::TypeKind::T_Bool:
@@ -1679,6 +1718,32 @@ llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint64_
     return Result;
 }
 
+llvm::Value *CodeGenPass::CreateStringStruct(uint64_t size, bool malloc) {
+    uint64_t InnerTyEnum;
+    uint64_t InnerTySize;
+
+    InnerTyEnum = 1;
+    InnerTySize = 1;
+
+    llvm::Value *Result = llvm::ConstantStruct::get(
+            LLVMVectorTy, {
+                    IR.getInt64(size),
+                    llvm::ConstantPointerNull::get(LLVMPtrTy),
+                    IR.getInt64(InnerTyEnum),
+                    llvm::ConstantPointerNull::get(LLVMPtrTy)
+            });
+
+    if (malloc) {
+        // malloc space for the vector
+        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
+
+        // store the malloced pointer in the vector
+        Result = IR.CreateInsertValue(Result, MallocCall, {3});
+    }
+
+    return Result;
+}
+
 llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind) {
     // By default, all pointers to the data/malloc area of a vector are of type i8*. This function
     // casts the pointer to the appropriate type pointer.
@@ -1698,6 +1763,11 @@ llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum T
 llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy) {
     auto MallocPtr = IR.CreateExtractValue(VecPtr, {3});
     MallocPtr = CreateVectorPointerBitCast(MallocPtr, VecTy->getInnerTy()->getKind());
+    return MallocPtr;
+}
+
+llvm::Value *CodeGenPass::CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy) {
+    auto MallocPtr = IR.CreateExtractValue(StrPtr, {3});
     return MallocPtr;
 }
 
