@@ -86,7 +86,6 @@ int main(int argc, char **argv) {
     Manager.setResource<SubExpressionCacheSet>(
         SubExpressionCacheSet());
 
-    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ScopeResolutionPass());
 //    Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
