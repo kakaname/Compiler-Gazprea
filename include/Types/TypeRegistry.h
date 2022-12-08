@@ -121,7 +121,7 @@ public:
 //         if (Size < 0) {
          auto Inserted = UnknownVectors.insert({
              CurrentId++,
-             make_unique<VectorTy>(InnerTy, -1, IsConst)});
+             make_unique<VectorTy>(InnerTy, Size, IsConst)});
          return Inserted.first->second.get();
 //         }
 

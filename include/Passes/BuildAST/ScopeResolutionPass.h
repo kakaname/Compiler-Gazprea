@@ -503,6 +503,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
     }
 
     void visitExplicitCast(ExplicitCast *Cast) {
+        visit(Cast->getExpr());
         if (auto VecTy = dyn_cast<VectorTy>(Cast->getTargetType())) {
             if (VecTy->getSizeExpr())
                 visit(VecTy->getSizeExpr());
@@ -517,7 +518,6 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
                 visit(MatTy->getRowSizeExpr());
             return;
         }
-
     }
 };
 

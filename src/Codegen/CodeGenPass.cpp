@@ -45,43 +45,165 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     ScanBool = Mod.getOrInsertFunction(
             "rt_scan_bool", llvm::FunctionType::get(
-                    LLVMBoolTy, {}, false));
+                    LLVMCharTy, {}, false));
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
     VectorConcat = Mod.getOrInsertFunction(
             "rt_vector_concat", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
     VectorDotProductInt = Mod.getOrInsertFunction(
             "rt_vector_dotproduct_int", llvm::FunctionType::get(
-                    LLVMIntTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+                    LLVMIntTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
     VectorDotProductReal = Mod.getOrInsertFunction(
             "rt_vector_dotproduct_real", llvm::FunctionType::get(
-                    LLVMRealTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo()}, false));
+                    LLVMRealTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
+    VectorAccessInt = Mod.getOrInsertFunction(
+            "rt_vector_access_int64_t", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    VectorAccessFloat = Mod.getOrInsertFunction(
+            "rt_vector_access_float", llvm::FunctionType::get(
+                    LLVMRealTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    VectorAccessChar = Mod.getOrInsertFunction(
+            "rt_vector_access_char", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    VectorSetInt = Mod.getOrInsertFunction(
+            "rt_vector_set_int64_t", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    VectorSetFloat = Mod.getOrInsertFunction(
+            "rt_vector_set_float", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMRealTy, LLVMIntTy}, false));
+    VectorSetChar = Mod.getOrInsertFunction(
+            "rt_vector_set_char", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy, LLVMIntTy, LLVMCharTy, LLVMIntTy}, false));
+    VectorViewScalar = Mod.getOrInsertFunction(
+            "rt_vector_view_scalar", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMIntTy}, false));
+    VectorViewVector = Mod.getOrInsertFunction(
+            "rt_vector_view_vector", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
     VectorBy = Mod.getOrInsertFunction(
             "rt_vector_by", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorTy, LLVMIntTy}, false));
     VectorNot = Mod.getOrInsertFunction(
             "rt_vector_not", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
     VectorSub = Mod.getOrInsertFunction(
             "rt_vector_sub", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo()}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
     PrintVector = Mod.getOrInsertFunction(
             "rt_print_vector", llvm::FunctionType::get(
-                    LLVMVoidTy, {LLVMVectorTy->getPointerTo()}, false));
+                    LLVMVoidTy, {LLVMVectorPtrTy}, false));
     VectorEq = Mod.getOrInsertFunction(
             "rt_vector_eq", llvm::FunctionType::get(
-                    LLVMCharTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMCharTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorLogical = Mod.getOrInsertFunction(
             "rt_vector_logical", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorArith = Mod.getOrInsertFunction(
             "rt_vector_arith", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+    PrintMatrix = Mod.getOrInsertFunction(
+            "rt_print_matrix", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy}, false));
+    MatrixNew = Mod.getOrInsertFunction(
+            "rt_matrix_new", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixPopulateRow = Mod.getOrInsertFunction(
+            "rt_matrix_populate_row", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+    MatrixAccessChar = Mod.getOrInsertFunction(
+            "rt_matrix_access_char", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixAccessInt = Mod.getOrInsertFunction(
+            "rt_matrix_access_int64_t", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixAccessFloat = Mod.getOrInsertFunction(
+            "rt_matrix_access_float", llvm::FunctionType::get(
+                    LLVMRealTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixSetChar = Mod.getOrInsertFunction(
+            "rt_matrix_set_char", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMCharTy, LLVMIntTy}, false));
+    MatrixSetInt = Mod.getOrInsertFunction(
+            "rt_matrix_set_int64_t", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixSetFloat = Mod.getOrInsertFunction(
+            "rt_matrix_set_float", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy, LLVMRealTy, LLVMIntTy}, false));
+    MatrixNot = Mod.getOrInsertFunction(
+            "rt_matrix_not", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
+    MatrixSub = Mod.getOrInsertFunction(
+            "rt_matrix_sub", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
+    MatrixArith = Mod.getOrInsertFunction(
+            "rt_matrix_arith", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy, LLVMIntTy}, false));
+    MatrixComp = Mod.getOrInsertFunction(
+            "rt_matrix_comp", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy, LLVMIntTy}, false));
+    MatrixLogical = Mod.getOrInsertFunction(
+            "rt_matrix_logical", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy, LLVMIntTy}, false));
+    MatrixEq = Mod.getOrInsertFunction(
+            "rt_matrix_eq", llvm::FunctionType::get(
+                    LLVMCharTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy, LLVMIntTy}, false));
+    MatrixViewScalar = Mod.getOrInsertFunction(
+            "rt_matrix_view_scalar", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixViewVector = Mod.getOrInsertFunction(
+            "rt_matrix_view_vector", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixViewMatrix = Mod.getOrInsertFunction(
+            "rt_matrix_view_matrix", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
+    MatrixCreateDeepCopy = Mod.getOrInsertFunction(
+            "rt_matrix_create_deep_copy", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
+    VectorCreateDeepCopy = Mod.getOrInsertFunction(
+            "rt_vector_create_deep_copy", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
+    MatrixCopy = Mod.getOrInsertFunction(
+            "rt_matrix_copy", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy}, false));
+    VectorCopy = Mod.getOrInsertFunction(
+            "rt_vector_copy", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
+    MatrixSetVector = Mod.getOrInsertFunction(
+            "rt_matrix_set_vector", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy}, false));
+    MatrixMul = Mod.getOrInsertFunction(
+            "rt_matrix_mul", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy}, false));
+
+
+    // Casting functions.
+    GetSameVectorAs = Mod.getOrInsertFunction(
+            "rt_get_same_vector_as", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, IR.getInt8PtrTy()}, false));
+    GetSameMatrixAs = Mod.getOrInsertFunction(
+            "rt_get_same_matrix_as", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, IR.getInt8PtrTy()}, false));
+
+    GetCastedVector = Mod.getOrInsertFunction(
+                    "rt_get_casted_vector", llvm::FunctionType::get(
+                            LLVMVectorPtrTy, {LLVMVectorPtrTy, IR.getInt64Ty(), LLVMIntTy}, false));
+
+    GetVectorWithValue = Mod.getOrInsertFunction(
+                    "rt_get_vector_with_value", llvm::FunctionType::get(
+                            LLVMVectorPtrTy, {IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt8PtrTy()}, false));
+
+    GetMatrixWithValue = Mod.getOrInsertFunction(
+                    "rt_get_matrix_with_value", llvm::FunctionType::get(
+                            LLVMMatrixPtrTy, {IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt8PtrTy()}, false));
+
+    GetCastedMatrix = Mod.getOrInsertFunction(
+            "rt_get_casted_matrix", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, IR.getInt64Ty(), IR.getInt64Ty(), LLVMIntTy}, false));
+
 
     visit(Root);
 
@@ -120,7 +242,9 @@ llvm::Type *CodeGenPass::getLLVMType(Type *Ty) {
         case Type::TypeKind::T_Procedure:
             return getLLVMProcedureType(cast<ProcedureTy>(Ty));
         case Type::TypeKind::T_Vector:
-            return ConstConv(LLVMVectorTy, Ty->isConst());
+            return ConstConv(LLVMVectorPtrTy, Ty->isConst());
+        case Type::TypeKind::T_Matrix:
+            return ConstConv(LLVMMatrixPtrTy, Ty->isConst());
         default:
             throw std::runtime_error("Unknown type in backend");
     }
@@ -142,12 +266,71 @@ llvm::Value *CodeGenPass::createAlloca(Type *Ty) {
 
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
-    if (Val->getType()->isPointerTy())
+    auto IdentTy = Ident->getIdentType();
+    if (Val->getType()->isPointerTy() && !IdentTy->isCompositeTy());
         return IR.CreateLoad(Val);
     return Val;
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
+
+    if (isa<IndexReference>(Assign->getAssignedTo())) {
+        auto Expr = visit(Assign->getExpr());
+        auto AssignedTo = visit(Assign->getAssignedTo());
+
+        // These outer types are not representative of the main base type, but rather the type of what is being
+        // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
+        auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+        auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
+        assert(ExprTy->isSameTypeAs(AssignedToTy) && "Types are not the same");
+
+        auto VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IndexReference>(Assign->getAssignedTo())->getBaseExpr());
+        if (isa<VectorTy>(VarExprTy)) {
+            // TODO fix assigning boolean to function with bad function call signature
+
+            if (ExprTy->isScalarTy()) {
+                llvm::Value *Res;
+                switch (ExprTy->getKind()) {
+                    case Type::TypeKind::T_Int:
+                        return IR.CreateCall(VectorSetInt, {AssignedTo, IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Real:
+                        return IR.CreateCall(VectorSetFloat, {AssignedTo, IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Char:
+                        return IR.CreateCall(VectorSetChar, {AssignedTo, IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Bool:
+                        return IR.CreateCall(VectorSetChar, {AssignedTo, IR.getInt64(0), IR.CreateZExt(Expr, LLVMCharTy), IR.getInt64(0)});
+                    default:
+                        assert(false && "Unknown type");
+                }
+            } else if (isa<VectorTy>(ExprTy)) {
+                return IR.CreateCall(VectorCopy, {AssignedTo, Expr});
+            }
+        } else if (isa<MatrixTy>(VarExprTy)) {
+            if (ExprTy->isScalarTy()) {
+                llvm::Value *Res;
+                switch (ExprTy->getKind()) {
+                    case Type::TypeKind::T_Int:
+                        return IR.CreateCall(MatrixSetInt, {AssignedTo, IR.getInt64(0), IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Real:
+                        return IR.CreateCall(MatrixSetFloat, {AssignedTo, IR.getInt64(0), IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Char:
+                        return IR.CreateCall(MatrixSetChar, {AssignedTo, IR.getInt64(0), IR.getInt64(0), Expr, IR.getInt64(0)});
+                    case Type::TypeKind::T_Bool:
+                        return IR.CreateCall(MatrixSetChar, {AssignedTo, IR.getInt64(0), IR.getInt64(0), IR.CreateZExt(Expr, LLVMCharTy), IR.getInt64(0)});
+                    default:
+                        assert(false && "Unknown type");
+                }
+            } else if (isa<MatrixTy>(ExprTy)) {
+                return IR.CreateCall(MatrixCopy, {Expr, AssignedTo});
+            } else if (isa<VectorTy>(ExprTy)) {
+                return IR.CreateCall(MatrixSetVector, {AssignedTo, Expr});
+            }
+
+        }
+        assert(false && "Should not reach here");
+    }
+
+
     auto *Val = visit(Assign->getExpr());
     auto *Loc = visit(Assign->getAssignedTo());
 
@@ -230,41 +413,46 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
                 Pred = llvm::CmpInst::Predicate::FCMP_OGE;
         }
         return IR.CreateFCmp(Pred, LeftOperand, RightOperand);
+
     } else if (isa<VectorTy>(LTy)) {
-        // TODO temporary alloc
-        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
-        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
-        IR.CreateStore(LeftOperand, LeftVec);
-        IR.CreateStore(RightOperand, RightVec);
+        return IR.CreateCall(VectorComp, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+    } else if (isa<MatrixTy>(LTy)) {
+        return IR.CreateCall(MatrixComp, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
 
-        return IR.CreateCall(VectorComp, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
-
+    } else if (isa<IntegerTy>(LTy)) {
+        switch (Op->getOpKind()) {
+            case ComparisonOp::GT:
+                Pred = llvm::CmpInst::Predicate::ICMP_SGT;
+                break;
+            case ComparisonOp::LT:
+                Pred = llvm::CmpInst::Predicate::ICMP_SLT;
+                break;
+            case ComparisonOp::LTEQ:
+                Pred = llvm::CmpInst::Predicate::ICMP_SLE;
+                break;
+            case ComparisonOp::GTEQ:
+                Pred = llvm::CmpInst::Predicate::ICMP_SGE;
+                break;
+        }
+        return IR.CreateICmp(Pred, LeftOperand, RightOperand);
     }
-    switch (Op->getOpKind()) {
-        case ComparisonOp::GT:
-            Pred = llvm::CmpInst::Predicate::ICMP_SGT;
-            break;
-        case ComparisonOp::LT:
-            Pred = llvm::CmpInst::Predicate::ICMP_SLT;
-            break;
-        case ComparisonOp::LTEQ:
-            Pred = llvm::CmpInst::Predicate::ICMP_SLE;
-            break;
-        case ComparisonOp::GTEQ:
-            Pred = llvm::CmpInst::Predicate::ICMP_SGE;
-            break;
-    }
-    return IR.CreateICmp(Pred, LeftOperand, RightOperand);
 }
 
 llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-//    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should "
-//                                     "not have reached the code gen");
+    auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+
+//    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+//        matchPattern(true, true):
+//        matchPattern(false, false):
+//            break;
+//            matchPattern(true, false):
+//
+//    }
+
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
     auto ExceptionMDS = llvm::MDString::get(GlobalCtx, "fpexcept.strict");
@@ -352,12 +540,12 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
                 Mul3 = IR.CreateMul(Left2, Right1);
                 Mul4 = IR.CreateMul(Left2, Right2);
                 MulArray = llvm::ConstantVector::get(
-{IR.getInt32(0), IR.getInt32(0), IR.getInt32(0),
-                         IR.getInt32(0)});
-                MulArray = IR.CreateInsertElement(MulArray, Mul1, IR.getInt32(0));
-                MulArray = IR.CreateInsertElement(MulArray, Mul2, IR.getInt32(1));
-                MulArray = IR.CreateInsertElement(MulArray, Mul3, IR.getInt32(2));
-                MulArray = IR.CreateInsertElement(MulArray, Mul4, IR.getInt32(3));
+                        {IR.getInt64(0), IR.getInt64(0), IR.getInt64(0),
+                         IR.getInt64(0)});
+                MulArray = IR.CreateInsertElement(MulArray, Mul1, IR.getInt64(0));
+                MulArray = IR.CreateInsertElement(MulArray, Mul2, IR.getInt64(1));
+                MulArray = IR.CreateInsertElement(MulArray, Mul3, IR.getInt64(2));
+                MulArray = IR.CreateInsertElement(MulArray, Mul4, IR.getInt64(3));
                 Result1 = IR.CreateIntrinsic(
                         llvm::Intrinsic::experimental_vector_reduce_smin,
                         {llvm::VectorType::get(LLVMIntTy, 4)},
@@ -370,18 +558,16 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
             default:
                 throw std::runtime_error("Not implemented");
         }
-        llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+        llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt64(0), IR.getInt64(0)});
         Result = IR.CreateInsertValue(Result, Result1, {0});
         Result = IR.CreateInsertValue(Result, Result2, {1});
         return Result;
     } else if (isa<VectorTy>(ResultType)) {
-        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
-        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
-        IR.CreateStore(LeftOperand, LeftVec);
-        IR.CreateStore(RightOperand, RightVec);
-        return IR.CreateCall(VectorArith, {LeftVec, RightVec, IR.getInt32(Op->getOpKind())});
+        return IR.CreateCall(VectorArith, {LeftOperand, RightOperand, IR.getInt64(Op->getOpKind())});
+    } else if (isa<MatrixTy>(ResultType)) {
+        return IR.CreateCall(MatrixArith, {LeftOperand, RightOperand, IR.getInt64(Op->getOpKind())});
     }
-    throw std::runtime_error("Unknown type in arithmetic expression");
+        assert(false && "Should not reach");
 }
 
 llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
@@ -423,24 +609,32 @@ llvm::Value *CodeGenPass::visitLogicalOp(LogicalOp *Op) {
                 throw std::runtime_error("Invalid logical operation for interval type");
         }
     } else if (isa<VectorTy>(LeftType)) {
-        // TODO temporary story for vector type
-        auto LeftVec = IR.CreateAlloca(LLVMVectorTy);
-        auto RightVec = IR.CreateAlloca(LLVMVectorTy);
-        IR.CreateStore(LeftOperand, LeftVec);
-        IR.CreateStore(RightOperand, RightVec);
         llvm::Value *Result;
 
         switch (Op->getOpKind()) {
             case LogicalOp::EQ:
             case LogicalOp::NEQ:
-                Result = IR.CreateCall(VectorEq, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+                Result = IR.CreateCall(VectorEq, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
                 return IR.CreateICmpNE(Result, llvm::ConstantInt::get(LLVMCharTy, 0));
             case LogicalOp::AND:
             case LogicalOp::OR:
             case LogicalOp::XOR:
-                return IR.CreateCall(VectorLogical, {LeftVec, RightVec, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+                return IR.CreateCall(VectorLogical, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
         }
 
+    } else if (isa<MatrixTy>(LeftType)) {
+        llvm::Value *Result;
+
+        switch (Op->getOpKind()) {
+            case LogicalOp::EQ:
+            case LogicalOp::NEQ:
+                Result = IR.CreateCall(MatrixEq, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+                return IR.CreateICmpNE(Result, llvm::ConstantInt::get(LLVMCharTy, 0));
+            case LogicalOp::AND:
+            case LogicalOp::OR:
+            case LogicalOp::XOR:
+                return IR.CreateCall(MatrixLogical, {LeftOperand, RightOperand, llvm::ConstantInt::get(LLVMIntTy, Op->getOpKind())});
+        }
     }
 
     switch (Op->getOpKind()) {
@@ -466,11 +660,10 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
         llvm::Value *Result;
         switch (Op->getOpKind()) {
             case UnaryOp::SUB:
-                // TODO ask Deric about semantics
                 llvm::Value *Left, *Right;
                 Left = IR.CreateExtractValue(Operand, {0});
                 Right = IR.CreateExtractValue(Operand, {1});
-                Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+                Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt64(0), IR.getInt64(0)});
                 Result = IR.CreateInsertValue(Result, Right, {0});
                 Result = IR.CreateInsertValue(Result, Left, {1});
                 return Result;
@@ -480,21 +673,28 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
                 throw std::runtime_error("Invalid unary operation for interval type");
         }
     } else if (isa<VectorTy>(ResultType)) {
-        llvm::Value *Result;
-
-        // TODO fix temporary store
-        llvm::Value *Temp = IR.CreateAlloca(Operand->getType());
-        IR.CreateStore(Operand, Temp);
 
         switch (Op->getOpKind()) {
             case UnaryOp::NOT:
-                return IR.CreateCall(VectorNot, {Temp});
+                return IR.CreateCall(VectorNot, {Operand});
             case UnaryOp::ADD:
                 return Operand;
             case UnaryOp::SUB:
-                return IR.CreateCall(VectorSub, {Temp});
+                return IR.CreateCall(VectorSub, {Operand});
             default:
                 assert(false && "Invalid unary operation for vector type");
+        }
+    } else if (isa<MatrixTy>(ResultType)) {
+
+        switch (Op->getOpKind()) {
+            case UnaryOp::NOT:
+                return IR.CreateCall(MatrixNot, {Operand});
+            case UnaryOp::ADD:
+                return Operand;
+            case UnaryOp::SUB:
+                return IR.CreateCall(MatrixSub, {Operand});
+            default:
+                assert(false && "Invalid unary operation for matrix type");
         }
     }
 
@@ -509,36 +709,75 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
 }
 
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
-    llvm::Value *Vec = visit(Idx->getBaseExpr());
-    llvm::Value *Index = visit(Idx->getIndexExpr());
-
-    // get types of the base expression and the index expression
-    auto BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
-    auto IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
-    if (!IndexType->isSameTypeAs(PM->TypeReg.getIntegerTy()))
-        throw std::runtime_error("Index must be an integer");
-
-    if (BaseType->getKind() != Type::TypeKind::T_Vector)
-        throw std::runtime_error("Base must be a vector");
-
     // TODO Check that the index is within the bounds of the array
+    llvm::Value *Vec = visit(Idx->getBaseExpr());
+    Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
+    llvm::Value *Res;
 
-    // Get malloc pointer from array struct
-    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+    if (isa<VectorTy>(BaseType)) {
+        auto VecTy = dyn_cast<VectorTy>(BaseType);
+        llvm::Value *Index = visit(Idx->getIndexExpr());
+        const Type *IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
 
-    // Get the element pointer
-    llvm::Value *ElementPtr = IR.CreateInBoundsGEP(MallocPtr, Index);
+        if (isa<IntegerTy>(IndexType)) {
 
-    // Get the element
-    llvm::Value *Element = IR.CreateLoad(ElementPtr);
+            switch(VecTy->getInnerTy()->getKind()) {
+                case Type::T_Int:
+                    return IR.CreateCall(VectorAccessInt, {Vec, Index, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                case Type::T_Real:
+                    return IR.CreateCall(VectorAccessFloat, {Vec, Index, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                    break;
+                case Type::T_Bool:
+                    Res = IR.CreateCall(VectorAccessChar, {Vec, Index, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                    return IR.CreateICmpNE(Res, llvm::ConstantInt::get(LLVMCharTy, 0));
+                case Type::T_Char:
+                    return IR.CreateCall(VectorAccessChar, {Vec, Index, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                default:
+                    assert(false && "Invalid type for vector");
+            }
 
-    // Update if the element is a bool
-    // TODO move to casting logic
-    if (dyn_cast<VectorTy>(BaseType)->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
-        Element = IR.CreateICmpNE(Element, llvm::ConstantInt::get(LLVMCharTy, 0));
+        } else if (isa<VectorTy>(IndexType)) {
+
+            Res = IR.CreateCall(VectorViewVector, {Vec, Index});
+
+        }
+        // This is just done to ensure there are no lingering references to other vectors
+        return IR.CreateCall(VectorCreateDeepCopy, {Res});
+
+    } else if (isa<MatrixTy>(BaseType)) {
+        auto MatTy = dyn_cast<MatrixTy>(BaseType);
+        llvm::Value *Row = visit(Idx->getIndexExpr());
+        llvm::Value *Col = visit(Idx->getIndex2Expr());
+        const Type *RowType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndexExpr());
+        const Type *ColType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getIndex2Expr());
+
+        if (isa<IntegerTy>(RowType) && isa<IntegerTy>(ColType)) {
+
+            switch(MatTy->getInnerTy()->getKind()) {
+                case Type::T_Int:
+                    return IR.CreateCall(MatrixAccessInt, {Vec, Row, Col, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                case Type::T_Real:
+                    return IR.CreateCall(MatrixAccessFloat, {Vec, Row, Col, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                case Type::T_Bool:
+                    Res = IR.CreateCall(MatrixAccessChar, {Vec, Row, Col, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                    return IR.CreateICmpNE(Res, llvm::ConstantInt::get(LLVMCharTy, 0));
+                case Type::T_Char:
+                    return IR.CreateCall(MatrixAccessChar, {Vec, Row, Col, llvm::ConstantInt::get(LLVMIntTy, 0)});
+                default:
+                    assert(false && "Invalid type for matrix");
+            }
+
+        } else if (isa<VectorTy>(RowType) && isa<VectorTy>(ColType)) {
+            Res = IR.CreateCall(MatrixViewMatrix, {Vec, Row, Col});
+        } else if (isa<VectorTy>(RowType) && isa<IntegerTy>(ColType)) {
+            Res = IR.CreateCall(MatrixViewVector, {Vec, Row, Col, IR.getInt64(0)});
+        } else if (isa<IntegerTy>(RowType) && isa<VectorTy>(ColType)) {
+            Res = IR.CreateCall(MatrixViewVector, {Vec, Col, Row, IR.getInt64(1)});
+        }
+
+        return IR.CreateCall(MatrixCreateDeepCopy, {Res});
+
     }
-
-    return Element;
 }
 
 llvm::Value *CodeGenPass::visitInfiniteLoop(InfiniteLoop *Loop) {
@@ -603,8 +842,7 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 }
 
 llvm::Value *CodeGenPass::visitIntLiteral(IntLiteral *IntLit) {
-    auto Val =  IR.getInt32(IntLit->getVal());
-    return Val;
+    return IR.getInt64(IntLit->getVal());
 }
 
 llvm::Value *CodeGenPass::visitNullLiteral(NullLiteral*) {
@@ -637,7 +875,7 @@ llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
     for (auto Child : *TupleLit) {
         auto MemberVal = visit(Child);
         auto MemLoc = IR.CreateGEP(
-                TupLoc, {IR.getInt32(0), IR.getInt32(CurrIdx++)});
+                TupLoc, {IR.getInt64(0), IR.getInt64(CurrIdx++)});
         IR.CreateStore(MemberVal, MemLoc);
     }
     return IR.CreateLoad(TupLoc);
@@ -744,10 +982,78 @@ llvm::Value *CodeGenPass::visitTypeCast(TypeCast *Cast) {
 }
 
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
-    return getCastValue(
-            visit(Cast->getExpr()),
-            PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
-            PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr());
+    auto TargetTy = Cast->getTargetType();
+    auto TypeKind = [&](){
+       if (TargetTy->isCompositeTy()) {
+           auto InnerTy = TypeRegistry::getInnerTyFromComposite(TargetTy);
+           return TypeKindMapToVectorTypeInRuntime(InnerTy->getKind());
+       }
+       return TypeKindMapToVectorTypeInRuntime(TargetTy->getKind());
+    }();
+    auto ValueToCast = visit(Cast->getExpr());
+
+    matchBoolPair(TargetTy->isCompositeTy(), ExprTy->isCompositeTy()) {
+        // Casting a scalar to a vector type.
+        matchPattern(true, false): {
+            if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                assert(VecTy->getSizeExpr() && "Trying to cast a literal to an unknown size vector");
+                auto Size = visit(VecTy->getSizeExpr());
+                auto PtrToVal = createAlloca(ExprTy);
+                IR.CreateStore(PtrToVal, ValueToCast);
+                return IR.CreateCall(
+                        GetVectorWithValue, {
+                            Size,
+                            IR.getInt64(TypeKind),
+                            IR.CreateBitCast(PtrToVal,IR.getInt8PtrTy())});
+            }
+
+            // Otherwise it must be a matrix.
+            auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+            assert(MatTy);
+
+            assert(MatTy->getRowSizeExpr() && MatTy->getColSizeExpr());
+            auto Rows = visit(MatTy->getRowSizeExpr());
+            auto Cols = visit(MatTy->getColSizeExpr());
+            auto PtrToVal = createAlloca(ExprTy);
+            IR.CreateStore(PtrToVal, ValueToCast);
+            return IR.CreateCall(GetMatrixWithValue, {
+                Rows,
+                Cols,
+                IR.getInt64(TypeKind),
+                IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy())});
+        }
+        matchPattern(false, true):
+                throw runtime_error("Trying to cast a composite type to a scalar type");
+        matchPattern(true, true): {
+                if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                    auto Size = (VecTy->getSizeExpr()) ? visit(VecTy->getSizeExpr()) : IR.getInt64(-1);
+                    return IR.CreateCall(
+                            GetCastedVector, {
+                                    ValueToCast,
+                                    Size,
+                                    IR.getInt64(TypeKind)});
+                }
+
+                // Otherwise it must be a matrix.
+                auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+                assert(MatTy);
+
+                auto Rows = (MatTy->getRowSizeExpr()) ? visit(MatTy->getRowSizeExpr()):IR.getInt64(-1);
+                auto Cols = (MatTy->getColSizeExpr()) ? visit(MatTy->getColSizeExpr()):IR.getInt64(-1);
+                return IR.CreateCall(GetCastedMatrix, {
+                        ValueToCast,
+                        Rows,
+                        Cols,
+                        IR.getInt64(TypeKind)});
+            }
+        matchPattern(false, false):
+                return getCastValue(
+                        visit(Cast->getExpr()),
+                        PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
+                        PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    }
+    throw runtime_error("Unreachable in explicit cast");
 }
 
 llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
@@ -831,7 +1137,7 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     IR.CreateBr(Body);
 
     CurrentFunction = GlobalFunction;
-
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitProcedureCall(ProcedureCall *Call) {
@@ -888,11 +1194,11 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     Value *ValToOut = visit(Stream->getOutStreamExpr());
     auto ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
+
     if (ValType->getKind() == Type::T_Vector) {
-        // TODO temporary store
-        auto Vec = IR.CreateAlloca(LLVMVectorTy);
-        IR.CreateStore(ValToOut, Vec);
-        return IR.CreateCall(PrintVector, {Vec});
+        return IR.CreateCall(PrintVector, {ValToOut});
+    } else if (ValType->getKind() == Type::T_Matrix) {
+        return IR.CreateCall(PrintMatrix, {ValToOut});
     }
 
     switch (ValType->getKind()) {
@@ -925,12 +1231,54 @@ llvm::Value *CodeGenPass::visitInStream(InStream *InStream) {
             break;
         case Type::TypeKind::T_Bool:
             ReadVal = IR.CreateCall(ScanBool);
+            ReadVal = IR.CreateICmpNE(ReadVal, llvm::ConstantInt::get(LLVMCharTy, 0));
             break;
         case Type::TypeKind::T_Real:
             ReadVal = IR.CreateCall(ScanReal);
             break;
         default:
             throw std::runtime_error("Invalid type for in-stream");
+    }
+    if (isa<IndexReference>(InStream->getTarget())) {
+
+        auto VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(
+                dyn_cast<IndexReference>(InStream->getTarget())->getBaseExpr());
+        if (isa<VectorTy>(VarExprTy)) {
+            // TODO fix assigning boolean to function with bad function call signature
+
+            switch (IdentTy->getKind()) {
+                case Type::TypeKind::T_Int:
+                    return IR.CreateCall(VectorSetInt, {StoreLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Real:
+                    return IR.CreateCall(VectorSetFloat, {StoreLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Char:
+                    return IR.CreateCall(VectorSetChar, {StoreLoc, IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Bool:
+                    return IR.CreateCall(VectorSetChar,
+                                         {StoreLoc, IR.getInt64(0), IR.CreateZExt(ReadVal, LLVMCharTy), IR.getInt64(0)});
+                default:
+                    assert(false && "Unknown type");
+            }
+
+        } else if (isa<MatrixTy>(VarExprTy)) {
+            switch (IdentTy->getKind()) {
+                case Type::TypeKind::T_Int:
+                    return IR.CreateCall(MatrixSetInt,
+                                         {StoreLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Real:
+                    return IR.CreateCall(MatrixSetFloat,
+                                         {StoreLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Char:
+                    return IR.CreateCall(MatrixSetChar,
+                                         {StoreLoc, IR.getInt64(0), IR.getInt64(0), ReadVal, IR.getInt64(0)});
+                case Type::TypeKind::T_Bool:
+                    return IR.CreateCall(MatrixSetChar,
+                                         {StoreLoc, IR.getInt64(0), IR.getInt64(0), IR.CreateZExt(ReadVal, LLVMCharTy),
+                                          IR.getInt64(0)});
+                default:
+                    assert(false && "Unknown type");
+            }
+        }
     }
     IR.CreateStore(ReadVal, StoreLoc);
     return nullptr;
@@ -959,26 +1307,55 @@ llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
 }
 
 llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
-    Value *Vec = visit(Ref->getBaseExpr());
-    Value *Idx = visit(Ref->getIndexExpr());
-
-    // get types of the base expression and the index expression
-    auto BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
-    auto IndexType = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
-
-    if (!isa<IntegerTy>(IndexType))
-        throw std::runtime_error("Index must be an integer");
-
-    if (!isa<VectorTy>(BaseType))
-        throw std::runtime_error("Base must be a vector");
 
     // TODO Check that the index is within the bounds of the array
 
-    // Get malloc pointer from array struct
-    llvm::Value *MallocPtr = CreateVectorMallocPtrAccess(Vec, dyn_cast<VectorTy>(BaseType));
+    Value *Vec = visit(Ref->getBaseExpr());
+    auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
 
-    // Get the element pointer
-    return IR.CreateInBoundsGEP(MallocPtr, Idx);
+    if (isa<VectorTy>(VecTy)) {
+        Value *Idx = visit(Ref->getIndexExpr());
+        auto IdxTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
+
+        if (isa<IntegerTy>(IdxTy)) {
+
+            return IR.CreateCall(VectorViewScalar, {Vec, Idx});
+
+        } else if (isa<VectorTy>(IdxTy)) {
+
+            return IR.CreateCall(VectorViewVector, {Vec, Idx});
+
+        } else {
+            assert(false && "Invalid index type");
+        }
+
+        assert(isa<IntegerTy>(IdxTy) && "Invalid index type");
+
+    } else if (isa<MatrixTy>(VecTy)) {
+
+        Value *RowIdx = visit(Ref->getIndexExpr());
+        auto RowIdxTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndexExpr());
+        Value *ColIdx = visit(Ref->getIndex2Expr());
+        auto ColIdxTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getIndex2Expr());
+
+        if (isa<IntegerTy>(RowIdxTy) && isa<IntegerTy>(ColIdxTy)) {
+            return IR.CreateCall(MatrixViewScalar, {Vec, RowIdx, ColIdx});
+        } else if (isa<VectorTy>(RowIdxTy) && isa<VectorTy>(ColIdxTy)) {
+            return IR.CreateCall(MatrixViewMatrix, {Vec, RowIdx, ColIdx});
+        } else if (isa<VectorTy>(RowIdxTy) && isa<IntegerTy>(ColIdxTy)) {
+            return IR.CreateCall(MatrixViewVector, {Vec, RowIdx, ColIdx, IR.getInt64(0)});
+        } else if (isa<IntegerTy>(RowIdxTy) && isa<VectorTy>(ColIdxTy)) {
+            return IR.CreateCall(MatrixViewVector, {Vec, ColIdx, RowIdx, IR.getInt64(1)});
+        } else {
+            assert(false && "Invalid index type");
+        }
+
+    }
+
+    assert(false && "Invalid index reference");
+
+
+
 }
 
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
@@ -987,7 +1364,7 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
         throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
     return IR.CreateGEP(StructLoc, {
-        IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
+        IR.getInt64(0), IR.getInt64(MemIdx->getVal() - 1)});
 }
 
 llvm::Function *CodeGenPass::getOrInsertFunction(Type *Ty,
@@ -1037,9 +1414,25 @@ llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
     }
     return nullptr;
     // TODO free unnecessary vectors
+    return nullptr;
 }
 
 llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
+
+    auto *MatTy = dyn_cast<MatrixTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
+    if (MatTy) {
+        auto MatStruct = IR.CreateCall(MatrixNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(MatTy->getInnerTy()->getKind())),
+                                                  IR.getInt64(MatTy->getNumOfRows()),
+                                                  IR.getInt64(MatTy->getNumOfColumns())});
+
+        for (int i = 0; i < MatTy->getNumOfRows(); i++) {
+            auto Row = visit(VecLit->getChildAt(i));
+            IR.CreateCall(MatrixPopulateRow, {MatStruct, Row, IR.getInt64(i)});
+        }
+        return MatStruct;
+    }
+
+
     auto VecTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
     assert(VecTy && "Invalid vector type");
 
@@ -1053,19 +1446,40 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
     for (int i = 0; i < VecSize; i++) {
         auto Elem = VecLit->getChildAt(i);
         auto ElemVal = visit(Elem);
-        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
+        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt64(i)});
         if (VecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
             ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
         IR.CreateStore(ElemVal, ElemPtr);
     }
 
-    return Result;
+    // TODO temp alloc while this function is not in the runtime
+    auto ResultLoc = IR.CreateAlloca(LLVMVectorTy);
+    IR.CreateStore(Result, ResultLoc);
+
+    return ResultLoc;
+
+
 
 }
 
-llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_t size, bool malloc) {
-    uint32_t InnerTyEnum;
-    uint32_t InnerTySize;
+uint64_t CodeGenPass::TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind) {
+    switch (Kind) {
+        case Type::TypeKind::T_Bool:
+            return 0;
+        case Type::TypeKind::T_Char:
+            return 1;
+        case Type::TypeKind::T_Int:
+            return 2;
+        case Type::TypeKind::T_Real:
+            return 3;
+        default:
+            assert(false && "Invalid type kind");
+    }
+}
+
+llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc) {
+    uint64_t InnerTyEnum;
+    uint64_t InnerTySize;
     switch (TyKind) {
         case Type::TypeKind::T_Bool:
             InnerTyEnum = 0;
@@ -1089,15 +1503,15 @@ llvm::Value *CodeGenPass::CreateVectorStruct(enum Type::TypeKind TyKind, uint32_
 
     llvm::Value *Result = llvm::ConstantStruct::get(
             LLVMVectorTy, {
-                    IR.getInt32(size),
-                    IR.getInt32(0),
-                    IR.getInt32(InnerTyEnum),
+                    IR.getInt64(size),
+                    llvm::ConstantPointerNull::get(LLVMPtrTy),
+                    IR.getInt64(InnerTyEnum),
                     llvm::ConstantPointerNull::get(LLVMPtrTy)
             });
 
     if (malloc) {
         // malloc space for the vector
-        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt32(size * InnerTySize)});
+        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
 
         // store the malloced pointer in the vector
         Result = IR.CreateInsertValue(Result, MallocCall, {3});
@@ -1114,7 +1528,7 @@ llvm::Value *CodeGenPass::CreateVectorPointerBitCast(llvm::Value *VecPtr, enum T
         case Type::TypeKind::T_Char:
             return VecPtr;
         case Type::TypeKind::T_Int:
-            return IR.CreateBitCast(VecPtr, llvm::Type::getInt32PtrTy(GlobalCtx));
+            return IR.CreateBitCast(VecPtr, llvm::Type::getInt64PtrTy(GlobalCtx));
         case Type::TypeKind::T_Real:
             return IR.CreateBitCast(VecPtr, llvm::Type::getFloatPtrTy(GlobalCtx));
         default:
@@ -1134,7 +1548,7 @@ llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
 
     // TODO bound check
 
-    llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt32(0), IR.getInt32(0)});
+    llvm::Value *Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt64(0), IR.getInt64(0)});
     Result = IR.CreateInsertValue(Result, Lower, {0});
     Result = IR.CreateInsertValue(Result, Upper, {1});
     return Result;
@@ -1144,13 +1558,7 @@ llvm::Value *CodeGenPass::visitConcat(Concat *Con) {
     llvm::Value *Left = visit(Con->getLHS());
     llvm::Value *Right = visit(Con->getRHS());
 
-    // TODO temporary alloca
-    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
-    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Left, LeftPtr);
-    IR.CreateStore(Right, RightPtr);
-
-    llvm::Value *Result = IR.CreateCall(VectorConcat, {LeftPtr, RightPtr});
+    llvm::Value *Result = IR.CreateCall(VectorConcat, {Left, Right});
     return Result;
 }
 
@@ -1158,29 +1566,34 @@ llvm::Value *CodeGenPass::visitDotProduct(DotProduct *DP) {
     llvm::Value *Left = visit(DP->getLHS());
     llvm::Value *Right = visit(DP->getRHS());
 
-    // TODO temporary alloca
-    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
-    llvm::Value *RightPtr = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Left, LeftPtr);
-    IR.CreateStore(Right, RightPtr);
+    auto LeftTy = PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS());
+    auto RightTy = PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getRHS());
 
-    // Determine type of the result
-    auto LeftTy = dyn_cast<VectorTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(DP->getLHS()));
-    if (LeftTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
-        return IR.CreateCall(VectorDotProductReal, {LeftPtr, RightPtr});
-    else
-        return IR.CreateCall(VectorDotProductInt, {LeftPtr, RightPtr});
+    if (isa<VectorTy>(LeftTy)) {
+        // Dot product
+
+        // Determine type of the result
+        auto LeftVTy = dyn_cast<VectorTy>(LeftTy);
+        if (LeftVTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getRealTy()))
+            return IR.CreateCall(VectorDotProductReal, {Left, Right});
+        else
+            return IR.CreateCall(VectorDotProductInt, {Left, Right});
+
+    } else if (isa<MatrixTy>(LeftTy)) {
+
+        // Determine type of the result
+        return IR.CreateCall(MatrixMul, {Left, Right});
+
+    }
+
+    assert(false && "Invalid dot product/matrix mul");
+
 }
 
 llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
     llvm::Value *Left = visit(By->getBaseExpr());
     llvm::Value *Right = visit(By->getByExpr());
 
-    // TODO temporary alloca
-    llvm::Value *LeftPtr = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Left, LeftPtr);
-
-    // Determine type of the result
-    return IR.CreateCall(VectorBy, {LeftPtr, Right});
+    return IR.CreateCall(VectorBy, {Left, Right});
 
 }

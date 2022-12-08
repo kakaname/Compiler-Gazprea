@@ -15,36 +15,40 @@ using std::string;
 
 class Type;
 
-bool isValidTupleCast( Type*,  Type*);
-bool isSameTupleTypeAs( Type*,  Type*);
-bool canPromoteTupleTo( Type*,  Type*);
-bool canPromoteIntegerTo( Type*);
-bool canPromoteRealTo( Type*);
-bool canPromoteVectorTo( Type*,  Type*);
-bool doesTupleSupportEq( Type*);
-bool doesVectorSupportEq( Type*);
-bool doesVectorSupportArithOps( Type*);
-bool isVectorValidForComparisonOps( Type*);
-bool isVectorValidForUnaryNot( Type*);
-bool isMatrixValidForUnaryNot( Type*);
+bool isValidTupleCast(Type*, Type*);
+bool isSameTupleTypeAs(Type*, Type*);
+bool canPromoteTupleTo(Type*, Type*);
+bool canPromoteIntegerTo(Type*);
+bool canPromoteRealTo(Type*);
+bool canPromoteVectorTo(Type*, Type*);
+bool doesTupleSupportEq(Type*);
+bool doesVectorSupportEq(Type*);
+bool doesMatrixSupportEq(Type*);
+bool doesVectorSupportArithOps(Type*);
+bool doesMatrixSupportArithOps(Type*);
+bool isVectorValidForComparisonOps(Type*);
+bool isMatrixValidForComparisonOps(Type*);
+bool isVectorValidForUnaryNot(Type*);
+bool isMatrixValidForUnaryNot(Type*);
 
-bool isVectorValidForUnaryAddSub( Type*);
-bool isMatrixValidForUnaryAddSub( Type*);
+bool isVectorValidForUnaryAddSub(Type*);
+bool isMatrixValidForUnaryAddSub(Type*);
 
-bool isSameFuncAs( Type*,  Type*);
-bool isSameProcAs( Type*,  Type*);
-bool isSameVectorAs( Type*,  Type*);
+bool isSameFuncAs(Type*, Type*);
+bool isSameProcAs(Type*, Type*);
+bool isSameVectorAs(Type*, Type*);
 
-bool canCastVectorTo( Type*,  Type*);
-bool canCastBoolCharIntTo( Type*);
-bool canCastRealTo( Type*);
+bool canCastVectorTo(Type*, Type*);
+bool canCastBoolCharIntTo(Type*);
+bool canCastRealTo(Type*);
 
- Type *getPromotedScalarType( Type*,  Type*);
+Type *getPromotedScalarType(Type*, Type*);
 
-string getVectorTypeName( Type* Ty);
-string getTupleTypeName( Type *Ty);
-string getFunctionTypeName( Type *Ty);
-string getProcedureTypeName( Type *Ty);
+string getVectorTypeName(Type* Ty);
+string getTupleTypeName(Type *Ty);
+string getMatrixTypeName(Type *Ty);
+string getFunctionTypeName(Type *Ty);
+string getProcedureTypeName(Type *Ty);
 
 class Type {
 public:
@@ -101,6 +105,8 @@ public:
     bool isValidForArithOps()  {
         if (Kind == T_Vector) {
             return doesVectorSupportArithOps(this);
+        } else if (Kind == T_Matrix) {
+            return doesMatrixSupportArithOps(this);
         }
         return T_Int == Kind || T_Real == Kind || T_Interval == Kind;
     }
@@ -108,6 +114,9 @@ public:
     bool isValidForComparisonOp()  {
         if (Kind == T_Vector)
             return isVectorValidForComparisonOps(this);
+        else if (Kind == T_Matrix) {
+            return isMatrixValidForComparisonOps(this);
+        }
         return T_Real == Kind || T_Int == Kind || T_Interval == Kind;
     }
 
@@ -150,6 +159,8 @@ public:
                 return doesTupleSupportEq(this);
             case T_Vector:
                 return doesVectorSupportEq(this);
+            case T_Matrix:
+                return doesMatrixSupportEq(this);
             default:
                 return T_Real == Kind || T_Int == Kind || T_Bool == Kind || T_Interval == Kind;
         }
@@ -193,6 +204,10 @@ public:
         if (isSameTypeAs(T))
             return true;
 
+        // To cover the case where the base is a scalar and the promoted type is a vector
+        if (T->getKind() == T_Vector)
+            return canPromoteVectorTo(this, T);
+
         switch (Kind) {
             case T_Null:
             case T_Identity:
@@ -210,7 +225,7 @@ public:
         }
     }
 
-     Type * getPromotedType( Type *T)  {
+     Type *getPromotedType( Type *T)  {
         return getPromotedScalarType(this, T);
     }
 
@@ -251,6 +266,8 @@ public:
                 return getProcedureTypeName(this);
             case T_Vector:
                 return getVectorTypeName(this);
+            case T_Matrix:
+                return getMatrixTypeName(this);
             case T_Interval:
                 return TypeName + "interval";
             default:

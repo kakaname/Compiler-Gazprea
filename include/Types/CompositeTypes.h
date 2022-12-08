@@ -67,6 +67,14 @@ struct VectorTy : public Type {
         SizeExpr = Expr;
     }
 
+    size_t getPromotedVectorSizeForMatrix(VectorTy *TargetVec) {
+
+        if (this->getSize() == -1 || TargetVec->getSize() == -1)
+            return -1;
+
+        return std::max(this->getSize(), TargetVec->getSize());
+    }
+
 private:
     ASTNodeT *SizeExpr{nullptr};
     int Size;
