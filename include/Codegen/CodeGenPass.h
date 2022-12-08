@@ -57,6 +57,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee ScanReal;
     llvm::FunctionCallee ScanChar;
     llvm::FunctionCallee ScanBool;
+    llvm::FunctionCallee PowInt;
     llvm::FunctionCallee Malloc;
     llvm::FunctionCallee VectorNew;
     llvm::FunctionCallee VectorConcat;
