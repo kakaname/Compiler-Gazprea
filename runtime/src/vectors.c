@@ -58,6 +58,9 @@ struct vector *rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op)
     // At this point, the vectors should be of the same type (innerty and size)
     // As well, only vectors of real and float are supported
 
+    printf("Vector A length: %ld, type: %lul\n", a->size, a->type);
+    printf("Vector B length: %ld, type: %lul\n", b->size, b->type);
+
     struct vector *res = rt_vector_new(a->type, a->size);
 
 

@@ -145,7 +145,7 @@ block : LBRACE (stmt)* RBRACE ;
 expr: LPAREN expr RPAREN                    # bracketExpr
     | ID PERIOD (ID | INTLITERAL)           # memberAccess
     | expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexExpr
-    | expr DD expr (BY expr)?               # rangeExpr
+    | expr DD expr                           # rangeExpr
     | <assoc=right> op=(ADD | SUB | NOT) expr       # unaryExpr
     | <assoc=right> expr op=EXP expr        # expExpr
     | expr op=(MUL | DIV | MOD | DOTPROD) expr   # mulDivModDotProdExpr // A better name perhaps

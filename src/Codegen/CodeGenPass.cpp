@@ -205,6 +205,10 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy, IR.getInt64Ty(), IR.getInt64Ty(), LLVMIntTy}, false));
 
 
+    // Init runtime stream.
+    InitRuntimeStream = Mod.getOrInsertFunction(
+            "rt_stream_in_init", llvm::FunctionType::get(IR.getVoidTy(), {}, false));
+
     visit(Root);
 
     // Dump the module to the output file.
@@ -445,13 +449,34 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
 
-//    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
-//        matchPattern(true, true):
-//        matchPattern(false, false):
-//            break;
-//            matchPattern(true, false):
-//
-//    }
+    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false):
+            break;
+        // Left type if composite the right is scalar.
+        matchPattern(true, false): {
+            auto PtrToVal = createAlloca(RTy);
+            IR.CreateStore(RightOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(LTy))
+                RightOperand = IR.CreateCall(GetSameMatrixAs, {LeftOperand, PtrToVal});
+            else
+                RightOperand = IR.CreateCall(GetSameVectorAs, {LeftOperand, PtrToVal});
+            RTy = LTy;
+            break;
+        }
+        matchPattern(false, true): {
+            auto PtrToVal = createAlloca(LTy);
+            IR.CreateStore(LeftOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(RTy))
+                LeftOperand = IR.CreateCall(GetSameMatrixAs, {RightOperand, PtrToVal});
+            else
+                LeftOperand = IR.CreateCall(GetSameVectorAs, {RightOperand, PtrToVal});
+            LTy = RTy;
+            break;
+        }
+    }
 
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
@@ -874,8 +899,7 @@ llvm::Value *CodeGenPass::visitTupleLiteral(TupleLiteral *TupleLit) {
     int CurrIdx = 0;
     for (auto Child : *TupleLit) {
         auto MemberVal = visit(Child);
-        auto MemLoc = IR.CreateGEP(
-                TupLoc, {IR.getInt64(0), IR.getInt64(CurrIdx++)});
+        auto MemLoc = IR.CreateGEP(TupLoc, {IR.getInt32(0), IR.getInt32(CurrIdx++)});
         IR.CreateStore(MemberVal, MemLoc);
     }
     return IR.CreateLoad(TupLoc);
@@ -975,10 +999,78 @@ llvm::Value *CodeGenPass::getCastValue(Value *Val, Type *SrcTy, Type *DestTy) {
 }
 
 llvm::Value *CodeGenPass::visitTypeCast(TypeCast *Cast) {
-    return getCastValue(
-            visit(Cast->getExpr()),
-            PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
-            PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr());
+    auto TargetTy = Cast->getTargetType();
+    auto TypeKind = [&](){
+        if (TargetTy->isCompositeTy()) {
+            auto InnerTy = TypeRegistry::getInnerTyFromComposite(TargetTy);
+            return TypeKindMapToVectorTypeInRuntime(InnerTy->getKind());
+        }
+        return TypeKindMapToVectorTypeInRuntime(TargetTy->getKind());
+    }();
+    auto ValueToCast = visit(Cast->getExpr());
+
+    matchBoolPair(TargetTy->isCompositeTy(), ExprTy->isCompositeTy()) {
+        // Casting a scalar to a vector type.
+        matchPattern(true, false): {
+            if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                assert(VecTy->getSizeExpr() && "Trying to cast a literal to an unknown size vector");
+                auto Size = visit(VecTy->getSizeExpr());
+                auto PtrToVal = createAlloca(ExprTy);
+                IR.CreateStore(ValueToCast, PtrToVal);
+                return IR.CreateCall(
+                        GetVectorWithValue, {
+                                Size,
+                                IR.getInt64(TypeKind),
+                                IR.CreateBitCast(PtrToVal,IR.getInt8PtrTy())});
+            }
+
+            // Otherwise it must be a matrix.
+            auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+            assert(MatTy);
+
+            assert(MatTy->getRowSizeExpr() && MatTy->getColSizeExpr());
+            auto Rows = visit(MatTy->getRowSizeExpr());
+            auto Cols = visit(MatTy->getColSizeExpr());
+            auto PtrToVal = createAlloca(ExprTy);
+            IR.CreateStore(ValueToCast, PtrToVal);
+            return IR.CreateCall(GetMatrixWithValue, {
+                    Rows,
+                    Cols,
+                    IR.getInt64(TypeKind),
+                    IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy())});
+        }
+        matchPattern(false, true):
+            throw runtime_error("Trying to cast a composite type to a scalar type");
+        matchPattern(true, true): {
+            if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                auto Size = (VecTy->getSizeExpr()) ? visit(VecTy->getSizeExpr()) : IR.getInt64(-1);
+                return IR.CreateCall(
+                        GetCastedVector, {
+                                ValueToCast,
+                                Size,
+                                IR.getInt64(TypeKind)});
+            }
+
+            // Otherwise it must be a matrix.
+            auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+            assert(MatTy);
+
+            auto Rows = (MatTy->getRowSizeExpr()) ? visit(MatTy->getRowSizeExpr()):IR.getInt64(-1);
+            auto Cols = (MatTy->getColSizeExpr()) ? visit(MatTy->getColSizeExpr()):IR.getInt64(-1);
+            return IR.CreateCall(GetCastedMatrix, {
+                    ValueToCast,
+                    Rows,
+                    Cols,
+                    IR.getInt64(TypeKind)});
+        }
+        matchPattern(false, false):
+            return getCastValue(
+                    visit(Cast->getExpr()),
+                    PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
+                    PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    }
+    throw runtime_error("Unreachable in explicit cast");
 }
 
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
@@ -1000,7 +1092,7 @@ llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
                 assert(VecTy->getSizeExpr() && "Trying to cast a literal to an unknown size vector");
                 auto Size = visit(VecTy->getSizeExpr());
                 auto PtrToVal = createAlloca(ExprTy);
-                IR.CreateStore(PtrToVal, ValueToCast);
+                IR.CreateStore(ValueToCast, PtrToVal);
                 return IR.CreateCall(
                         GetVectorWithValue, {
                             Size,
@@ -1016,7 +1108,7 @@ llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
             auto Rows = visit(MatTy->getRowSizeExpr());
             auto Cols = visit(MatTy->getColSizeExpr());
             auto PtrToVal = createAlloca(ExprTy);
-            IR.CreateStore(PtrToVal, ValueToCast);
+            IR.CreateStore(ValueToCast, PtrToVal);
             return IR.CreateCall(GetMatrixWithValue, {
                 Rows,
                 Cols,
@@ -1125,8 +1217,10 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     }
     CurrentFunction = Proc;
 
-    if (ProcName == "main")
+    if (ProcName == "main") {
+        IR.CreateCall(InitRuntimeStream);
         assignGlobals();
+    }
 
     // Visit function body
     visit(Def->getBlock());
@@ -1195,11 +1289,11 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     auto ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
 
-    if (ValType->getKind() == Type::T_Vector) {
+    if (ValType->getKind() == Type::T_Vector)
         return IR.CreateCall(PrintVector, {ValToOut});
-    } else if (ValType->getKind() == Type::T_Matrix) {
+
+    if (ValType->getKind() == Type::T_Matrix)
         return IR.CreateCall(PrintMatrix, {ValToOut});
-    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -1595,5 +1689,12 @@ llvm::Value *CodeGenPass::visitByOp(ByOp *By) {
     llvm::Value *Right = visit(By->getByExpr());
 
     return IR.CreateCall(VectorBy, {Left, Right});
+
+}
+
+llvm::Value *CodeGenPass::visitFilter(Filter *Flt) {
+    auto ResTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Flt);
+    auto ResultTuple = createAlloca(ResTy);
+
 
 }
