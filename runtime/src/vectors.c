@@ -7,23 +7,10 @@
 struct vector *rt_vector_new(enum vector_type type, u_int64_t size) {
     struct vector *v = malloc(sizeof(struct vector));
     v->size = size;
-    v->idx = 0;
+    v->idx = rt_get_seq_idx(size);
     v->type = type;
-    switch (type) {
-        case VECTOR_TYPE_BOOL:
-        case VECTOR_TYPE_CHAR:
-            // NOTE: booleans are stored as bytes
-            v->data = malloc(sizeof(char) * size);
-            break;
-        case VECTOR_TYPE_INT:
-            v->data = malloc(sizeof(int64_t) * size);
-            break;
-        case VECTOR_TYPE_FLOAT:
-            v->data = malloc(sizeof(float) * size);
-            break;
-        default:
-            exit(1);
-    }
+    v->data = rt_get_data_alloc_for_vec(size, type, NULL);
+  
     return v;
 }
 
@@ -240,47 +227,27 @@ VECTOR_ACCESS(float)
 struct vector *rt_vector_create_deep_copy(struct vector *v) {
     struct vector *newV = malloc(sizeof(struct vector));
     newV->size = v->size;
-    newV->idx = 0;
+    newV->idx = rt_get_seq_idx(v->size);
     newV->type = v->type;
+    newV->data = rt_get_data_alloc_for_vec(newV->size, newV->type, NULL);
 
-    if (v->idx == 0) {
-        switch (v->type) {
-            case VECTOR_TYPE_BOOL:
-            case VECTOR_TYPE_CHAR:
-                newV->data = malloc(sizeof(char) * v->size);
-                memcpy(newV->data, v->data, sizeof(char) * v->size);
-                break;
-            case VECTOR_TYPE_INT:
-                newV->data = malloc(sizeof(int64_t) * v->size);
-                memcpy(newV->data, v->data, sizeof(int64_t) * v->size);
-                break;
-            case VECTOR_TYPE_FLOAT:
-                newV->data = malloc(sizeof(float) * v->size);
-                memcpy(newV->data, v->data, sizeof(float) * v->size);
-                break;
-        }
-    } else {
-        switch (v->type) {
-            case VECTOR_TYPE_BOOL:
-            case VECTOR_TYPE_CHAR:
-                newV->data = malloc(sizeof(char) * v->size);
-                for (int64_t i = 0; i < v->size; i++) {
-                    ((char *) newV->data)[i] = rt_vector_access_char(v, i, 0);
-                }
-                break;
-            case VECTOR_TYPE_INT:
-                newV->data = malloc(sizeof(int64_t) * v->size);
-                for (int64_t i = 0; i < v->size; i++) {
-                    ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i, 0);
-                }
-                break;
-            case VECTOR_TYPE_FLOAT:
-                newV->data = malloc(sizeof(float) * v->size);
-                for (int64_t i = 0; i < v->size; i++) {
-                    ((float *) newV->data)[i] = rt_vector_access_float(v, i, 0);
-                }
-                break;
-        }
+    switch (v->type) {
+        case VECTOR_TYPE_BOOL:
+        case VECTOR_TYPE_CHAR:
+            for (int64_t i = 0; i < v->size; i++) {
+                ((char *) newV->data)[i] = rt_vector_access_char(v, i, 0);
+            }
+            break;
+        case VECTOR_TYPE_INT:
+            for (int64_t i = 0; i < v->size; i++) {
+                ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i, 0);
+            }
+            break;
+        case VECTOR_TYPE_FLOAT:
+            for (int64_t i = 0; i < v->size; i++) {
+                ((float *) newV->data)[i] = rt_vector_access_float(v, i, 0);
+            }
+            break;
     }
     return newV;
 }

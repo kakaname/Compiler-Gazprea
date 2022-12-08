@@ -201,3 +201,6 @@ void rt_vector_set_float(struct vector *v, u_int64_t idx, float val, u_int64_t u
 struct vector *rt_vector_create_deep_copy(struct vector *v);
 struct vector *rt_vector_view_scalar(struct vector *v, u_int64_t idx);
 struct vector *rt_vector_view_vector(struct vector *v, struct vector *idx);
+
+int64_t *rt_get_seq_idx(int64_t size);
+void* rt_get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val);

@@ -49,6 +49,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     Malloc = Mod.getOrInsertFunction(
             "malloc", llvm::FunctionType::get(
                     LLVMPtrTy, {LLVMIntTy}, false));
+    VectorNew = Mod.getOrInsertFunction(
+            "rt_vector_new", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMIntTy, LLVMIntTy}, false));
     VectorConcat = Mod.getOrInsertFunction(
             "rt_vector_concat", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
@@ -1502,26 +1505,30 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
     auto VecSize = VecTy->getSize();
     assert(VecSize >= 0 && "All vector literals should have a size");
 
-    llvm::Value *Result = CreateVectorStruct(VecTy->getInnerTy()->getKind(), VecSize, true);
-    auto MallocPtr = CreateVectorMallocPtrAccess(Result, VecTy);
+    auto VecStruct = IR.CreateCall(VectorNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(VecTy->getInnerTy()->getKind())),
+                              IR.getInt64(VecSize)});
 
-    // store the elements in the vector
     for (int i = 0; i < VecSize; i++) {
         auto Elem = VecLit->getChildAt(i);
         auto ElemVal = visit(Elem);
-        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt64(i)});
-        if (VecTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
-            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
-        IR.CreateStore(ElemVal, ElemPtr);
+        switch (VecTy->getInnerTy()->getKind()) {
+            case Type::TypeKind::T_Int:
+                IR.CreateCall(VectorSetInt, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            case Type::TypeKind::T_Real:
+                IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            case Type::TypeKind::T_Bool:
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            case Type::TypeKind::T_Char:
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
+            default:
+                assert(false && "Invalid vector type");
+        }
     }
 
-    // TODO temp alloc while this function is not in the runtime
-    auto ResultLoc = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Result, ResultLoc);
-
-    return ResultLoc;
-
-
+    return VecStruct;
 
 }
 
