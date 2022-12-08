@@ -102,6 +102,16 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee MatrixSetVector;
     llvm::FunctionCallee MatrixMul;
 
+
+    // Casting functions
+    llvm::FunctionCallee GetSameVectorAs;
+    llvm::FunctionCallee GetSameMatrixAs;
+    llvm::FunctionCallee GetCastedVector;
+    llvm::FunctionCallee GetCastedMatrix;
+    llvm::FunctionCallee GetVectorWithValue;
+    llvm::FunctionCallee GetMatrixWithValue;
+
+
     // Use to keep track of which llvm values represents which symbols in the
     // program.
     map<const Symbol*, llvm::Value*> SymbolMap;
@@ -182,9 +192,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitByOp(ByOp *By);
 
     uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
-    llvm::Value *createAlloca(const Type *Ty);
+    llvm::Value *createAlloca(Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
-    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
+    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, Type *SrcTy, Type *DestTy);
     llvm::Type *getLLVMTupleType(TupleTy *Tuple);

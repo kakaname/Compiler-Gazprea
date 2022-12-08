@@ -4,6 +4,41 @@
 
 #include "runtime.h"
 
+#define GET_CASTED_VEC_LOOP_INNER(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
+    printf("from inner cast loop\n Target size is %ld", TARGET_SIZE);                                                                                      \
+    for (int64_t i = 0; i < TARGET_SIZE; ++i) { \
+        if(i < BASE->size) {    \
+            cast_scalar_value(&CASTED_BASE[BASE->idx[i]], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
+            continue; \
+        } \
+        cast_scalar_value(NULL, NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
+    }                                                                                \
+
+#define GET_CASTED_VEC_LOOP(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
+        switch (TARGET_TYPE) {\
+            case VECTOR_TYPE_BOOL: {\
+                unsigned char *casted_alloc = (unsigned char *) NEW_ALLOC;\
+                GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
+                break;                                                              \
+            }\
+            case VECTOR_TYPE_INT: {                                                 \
+                printf("Called inner cast loop for target int ");                                                                    \
+                int64_t *casted_alloc = (int64_t *) NEW_ALLOC;\
+                GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
+                break;                                                              \
+            }\
+            case VECTOR_TYPE_FLOAT: {\
+                float *casted_alloc = (float *) NEW_ALLOC;\
+                GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
+                break;\
+            }\
+            case VECTOR_TYPE_CHAR: {\
+                unsigned char *casted_alloc = (unsigned char *) NEW_ALLOC;\
+                GET_CASTED_VEC_LOOP_INNER(BASE, casted_alloc, TARGET_SIZE, TARGET_TYPE, CASTED_BASE);\
+                break;                                                              \
+            }                                                                           \
+        }\
+
 
 static int64_t *get_seq_idx(int64_t size) {
     int64_t *idx = malloc(size * sizeof(int64_t));
@@ -14,6 +49,7 @@ static int64_t *get_seq_idx(int64_t size) {
 
 static void cast_scalar_value(void *src, void *dest,
                        enum vector_type src_ty, enum vector_type dest_ty) {
+    printf("called scalar cast for: %d, %d", (int ) src_ty, (int ) dest_ty);
     switch (dest_ty) {
         case VECTOR_TYPE_BOOL:
             switch (src_ty) {
@@ -42,6 +78,7 @@ static void cast_scalar_value(void *src, void *dest,
                     *((int64_t *) dest) = (src) ? *((float *) src) : 0;
                     return;
                 case VECTOR_TYPE_CHAR:
+                    printf("Casting from char to integer\n");
                     *((int64_t *) dest) = (src) ?  *((unsigned char *) src) : 0;
                     return;
             }
@@ -127,22 +164,45 @@ struct matrix *rt_get_same_matrix_as(struct matrix *target, void *data) {
 }
 
 struct vector *rt_get_casted_vector(struct vector *base,
-        int64_t size, enum vector_type target_type) {
+        int64_t size, int64_t target_type) {
     int64_t target_size = (size > -1) ? size : base->size;
     struct vector *new_vec = malloc(sizeof(struct vector));
     new_vec->type = base->type;
     new_vec->size = target_size;
     new_vec->idx = get_seq_idx(target_size);
+
     void *new_alloc = get_data_alloc_for_vec(target_size, target_type, NULL);
 
-    for (int64_t i = 0; i < target_size; ++i) {
-        if(i < base->size) {
-            cast_scalar_value(&base->data[base->idx[i]], new_alloc+i, base->type, target_type);
-            continue;
+    switch (base->type) {
+        case VECTOR_TYPE_BOOL: {
+            unsigned char *casted_base = (unsigned char *) base->data;
+            GET_CASTED_VEC_LOOP(base, new_alloc, target_size, target_type, casted_base);
+            break;
         }
-        cast_scalar_value(NULL, new_alloc+i, base->type, target_type);
+        case VECTOR_TYPE_INT: {
+            int64_t *casted_base = (int64_t *) base->data;
+            GET_CASTED_VEC_LOOP(base, new_alloc, target_size, target_type, casted_base);
+            break;
+        }
+        case VECTOR_TYPE_FLOAT: {
+            float *casted_base = (float *) base->data;
+            GET_CASTED_VEC_LOOP(base, new_alloc, target_size, target_type, casted_base);
+            break;
+        }
+        case VECTOR_TYPE_CHAR: {
+            printf("Casting character vector to target:  %ld ", target_type);
+            unsigned char *casted_base = (unsigned char *) base->data;
+            GET_CASTED_VEC_LOOP(base, new_alloc, target_size, target_type, casted_base);
+            printf("Finished casting\n");
+            break;
+        }
+        default:
+            {}
     }
     new_vec->data = new_alloc;
+    printf("%ld", new_vec->size);
+    for (int i = 0; i< new_vec->size; i++)
+        printf("%c ", *((unsigned char *)new_vec->data + i));
     return new_vec;
 }
 
@@ -174,6 +234,26 @@ struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
     return new_mat;
 }
 
+struct vector *rt_get_vector_with_value(int64_t size, enum vector_type type, void *value) {
+    struct vector *new_vec = malloc(sizeof (struct vector));
+    new_vec->size = size;
+    new_vec->idx = get_seq_idx(size);
+    new_vec->data = get_data_alloc_for_vec(size, type, value);
+    return new_vec;
+}
+
+struct matrix *rt_get_matrix_with_value(int64_t rows, int64_t cols, enum vector_type type, void *value) {
+    struct matrix *new_mat = malloc(sizeof (struct matrix));
+    new_mat->rows = rows;
+    new_mat->cols = cols;
+    new_mat->idx = get_seq_idx(rows);
+    new_mat->type = type;
+    struct vector **data = malloc(sizeof (struct vector*) * rows);
+
+    for (int64_t i = 0; i < new_mat->rows; i++)
+        data[i] = rt_get_vector_with_value(cols, type, value);
+    return new_mat;
+}
 
 // TODO: Implement this after the interval struct is known.
 struct vector *rt_get_vector_from_interval() {return NULL;}

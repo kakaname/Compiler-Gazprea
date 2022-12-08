@@ -179,6 +179,32 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_matrix_mul", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy}, false));
 
+
+    // Casting functions.
+    GetSameVectorAs = Mod.getOrInsertFunction(
+            "rt_get_same_vector_as", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy, IR.getInt8PtrTy()}, false));
+    GetSameMatrixAs = Mod.getOrInsertFunction(
+            "rt_get_same_matrix_as", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, IR.getInt8PtrTy()}, false));
+
+    GetCastedVector = Mod.getOrInsertFunction(
+                    "rt_get_casted_vector", llvm::FunctionType::get(
+                            LLVMVectorPtrTy, {LLVMVectorPtrTy, IR.getInt64Ty(), LLVMIntTy}, false));
+
+    GetVectorWithValue = Mod.getOrInsertFunction(
+                    "rt_get_vector_with_value", llvm::FunctionType::get(
+                            LLVMVectorPtrTy, {IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt8PtrTy()}, false));
+
+    GetMatrixWithValue = Mod.getOrInsertFunction(
+                    "rt_get_matrix_with_value", llvm::FunctionType::get(
+                            LLVMMatrixPtrTy, {IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt64Ty(), IR.getInt8PtrTy()}, false));
+
+    GetCastedMatrix = Mod.getOrInsertFunction(
+            "rt_get_casted_matrix", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy, IR.getInt64Ty(), IR.getInt64Ty(), LLVMIntTy}, false));
+
+
     visit(Root);
 
     // Dump the module to the output file.
@@ -419,13 +445,13 @@ llvm::Value *CodeGenPass::visitArithmeticOp(ArithmeticOp *Op) {
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
     auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
 
-    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
-        matchPattern(true, true):
-        matchPattern(false, false):
-            break;
-            matchPattern(true, false):
-
-    }
+//    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+//        matchPattern(true, true):
+//        matchPattern(false, false):
+//            break;
+//            matchPattern(true, false):
+//
+//    }
 
 
     auto RoundingMDS = llvm::MDString::get(GlobalCtx, "round.dynamic");
@@ -685,7 +711,7 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
 llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
     // TODO Check that the index is within the bounds of the array
     llvm::Value *Vec = visit(Idx->getBaseExpr());
-    const Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
+    Type *BaseType = PM->getAnnotation<ExprTypeAnnotatorPass>(Idx->getBaseExpr());
     llvm::Value *Res;
 
     if (isa<VectorTy>(BaseType)) {
@@ -956,10 +982,78 @@ llvm::Value *CodeGenPass::visitTypeCast(TypeCast *Cast) {
 }
 
 llvm::Value *CodeGenPass::visitExplicitCast(ExplicitCast *Cast) {
-    return getCastValue(
-            visit(Cast->getExpr()),
-            PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
-            PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr());
+    auto TargetTy = Cast->getTargetType();
+    auto TypeKind = [&](){
+       if (TargetTy->isCompositeTy()) {
+           auto InnerTy = TypeRegistry::getInnerTyFromComposite(TargetTy);
+           return TypeKindMapToVectorTypeInRuntime(InnerTy->getKind());
+       }
+       return TypeKindMapToVectorTypeInRuntime(TargetTy->getKind());
+    }();
+    auto ValueToCast = visit(Cast->getExpr());
+
+    matchBoolPair(TargetTy->isCompositeTy(), ExprTy->isCompositeTy()) {
+        // Casting a scalar to a vector type.
+        matchPattern(true, false): {
+            if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                assert(VecTy->getSizeExpr() && "Trying to cast a literal to an unknown size vector");
+                auto Size = visit(VecTy->getSizeExpr());
+                auto PtrToVal = createAlloca(ExprTy);
+                IR.CreateStore(PtrToVal, ValueToCast);
+                return IR.CreateCall(
+                        GetVectorWithValue, {
+                            Size,
+                            IR.getInt64(TypeKind),
+                            IR.CreateBitCast(PtrToVal,IR.getInt8PtrTy())});
+            }
+
+            // Otherwise it must be a matrix.
+            auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+            assert(MatTy);
+
+            assert(MatTy->getRowSizeExpr() && MatTy->getColSizeExpr());
+            auto Rows = visit(MatTy->getRowSizeExpr());
+            auto Cols = visit(MatTy->getColSizeExpr());
+            auto PtrToVal = createAlloca(ExprTy);
+            IR.CreateStore(PtrToVal, ValueToCast);
+            return IR.CreateCall(GetMatrixWithValue, {
+                Rows,
+                Cols,
+                IR.getInt64(TypeKind),
+                IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy())});
+        }
+        matchPattern(false, true):
+                throw runtime_error("Trying to cast a composite type to a scalar type");
+        matchPattern(true, true): {
+                if (auto VecTy = dyn_cast<VectorTy>(TargetTy)) {
+                    auto Size = (VecTy->getSizeExpr()) ? visit(VecTy->getSizeExpr()) : IR.getInt64(-1);
+                    return IR.CreateCall(
+                            GetCastedVector, {
+                                    ValueToCast,
+                                    Size,
+                                    IR.getInt64(TypeKind)});
+                }
+
+                // Otherwise it must be a matrix.
+                auto MatTy = dyn_cast<MatrixTy>(TargetTy);
+                assert(MatTy);
+
+                auto Rows = (MatTy->getRowSizeExpr()) ? visit(MatTy->getRowSizeExpr()):IR.getInt64(-1);
+                auto Cols = (MatTy->getColSizeExpr()) ? visit(MatTy->getColSizeExpr()):IR.getInt64(-1);
+                return IR.CreateCall(GetCastedMatrix, {
+                        ValueToCast,
+                        Rows,
+                        Cols,
+                        IR.getInt64(TypeKind)});
+            }
+        matchPattern(false, false):
+                return getCastValue(
+                        visit(Cast->getExpr()),
+                        PM->getAnnotation<ExprTypeAnnotatorPass>(Cast->getExpr()),
+                        PM->TypeReg.getConstTypeOf(Cast->getTargetType()));
+    }
+    throw runtime_error("Unreachable in explicit cast");
 }
 
 llvm::Value *CodeGenPass::visitFunctionDef(FunctionDef *Def) {
@@ -1325,7 +1419,7 @@ llvm::Value *CodeGenPass::visitBlock(Block *Blk) {
 
 llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
-    const auto *MatTy = dyn_cast<MatrixTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
+    auto *MatTy = dyn_cast<MatrixTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit));
     if (MatTy) {
         auto MatStruct = IR.CreateCall(MatrixNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(MatTy->getInnerTy()->getKind())),
                                                   IR.getInt64(MatTy->getNumOfRows()),

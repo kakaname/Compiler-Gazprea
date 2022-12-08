@@ -103,15 +103,15 @@ bool doesTupleSupportEq(Type *Tup) {
 }
 
 
-bool doesMatrixSupportEq(const Type *Mat) {
+bool doesMatrixSupportEq(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForEq();
 }
 
-bool doesMatrixSupportArithOps(const Type *Mat) {
+bool doesMatrixSupportArithOps(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForArithOps();
 }
 
-bool isMatrixValidForComparisonOps(const Type *Mat) {
+bool isMatrixValidForComparisonOps(Type *Mat) {
     return cast<MatrixTy>(Mat)->getInnerTy()->isValidForComparisonOp();
 }
 
@@ -154,7 +154,7 @@ std::string getVectorTypeName(Type *Ty) {
     return TypeName;
 }
 
-std::string getMatrixTypeName(const Type *Ty) {
+std::string getMatrixTypeName(Type *Ty) {
     auto MatrixType = cast<MatrixTy>(Ty);
     std::string TypeName = "matrix(";
     TypeName += MatrixType->getInnerTy()->getTypeName();

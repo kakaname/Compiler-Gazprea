@@ -65,8 +65,9 @@ struct VectorTy : public Type {
 
     void setSizeExpr(ASTNodeT *Expr) {
         SizeExpr = Expr;
+    }
 
-    size_t getPromotedVectorSizeForMatrix(const VectorTy *TargetVec) const {
+    size_t getPromotedVectorSizeForMatrix(VectorTy *TargetVec) {
 
         if (this->getSize() == -1 || TargetVec->getSize() == -1)
             return -1;

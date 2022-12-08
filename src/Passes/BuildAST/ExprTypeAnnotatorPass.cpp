@@ -78,6 +78,16 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
     if (!RType->isValidForComparisonOp())
         throw InvalidComparisonOpError(Op, RType->getTypeName());
 
+
+    // Easy case where both types are the same.
+    if (LType->isSameTypeAs(RType)) {
+        auto ResultTy = (LType->isCompositeTy()) ?
+                        TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
+        annotateWithConst(Op, ResultTy);
+        return ResultTy;
+    }
+
+
     if (RType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
         auto NewRType = PM->TypeReg.getVectorType(
                 PM->TypeReg.getIntegerTy());
@@ -93,15 +103,6 @@ Type *ExprTypeAnnotatorPass::visitComparisonOp(ComparisonOp *Op) {
         Op->setLeftExpr(Cast);
         LExpr = Cast;
         LType = NewLType;
-    }
-
-
-    // Easy case where both types are the same.
-    if (LType->isSameTypeAs(RType)) {
-        auto ResultTy = (LType->isCompositeTy()) ?
-                        TypeReg->getCompositeTyWithInner(LType, BoolTy) : BoolTy;
-        annotateWithConst(Op, ResultTy);
-        return ResultTy;
     }
 
     matchBoolPair(LType->isCompositeTy(), RType->isCompositeTy()) {
@@ -276,6 +277,13 @@ Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
     if (!RType->isValidForArithOps())
         throw InvalidArithmeticOpError(Op, RType->getTypeName());
 
+
+    // Easy case where both types are the same.
+    if (LType->isSameTypeAs(RType)) {
+        annotateWithConst(Op, LType);
+        return LType;
+    }
+
     if (RType->isSameTypeAs(PM->TypeReg.getIntervalTy())) {
         auto NewRType = PM->TypeReg.getVectorType(
                 PM->TypeReg.getIntegerTy());
@@ -292,13 +300,6 @@ Type *ExprTypeAnnotatorPass::visitArithmeticOp(ArithmeticOp *Op) {
         Op->setLeftExpr(Cast);
         LExpr = Cast;
         LType = NewLType;
-    }
-
-
-    // Easy case where both types are the same.
-    if (LType->isSameTypeAs(RType)) {
-        annotateWithConst(Op, LType);
-        return LType;
     }
 
     matchBoolPair(LType->isCompositeTy(), RType->isCompositeTy()) {
@@ -942,44 +943,41 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     if (!VecLit->numOfChildren())
         throw runtime_error("Unimplemented");
 
-    for (auto *ChildExpr : *VecLit) {
+    for (auto ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
-        bool IsMatrix = ChildTy->getKind() == Type::TypeKind::T_Vector;
 
-        // If a vector has an inner type of vector of scalars, then it is a matrix
-        if (IsMatrix) {
-
-            auto InVecTy = dyn_cast<VectorTy>(ChildTy);
-            if (!InVecTy->getInnerTy()->isScalarTy()) {
-                throw runtime_error("Vector literal has a vector of vectors as an element.");
-            }
-            if (!WidestType) {
-                WidestType = ChildTy;
-                continue;
-            }
-
-            // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
-            if (WidestType->isScalarTy()) {
-                WidestType = ChildTy->getPromotedType(WidestType);
-                continue;
-            }
-
-            // All of this is done here since the type class should not be generating types, only the type registry
-            // should be doing that. This is to cover the special case where we have to use the type from one existing
-            // vector and the inner type from another vector.
-            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(WidestType));
-            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(WidestType)->getInnerTy());
-            WidestType = PM->TypeReg.getVectorType(PromotedTy, Size);
-
-        } else if (!ChildTy->isScalarTy()) {
-                throw std::runtime_error("Vector literal can only contain scalar types");
-        }
+//        // If a vector has an inner type of vector of scalars, then it is a matrix
+//        if (isa<VectorTy>(ChildTy)) {
+//            auto InVecTy = dyn_cast<VectorTy>(ChildTy);
+//            if (!InVecTy->getInnerTy()->isScalarTy()) {
+//                throw runtime_error("Vector literal has a vector of vectors as an element.");
+//            }
+//            if (!WidestType) {
+//                WidestType = ChildTy;
+//                continue;
+//            }
+//
+//            // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
+//            if (WidestType->isScalarTy()) {
+//                WidestType = ChildTy->getPromotedType(WidestType);
+//                continue;
+//            }
+//
+//            // All of this is done here since the type class should not be generating types, only the type registry
+//            // should be doing that. This is to cover the special case where we have to use the type from one existing
+//            // vector and the inner type from another vector.
+//            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(WidestType));
+//            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(WidestType)->getInnerTy());
+//            WidestType = PM->TypeReg.getVectorType(PromotedTy, Size);
+//
+//        } else if (!ChildTy->isScalarTy()) {
+//            throw std::runtime_error("Vector literal can only contain scalar types");
+//        }
 
         if (IsFirst)
             WidestType = ChildTy, IsFirst = false;
         else
             WidestType = getWiderType(WidestType, ChildTy);
-
     }
 
     // Pass 2: Promote all elements to the highest type
