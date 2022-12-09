@@ -925,8 +925,10 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
     llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
             GlobalCtx, "loop_end", CurrentFunction);
 
-    LoopBeginBlocks.push(Header);
-    LoopEndBlocks.push(LoopEnd);
+    if (Loop->isBreakable()) {
+        LoopBeginBlocks.push(Header);
+        LoopEndBlocks.push(LoopEnd);
+    }
 
     auto Domain = visit(Loop->getDomain());
     auto DomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Loop->getDomain());
@@ -975,8 +977,10 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 
     IR.SetInsertPoint(LoopEnd);
 
-    LoopBeginBlocks.pop();
-    LoopEndBlocks.pop();
+    if (Loop->isBreakable()) {
+        LoopBeginBlocks.pop();
+        LoopEndBlocks.pop();
+    }
 
     return nullptr;
 
