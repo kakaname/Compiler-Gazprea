@@ -100,8 +100,6 @@ public:
                 return isSameProcAs(this, T);
             case T_Vector:
                 return isSameVectorAs(this, T);
-            case T_String:
-                return isSameStringAs(this, T);
             default:
                 return T->getKind() == Kind;
         }
@@ -274,8 +272,6 @@ public:
                 return getProcedureTypeName(this);
             case T_Vector:
                 return getVectorTypeName(this);
-            case T_String:
-                return getStringTypeName(this);
             case T_Matrix:
                 return getMatrixTypeName(this);
             case T_Interval:

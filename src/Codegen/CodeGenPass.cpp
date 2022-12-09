@@ -435,6 +435,7 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
 
     auto DeclType = Decl->getIdentifier()->getIdentType();
+    auto Ident = Decl->getIdentifier();
 
     if (isa<Program>(Decl->getParent())) {
         // These are global variables, that are only declared here, but later defined in the main function.
@@ -1689,6 +1690,7 @@ llvm::Value *CodeGenPass::visitBreak(Break *Break) {
     llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(
             GlobalCtx, "after_break", CurrentFunction);
     llvm::BasicBlock *LoopEnd = LoopEndBlocks.top();
+    auto Size = LoopEndBlocks.size();
 
     IR.CreateBr(LoopEnd);
 
@@ -1712,14 +1714,17 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     auto ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
 
-    if (ValType->getKind() == Type::T_Vector)
-        return IR.CreateCall(PrintVector, {ValToOut});
+    if (ValType->getKind() == Type::T_Vector) {
+        auto VecTy = cast<VectorTy>(ValType);
+        if (VecTy->isString()) {
+            return IR.CreateCall(PrintString, {ValToOut});
+        } else {
+            return IR.CreateCall(PrintVector, {ValToOut});
+        }
+    }
 
     if (ValType->getKind() == Type::T_Matrix)
         return IR.CreateCall(PrintMatrix, {ValToOut});
-    if (ValType->getKind() == Type::T_String) {
-        return IR.CreateCall(PrintString, {ValToOut});
-    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -2000,30 +2005,32 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
 }
 
 llvm::Value *CodeGenPass::visitStringLiteral(StringLiteral *StrLit) {
-    auto StrTy = dyn_cast<StringTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(StrLit));
-    assert(StrTy && "Invalid string type");
 
-    auto StrSize = StrTy->getSize();
-    assert(StrSize >= 0 && "All vector literals should have a size");
+    auto VecLitTy = PM->getAnnotation<ExprTypeAnnotatorPass>(StrLit);
+    auto VecTy = dyn_cast<VectorTy>(VecLitTy);
+    assert(VecTy && "Invalid vector type");
+    assert(VecTy->getInnerTy()->getKind() == Type::TypeKind::T_Char && "Invalid vector type");
 
+    auto VecSize = VecTy->getSize();
+    assert(VecSize >= 0 && "All vector literals should have a size");
 
-    llvm::Value *Result = CreateStringStruct(StrSize, true);
-    auto MallocPtr = CreateStringMallocPtrAccess(Result, StrTy);
+    auto VecStruct = IR.CreateCall(VectorNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(VecTy->getInnerTy()->getKind())),
+                              IR.getInt64(VecSize)});
 
-    // store the elements in the vector
-    for (int i = 0; i < StrSize; i++) {
+    for (int i = 0; i < VecSize; i++) {
         auto Elem = StrLit->getChildAt(i);
         auto ElemVal = visit(Elem);
-        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
-        if (StrTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
-            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
-        IR.CreateStore(ElemVal, ElemPtr);
+        switch (VecTy->getInnerTy()->getKind()) {
+            case Type::TypeKind::T_Char:
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            default:
+                assert(false && "Invalid vector type");
+        }
     }
 
-    auto ResultLoc = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Result, ResultLoc);
+    return VecStruct;
 
-    return ResultLoc;
 
 }
 
@@ -2134,10 +2141,6 @@ llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, Vecto
     return MallocPtr;
 }
 
-llvm::Value *CodeGenPass::CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy) {
-    auto MallocPtr = IR.CreateExtractValue(StrPtr, {3});
-    return MallocPtr;
-}
 
 llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
     llvm::Value *Lower = visit(Interval->getLowerExpr());
