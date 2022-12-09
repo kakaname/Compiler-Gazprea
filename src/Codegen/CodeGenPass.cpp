@@ -1992,7 +1992,7 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
         for (int i = 0; i < MatTy->getNumOfRows(); i++) {
             auto Row = visit(VecLit->getChildAt(i));
-            IR.CreateCall(MatrixPopulateRow, {MatStruct, Row, IR.getInt64(i)});
+            IR.CreateCall(MatrixPopulateRow, {MatStruct, Row, IR.getInt64(i+1)});
         }
         return MatStruct;
     }
@@ -2012,16 +2012,16 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
         auto ElemVal = visit(Elem);
         switch (VecTy->getInnerTy()->getKind()) {
             case Type::TypeKind::T_Int:
-                IR.CreateCall(VectorSetInt, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                IR.CreateCall(VectorSetInt, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
                 break;
             case Type::TypeKind::T_Real:
-                IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
                 break;
             case Type::TypeKind::T_Char:
-                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
                 break;
             case Type::TypeKind::T_Bool:
-                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i+1), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
                 break;
             default:
                 assert(false && "Invalid vector type");

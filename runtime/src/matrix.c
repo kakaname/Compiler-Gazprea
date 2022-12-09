@@ -228,13 +228,13 @@ void rt_vector_copy(struct vector *from, struct vector *to) {
         switch (from->type) {
             case VECTOR_TYPE_CHAR:
             case VECTOR_TYPE_BOOL:
-                rt_vector_set_char(to, i+i, rt_vector_access_char(from, i+1, 0), 0);
+                rt_vector_set_char(to, i+1, rt_vector_access_char(from, i+1, 0), 0);
                 break;
             case VECTOR_TYPE_INT:
-                rt_vector_set_int64_t(to, i+i, rt_vector_access_int64_t(from, i+1, 0), 0);
+                rt_vector_set_int64_t(to, i+1, rt_vector_access_int64_t(from, i+1, 0), 0);
                 break;
             case VECTOR_TYPE_FLOAT:
-                rt_vector_set_float(to, i+i, rt_vector_access_float(from, i+1, 0), 0);
+                rt_vector_set_float(to, i+1, rt_vector_access_float(from, i+1, 0), 0);
                 break;
         }
     }

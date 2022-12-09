@@ -47,7 +47,7 @@ struct interval_t {
 int64_t *rt_get_seq_idx(int64_t size) {
     int64_t *idx = malloc(size * sizeof(int64_t));
     for (int64_t i = 0; i < size; i++)
-        idx[i] = i;
+        idx[i] = i+1;
     return idx;
 }
 
@@ -159,7 +159,7 @@ struct matrix *rt_get_same_matrix_as(struct matrix *target, void *data) {
     new_mat->rows = target->rows;
     new_mat->cols = target->cols;
     new_mat->data = malloc(target->rows * sizeof(struct vector*));
-    new_mat->idx = rt_get_seq_idx(target->rows);
+    new_mat->idx = 0;
     for (int64_t i = 0; i < target->rows; i++) {
         new_mat->data[i] = rt_get_same_vector_as(target->data[i], data);
     }

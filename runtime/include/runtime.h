@@ -89,6 +89,7 @@ type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecke
     u_int64_t real_idx = idx;                                                        \
     if (v->idx != 0) { \
         real_idx = v->idx[idx];\
+        real_idx -= 1; \
     }                       \
     return ((type *) v->data)[real_idx];                        \
 }
@@ -98,7 +99,6 @@ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t u
         exit(1); \
     } \
     idx -= 1; \
-    \
     if (idx >= v->size) {\
         if (unchecked) {  \
             return; \
@@ -109,6 +109,7 @@ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t u
     u_int64_t real_idx = idx; \
     if (v->idx != 0) { \
         real_idx = v->idx[idx];\
+        real_idx -= 1; \
     }                    \
     ((type *) v->data)[real_idx] = val;                        \
 }
