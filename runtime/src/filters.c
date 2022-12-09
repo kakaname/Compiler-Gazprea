@@ -44,7 +44,6 @@ void rt_update_filter_at_pos(int64_t idx, char should_update, void *data) {
     if (!should_update)
         return;
 
-
     struct vector *vec_at_idx = current_filter_vecs[idx];
     int64_t current_size = vec_at_idx->size++;
     assign_to_idx(vec_at_idx->data, data, current_size, vec_at_idx->type);
@@ -66,16 +65,16 @@ void rt_filter_end_iter(void *current_value) {
 void rt_write_val_from_vec_to(struct vector* vec, int64_t idx, void *loc) {
     switch (vec->type) {
         case VECTOR_TYPE_BOOL:
-            *((unsigned char *) loc) = (*((unsigned char *) vec->data + vec->idx[idx]) == 1);
+            *((unsigned char *) loc) = (*((unsigned char *) vec->data + vec->idx[idx] - 1) == 1);
             return;
         case VECTOR_TYPE_CHAR:
-            *((unsigned char *) loc) = *((unsigned char *) vec->data + vec->idx[idx]);
+            *((unsigned char *) loc) = *((unsigned char *) vec->data + vec->idx[idx] - 1);
             return;
         case VECTOR_TYPE_INT:
-            *((int64_t *) loc) = *(((int64_t *) vec->data) + vec->idx[idx]);
+            *((int64_t *) loc) = *(((int64_t *) vec->data) + vec->idx[idx] - 1);
             return;
         case VECTOR_TYPE_FLOAT:
-            *((float *) loc) = *((float *) vec->data + vec->idx[idx]);
+            *((float *) loc) = *((float *) vec->data + vec->idx[idx] - 1);
             return;
     }
 }

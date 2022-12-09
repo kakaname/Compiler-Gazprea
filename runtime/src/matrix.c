@@ -286,6 +286,7 @@ struct matrix *rt_matrix_logical(struct matrix *a, struct matrix *b, u_int64_t o
 
 u_int8_t rt_matrix_eq(struct matrix *a, struct matrix *b, u_int64_t op) {
     if (a->rows != b->rows || a->cols != b->cols) {
+        fprintf(stderr, "Dimensions not compatible for operation\n");
         exit(1);
     }
 

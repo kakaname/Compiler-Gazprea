@@ -16,7 +16,7 @@ void rt_init_matrix_literal__(int64_t size, int64_t type) {
 }
 
 void rt_add_vector_to_matrix_literal__(struct vector *vec, int64_t idx) {
-    current_vecs[idx-1] = vec;
+    current_vecs[idx] = vec;
 }
 
 struct matrix *rt_get_built_matrix_literal__() {
