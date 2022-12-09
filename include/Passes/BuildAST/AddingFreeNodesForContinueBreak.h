@@ -15,8 +15,8 @@ using std::vector;
 
 struct AddingFreeNodesForContinueBreak: public VisitorPass<AddingFreeNodesForContinueBreak, void> {
     ASTPassManager *PM;
-    bool WithinTheSameLoop;
-    vector<Identifier *> FreedIdentifiers;
+    bool WithinTheSameLoop = true;
+    vector<vector<Identifier *>> FreedIdentifiers;
 
 
     void visitInfiniteLoop(InfiniteLoop *Loop);
@@ -24,6 +24,12 @@ struct AddingFreeNodesForContinueBreak: public VisitorPass<AddingFreeNodesForCon
     void visitConditionalLoop(ConditionalLoop *Loop);
 
     void visitDomainLoop(DomainLoop *Loop);
+
+    void visitBreak(Break *Break);
+
+    void visitContinue(Continue *Continue);
+
+    void addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident);
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");
