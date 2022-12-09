@@ -508,6 +508,14 @@ struct TupleLiteral: public TreeNode {
     TupleLiteral(): TreeNode(TreeNodeKind::N_AST_TupleLiteral) {};
 };
 
+struct TupleDestruct: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_TupleDestruct;
+    }
+
+    TupleDestruct(): TreeNode(TreeNodeKind::N_AST_TupleDestruct) {}
+};
+
 struct MemberAccess: public TreeNode {
     static constexpr size_t ExprIdx = 0;
     static constexpr size_t MemberExprIdx = 1;

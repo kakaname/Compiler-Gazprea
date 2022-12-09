@@ -36,6 +36,7 @@
 #include "Passes/Transformations/BubbleGlobalDeclarationPass.h"
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
+#include "Passes/Transformations/TupleUnpackToAssign.h"
 
 #include <iostream>
 #include <fstream>
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(TupleUnpackToAssignTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());

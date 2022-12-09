@@ -48,7 +48,7 @@ assignment : lvalue EQ expr SC;
 lvalue
     : expr LSQRPAREN expr (COMMA expr)? RSQRPAREN         # indexLValue
     | ID PERIOD (ID | INTLITERAL)           # memAccessLValue
-    | lvalue COMMA lvalue (COMMA lvalue)*   # tupleUnpackLValue
+    | ID COMMA ID (COMMA ID)*   # tupleUnpackLValue
     | ID                                    # identLValue
     ;
 

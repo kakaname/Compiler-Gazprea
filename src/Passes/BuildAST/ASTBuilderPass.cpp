@@ -1214,7 +1214,24 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 }
 
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
-    throw std::runtime_error("Unimplemented: TupleUnpack");
+
+    auto Dest = PM->Builder.build<TupleDestruct>();
+    Dest->setCtx(ctx);
+
+
+    for (auto ID : ctx->ID()) {
+        auto IdentRef = PM->Builder.build<IdentReference>();
+        IdentRef->setCtx(ctx);
+        auto Ident = PM->Builder.build<Identifier>();
+        IdentRef->setIdentifier(Ident);
+        Ident->setParent(IdentRef);
+        Ident->setName(ID->getText());
+        Dest->addChild(IdentRef);
+    }
+
+    return cast<ASTNodeT>(Dest);
+
+
 }
 
 std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {
