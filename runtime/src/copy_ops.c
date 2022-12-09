@@ -15,7 +15,7 @@ struct vector *rt_get_vec_copy__(struct vector *to_copy) {
             unsigned char *data = malloc(sizeof (unsigned char ) * copy->size);
             unsigned char *buf_to_copy = (unsigned char *) to_copy->data;
             for (int64_t i = 0; i < to_copy->size; i++)
-                data[i] = buf_to_copy[to_copy->idx[i]];
+                data[i] = buf_to_copy[to_copy->idx[i] - 1];
             copy->data = data;
             return copy;
         }
@@ -23,15 +23,16 @@ struct vector *rt_get_vec_copy__(struct vector *to_copy) {
             float *data = malloc(sizeof (float ) * copy->size);
             float *buf_to_copy = (float *) to_copy->data;
             for (int64_t i = 0; i < to_copy->size; i++)
-                data[i] = buf_to_copy[to_copy->idx[i]];
+                data[i] = buf_to_copy[to_copy->idx[i] - 1];
             copy->data = data;
             return copy;
         }
         case VECTOR_TYPE_INT: {
             int64_t *data = malloc(sizeof (int64_t ) * copy->size);
             int64_t *buf_to_copy = (int64_t *) to_copy->data;
-            for (int64_t i = 0; i < to_copy->size; i++)
-                data[i] = buf_to_copy[to_copy->idx[i]];
+            for (int64_t i = 0; i < to_copy->size; i++) {
+                data[i] = buf_to_copy[to_copy->idx[i] - 1];
+            }
             copy->data = data;
             return copy;
         }

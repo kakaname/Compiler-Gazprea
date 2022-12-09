@@ -20,7 +20,7 @@ struct vector *rt_vector_empty_copy(int64_t type, struct vector *v) {
 }
 
 char rt_vector_out_of_bounds(struct vector *v, u_int64_t idx) {
-    return (idx >= v->size) ? 1 : 0;
+    return (idx > v->size || idx == 0) ? 1 : 0;
 }
 
 struct vector *rt_vector_not(struct vector *a) {
@@ -54,11 +54,7 @@ struct vector *rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op)
     // At this point, the vectors should be of the same type (innerty and size)
     // As well, only vectors of real and float are supported
 
-    printf("Vector A length: %ld, type: %lul\n", a->size, a->type);
-    printf("Vector B length: %ld, type: %lul\n", b->size, b->type);
-
     struct vector *res = rt_vector_new(a->type, a->size);
-
 
     if (res->type == VECTOR_TYPE_INT) {
         VECTOR_DATA_INIT_RES(int64_t)
@@ -243,17 +239,17 @@ struct vector *rt_vector_create_deep_copy(struct vector *v) {
         case VECTOR_TYPE_BOOL:
         case VECTOR_TYPE_CHAR:
             for (int64_t i = 0; i < v->size; i++) {
-                ((char *) newV->data)[i] = rt_vector_access_char(v, i, 0);
+                ((char *) newV->data)[i] = rt_vector_access_char(v, i+1, 0);
             }
             break;
         case VECTOR_TYPE_INT:
             for (int64_t i = 0; i < v->size; i++) {
-                ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i, 0);
+                ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i+1, 0);
             }
             break;
         case VECTOR_TYPE_FLOAT:
             for (int64_t i = 0; i < v->size; i++) {
-                ((float *) newV->data)[i] = rt_vector_access_float(v, i, 0);
+                ((float *) newV->data)[i] = rt_vector_access_float(v, i+1, 0);
             }
             break;
     }
