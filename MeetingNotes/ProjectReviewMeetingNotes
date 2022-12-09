@@ -116,3 +116,98 @@
 - Dhanraj: will complete those passes, based on our work and his type system, and will update us
 - Young: will work on compilation error recognition
 - Yufei: will work on the visitor pass, and will ensure scoping is done
+
+============================================================================================
+*** Meeting Date/Time start/end:
+ 19/11/2022 5:00 PM
+ 19/11/2022 6:15 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Member's Progress:
+- Rajan: Worked on major runtime functions (output and input streams), compile time errors, codegen for loops/base types/functions, declaration rules
+- Young: Worked on base grammar tests, declaration verification
+- Yufei: Worked on ASTBuilder, ASTNodes, and most importantly the visitor pass, which includes scoping and type checking
+- Dhanraj: Worked on passes, where a lot of these rules should be
+*** Discussion items/agenda:
+1. Project streamlining
+- workflow has hit lots of deadlock, due to misorganization, talked about how to give tasks to specific people
+
+2. Part 2 approach
+- How will we handle the new ast nodes, memory management, new types
+
+*** Outstanding Issues:
+- Reorganize and clean code as it is all clumped up and dirty
+- Matrices and vectors need to be done in order for any work on concat or strings
+*** Actions/Round table:
+- Rajan: will begin work on basic blueprinting for vector types
+- Dhanraj: will reorganize codebase, and clean up code
+- Young: will work on new unit tests, and assist in vector blueprinting
+- Yufei: will work on fixing unattended to bugs, real literals
+============================================================================================
+ 26/11/2022 2:00 PM
+ 26/11/2022 3:15 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Member's Progress:
+- Rajan: Almost finished with vector types
+- Young: Unit tests are all finished
+- Dhanraj: All code has been reorganized, and re structured
+- Yufei: Previous bugs that persisted have been fixed, real literals have begun work on
+*** Discussion items/agenda:
+1. Vectors, Matrices
+- Vectors and Matrices need to be finished or there will be deadlock.
+
+2. Nodes
+- Tuple destructuring needs to be done
+- Built-in functions should be a ASTNode
+
+3. Competitive tests
+- take all errors from competitive tests, and fix them, also integrate those tests into our own tests
+
+4. Reading Week Plan
+- Discussed and in GitHub Project
+
+*** Outstanding Issues:
+- Real literals, and bugs from competitive tests come first
+- Vectors and Matrices must be done in order to continue work on other parts
+*** Actions/Round table:
+- Rajan will finish vectors
+- Dhanraj will finish matrices
+- Young will finish strings and built-ins
+- Yufei will finish memory allocation
+============================================================================================
+*** Meeting Date/Time start/end:
+ 3/12/2022 2:00 PM
+ 3/12/2022 3:15 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Member's Progress:
+- Rajan: Vectors have been finished
+- Young: Strings and constant folding pass has been finished
+- Yufei: Real-literal bug is finished, so is most of memory freeing
+- Dhanraj: Type promotion checking, and Matrix literals are almot done
+*** Discussion items/agenda:
+1. How to handle built-ins
+- Should be ast nodes
+
+2. Types and Declarations
+- Should string be it's own type or should it be an extension of a vector?
+
+*** Outstanding Issues:
+- memory still not finished
+- built ins need to be done
+- Filters and generators must be done
+*** Actions/Round table:
+- Rajan: will finish all runtimes for vectors and matrices
+- Dhanraj: will complete filters, as well as type checking and casting
+- Young: will work on built-ins, as well as testcases
+- Yufei: will work on generator

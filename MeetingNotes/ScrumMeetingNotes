@@ -131,3 +131,88 @@
 - Young: check copy pass,
 - Young and Yufei: edge case tests (at least 80) and fix bugs with them
 - Dhanraj: bug fixes, none in particular, just to pass all tests
+
+============================================================================================
+*** Meeting Date/Time start/end:
+ 23/11/2022 3:30 PM
+ 23/11/2022 4:00 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: Nothing much, some basic blueprinting for vectors
+- Dhanraj: Began restructuring code for cleanliness
+- Yufei: Bug fixes for previous issues
+- Young: A couple tests done
+*** Issues
+- Nothing major, on track
+============================================================================================
+*** Meeting Date/Time start/end:
+ 24/11/2022 6:00 PM
+ 24/11/2022 6:30 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: vector blueprinting is almost finished
+- Young: Unit Tests for part 2 almost finished
+- Yufei: Bug fixes are finished, found issues with how real literals are defined in the code
+- Dhanraj: almost finished restructuring code and passes
+*** Issues:
+- Reals with exponents do not parse properly
+- Code is very unclean, and not following proper principles
+
+============================================================================================
+*** Meeting Date/Time start/end:
+ 1/12/2022 3:30 PM
+ 1/12/2022 4:00 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: vector blueprinting almost finished, almost done outside of runtime
+- Dhanraj: code done restructuring, beginning matrices
+- Yufei: almost finished with generator and real literals
+- Young: almost finished constant folding pass
+*** Issues
+- Constant folding pass has issues
+============================================================================================
+*** Meeting Date/Time start/end:
+ 2/12/2022 7:00 PM
+ 2/12/2022 7:30 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress:
+- Rajan: vectors have been finished
+- Young: Constant folding pass now works
+- Yufei: generator done, real literals almot done
+- Dhanraj: began work on filters
+*** Issues:
+- Intervals have issues with const and var types
+- Filters have issues
+============================================================================================
+*** Meeting Date/Time start/end:
+ 8/12/2022 3:30 PM
+ 8/12/2022 4:00 PM
+*** Attendees:
+ Dhanraj
+ Rajan
+ Young
+ Yufei
+*** Progress: (Final Sprint)
+- Rajan: Matrices basically done, some runtime functions need to be tweaked
+- Dhanraj: filters done, working on interval typing
+- Yufei: began work on intervals, and memory freeing
+- Young: built-ins finished, strings also finished
+*** Issues
+- Interval typing has issues
+- Some tests were wrong needs to be fixed
