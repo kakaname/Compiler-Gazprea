@@ -1,0 +1,7 @@
+procedure main() returns integer {
+    integer[*] x = [1,2,3,4];
+    integer[*] w = reverse(x);
+    w -> std_output;
+     
+  return 0;
+}
