@@ -1259,8 +1259,6 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
 
         auto LVecTy = cast<StringTy>(LType);
         auto RVecTy = cast<StringTy>(RType);
-
-
         auto ResLen = [&]() {
             // If either of the sizes is unknown, the result size is unknown.
             if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
@@ -1269,7 +1267,6 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
             // of the two.
             return LVecTy->getSize() + RVecTy->getSize();
         }();
-
         auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
         annotateWithConst(Concat, ResTy);
         return ResTy;
@@ -1314,9 +1311,7 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     if (LInner->isSameTypeAs(RInner)) {
         Concat->setLHS(LExpr);
         Concat->setRHS(RExpr);
-        auto ResTy = TypeReg->getVectorType(LInner, ResLen);
-        cast<VectorTy>(ResTy)->setSizeExpr(
-                getAddOpBetween(LVecTy->getSizeExpr(), RVecTy->getSizeExpr()));
+        auto ResTy = TypeReg->getVectorType(LInner);
         annotateWithConst(Concat, ResTy);
         return ResTy;
     }
