@@ -70,7 +70,6 @@ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t 
     }
 
     row -= 1;
-    col -= 1;
 
     struct matrix *newM = malloc(sizeof(struct matrix));
 
