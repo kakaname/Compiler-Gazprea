@@ -137,12 +137,12 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
                                            IdentTy->getTypeName());
 
             if (auto VectorType = dyn_cast<VectorTy>(IdentTy)) {
-                if (VectorType->getSize() != -1) {
+                if (VectorType->getSizeExpr()) {
                     Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
                 }
             }
             else if (auto MatrixType = dyn_cast<MatrixTy>(IdentTy)) {
-                if (MatrixType->getNumOfRows() != -1 || MatrixType->getNumOfColumns() != -1) {
+                if (MatrixType->getRowSizeExpr() || MatrixType->getColSizeExpr()) {
                     Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
                 }
             }
