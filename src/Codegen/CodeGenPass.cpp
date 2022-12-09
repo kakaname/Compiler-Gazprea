@@ -364,7 +364,6 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 
         // These outer types are not representative of the main base type, but rather the type of what is being
         // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
-        assert(ExprTy->isSameTypeAs(AssignedToTy) && "Types are not the same");
 
         auto VarTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
 
@@ -385,8 +384,6 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
                     auto ExprLoc = IR.CreateAlloca(getLLVMType(ExprTy));
                     IR.CreateStore(Expr, ExprLoc);
                     auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
-                    if (isa<IdentReference>(Assign->getAssignedTo()))
-                        AssignedTo = IR.CreateLoad(AssignedTo);
                     auto NewVec = IR.CreateCall(GetSameVectorAs, {AssignedTo, ExprPtr});
                     return IR.CreateCall(VectorCopy, {NewVec, AssignedTo});
 
@@ -416,8 +413,6 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
                     auto ExprLoc = IR.CreateAlloca(getLLVMType(ExprTy));
                     IR.CreateStore(Expr, ExprLoc);
                     auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
-                    if (isa<IdentReference>(Assign->getAssignedTo()))
-                        AssignedTo = IR.CreateLoad(AssignedTo);
                     auto NewVec = IR.CreateCall(GetSameMatrixAs, {AssignedTo, ExprPtr});
                     return IR.CreateCall(MatrixCopy, {NewVec, AssignedTo});
 
