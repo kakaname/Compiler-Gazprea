@@ -1,0 +1,12 @@
+procedure foo(var tuple(integer[*, *] v, integer) t) {
+    t.v[2..3, 2..3] = 42;
+}
+
+procedure main() returns integer {
+    var v = ([i in 1..3, j in 4..6 | i + j], 1);
+    v.1 -> std_output; '\n' -> std_output;
+    v.1[2..3, 2..3] -> std_output;
+    call foo(v);
+    v.1 -> std_output;
+    return 0;
+}
