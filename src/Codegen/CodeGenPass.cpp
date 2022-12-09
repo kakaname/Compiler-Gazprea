@@ -290,7 +290,6 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_get_built_matrix_literal__", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {}, false));
 
-
    ReverseBuiltIn = Mod.getOrInsertFunction(
             "rt_rev_built_in", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMVectorPtrTy}, false)); 
