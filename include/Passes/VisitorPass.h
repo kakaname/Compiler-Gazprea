@@ -348,6 +348,14 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitStreamState(StreamState *State) {
+        return RetT();
+    }
+
+    RetT callVisitStreamStateImpl(StreamState *State) {
+        return static_cast<DerivedT*>(this)->visitStreamState(State);
+    }
+
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
@@ -782,6 +790,9 @@ public:
 
         if (auto *Rev = dyn_cast<ReverseFunc>(Node))
             return callVisitBuiltInReverseImpl(Rev);
+
+        if (auto *State = dyn_cast<StreamState>(Node))
+            return callVisitStreamStateImpl(State);
 
         assert(false && "Should be unreachable");
         return RetT();

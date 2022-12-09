@@ -42,7 +42,7 @@ static int put_data_in_read_buf() {
     return characters_read;
 }
 
-int64_t stream_state() {
+int64_t rt_get_stream_state__() {
     return stream.state;
 }
 
@@ -193,6 +193,7 @@ char rt_scan_char() {
 
     char char_from_buf = stream.buf[stream.pop_idx];
     consume_next_n(1);
+    stream.state = 0;
     return char_from_buf;
 }
 
@@ -220,6 +221,7 @@ char rt_scan_bool() {
     }
 
     consume_next_n(buf_len);
+    stream.state = 0;
     return bool == 'T';
 }
 
@@ -247,6 +249,7 @@ int64_t rt_scan_int() {
     }
 
     consume_next_n(buf_len);
+    stream.state = 0;
     return read_val;
 }
 
@@ -273,6 +276,7 @@ float rt_scan_real() {
     }
 
     consume_next_n(buf_len);
+    stream.state = 0;
     return read_in_float;
 }
 

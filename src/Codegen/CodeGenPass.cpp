@@ -304,7 +304,10 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
    ReverseBuiltIn = Mod.getOrInsertFunction(
             "rt_rev_built_in", llvm::FunctionType::get(
-                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false)); 
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
+
+   GetStreamState = Mod.getOrInsertFunction(
+           "rt_get_stream_state__", llvm::FunctionType::get(LLVMIntTy, {}, false));
 
     visit(Root);
     // Dump the module to the output file.
@@ -2423,4 +2426,8 @@ llvm::Value *CodeGenPass::visitBuiltInReverse(ReverseFunc *Rev){
     }
 
     assert(false && "Invalid variable type for reverse() function");
+}
+
+llvm::Value *CodeGenPass::visitStreamState(StreamState *St) {
+    return IR.CreateCall(GetStreamState);
 }

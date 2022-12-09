@@ -122,7 +122,7 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
                 throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
             auto TargetTy = PM->TypeReg.getCompositeTyWithInner(AssignedTy, IdentInner);
-            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), TargetTy));
+            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
             return;
         }
 

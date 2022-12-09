@@ -1394,3 +1394,7 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
+
+std::any ASTBuilderPass::visitBuiltInStreamState(GazpreaParser::BuiltInStreamStateContext *ctx) {
+    return cast<ASTNodeT>(PM->Builder.build<StreamState>());
+}
