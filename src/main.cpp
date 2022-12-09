@@ -37,6 +37,7 @@
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
 #include "Passes/Transformations/TupleUnpackToAssign.h"
+#include "Passes/Transformations/SimplifyTupleLiteralMemberAccess.h"
 
 #include <iostream>
 #include <fstream>
@@ -82,7 +83,7 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-    Manager.registerAnonymousPass(ASTPrinterPass());
+//    Manager.registerAnonymousPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
@@ -120,6 +121,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(SimplifyTupleLiteralMemAccess());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
@@ -128,7 +131,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);

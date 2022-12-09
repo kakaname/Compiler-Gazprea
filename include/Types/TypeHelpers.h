@@ -10,6 +10,7 @@
 #include "CompositeTypes.h"
 #include "ScalarTypes.h"
 #include "TypeRegistry.h"
+#include "Common/MatchBoolPair.h"
 
 using llvm::dyn_cast;
 using llvm::isa;
@@ -100,10 +101,34 @@ bool canPromoteTupleTo(Type *BaseTy, Type *TargetTy) {
     if (BaseTuple->getNumOfMembers() != TargetTuple->getNumOfMembers())
         return false;
 
-    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++)
-        if (!BaseTuple->getMemberTypeAt(I)->canPromoteTo(
-                TargetTuple->getMemberTypeAt(I)))
-            return false;
+    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++) {
+        auto BaseMem = BaseTuple->getMemberTypeAt(I);
+        auto TargetMem = TargetTuple->getMemberTypeAt(I);
+        matchBoolPair(BaseMem->isCompositeTy(),
+                      TargetMem->isCompositeTy()) {
+            matchPattern(false, false): {
+                if (!BaseMem->canPromoteTo(TargetMem))
+                    return false;
+                break;
+            }
+            matchPattern(true, false): {
+                return false;
+            }
+            matchPattern(false, true): {
+                auto InnerTy = TypeRegistry::getInnerTyFromComposite(TargetMem);
+                if (!BaseMem->canPromoteTo(InnerTy))
+                    return false;
+                break;
+            }
+            matchPattern(true, true): {
+                auto BaseInner = TypeRegistry::getInnerTyFromComposite(BaseMem);
+                auto TargetInner = TypeRegistry::getInnerTyFromComposite(TargetMem);
+                if (!BaseInner->canPromoteTo(TargetInner))
+                    return false;
+                break;
+            }
+        }
+    }
     return true;
 }
 
