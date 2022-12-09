@@ -4,7 +4,7 @@
 
 #include "runtime.h"
 
-struct vector *rt_vector_new(enum vector_type type, u_int64_t size) {
+struct vector *rt_vector_new(int64_t type, u_int64_t size) {
     struct vector *v = malloc(sizeof(struct vector));
     v->size = size;
     v->idx = rt_get_seq_idx(size);
@@ -14,7 +14,7 @@ struct vector *rt_vector_new(enum vector_type type, u_int64_t size) {
     return v;
 }
 
-struct vector *rt_vector_empty_copy(enum vector_type type, struct vector *v) {
+struct vector *rt_vector_empty_copy(int64_t type, struct vector *v) {
     struct vector *res = rt_vector_new(type, v->size);
     return res;
 }
@@ -282,6 +282,7 @@ struct vector *rt_vector_view_vector(struct vector *v, struct vector *idx) {
     struct vector *newV = malloc(sizeof(struct vector));
 
     // TODO confirm this works with the test case
+
     newV->size = idx->size;
     newV->idx = idx->data;
     newV->type = v->type;

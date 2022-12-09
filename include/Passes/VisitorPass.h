@@ -69,8 +69,8 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitIndex(Index *Idx) {
-        visit(Idx->getBaseExpr());
-        visit(Idx->getIndexExpr());
+        for (auto Child : *Idx)
+            visit(Child);
         return RetT();
     }
 

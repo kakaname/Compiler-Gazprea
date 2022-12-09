@@ -42,6 +42,7 @@ struct matrix *rt_get_matrix_copy__(struct matrix *to_copy) {
     struct matrix *copy = malloc(sizeof (struct matrix));
     copy->rows = to_copy->rows;
     copy->cols = to_copy->cols;
+    copy->type = to_copy->type;
     copy->idx = rt_get_seq_idx(copy->rows);
     copy->data = malloc(sizeof(struct matrix*) * copy->rows);
     for (int64_t i = 0; i < copy->rows; i++)

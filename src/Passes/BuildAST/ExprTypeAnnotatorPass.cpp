@@ -1022,64 +1022,73 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
         return ResTy;
     }
 
-    for (auto ChildExpr : *VecLit) {
-        auto ChildTy = visit(ChildExpr);
-        ChildTy = PM->TypeReg.getConstTypeOf(ChildTy);
+    auto IsMatrix = [&]() {
+        for (auto ChildExpr: *VecLit) {
+            auto ChildTy = visit(ChildExpr);
+            if (ChildTy->isCompositeTy() || isa<IntervalTy>(ChildTy))
+                return true;
+        }
+        return false;
+    }();
 
-//        // If a vector has an inner type of vector of scalars, then it is a matrix
-//        if (isa<VectorTy>(ChildTy)) {
-//            auto InVecTy = dyn_cast<VectorTy>(ChildTy);
-//            if (!InVecTy->getInnerTy()->isScalarTy()) {
-//                throw runtime_error("Vector literal has a vector of vectors as an element.");
-//            }
-//            if (!WidestType) {
-//                WidestType = ChildTy;
-//                continue;
-//            }
-//
-//            // If the current type is a scalar and we encounter a matrix, then we can promote it like normal
-//            if (WidestType->isScalarTy()) {
-//                WidestType = ChildTy->getPromotedType(WidestType);
-//                continue;
-//            }
-//
-//            // All of this is done here since the type class should not be generating types, only the type registry
-//            // should be doing that. This is to cover the special case where we have to use the type from one existing
-//            // vector and the inner type from another vector.
-//            auto Size = InVecTy->getPromotedVectorSizeForMatrix(dyn_cast<VectorTy>(WidestType));
-//            auto PromotedTy = InVecTy->getInnerTy()->getPromotedType(dyn_cast<VectorTy>(WidestType)->getInnerTy());
-//            WidestType = PM->TypeReg.getVectorType(PromotedTy, Size);
-//
-//        } else if (!ChildTy->isScalarTy()) {
-//            throw std::runtime_error("Vector literal can only contain scalar types");
-//        }
+    if (!IsMatrix) {
+        for (auto ChildExpr: *VecLit) {
+            auto ChildTy = visit(ChildExpr);
+            ChildTy = PM->TypeReg.getConstTypeOf(ChildTy);
+            if (IsFirst)
+                WidestType = ChildTy, IsFirst = false;
+            else
+                WidestType = getWiderType(WidestType, ChildTy);
+        }
 
-        if (IsFirst)
-            WidestType = ChildTy, IsFirst = false;
-        else
-            WidestType = getWiderType(WidestType, ChildTy);
-    }
-
-    // Pass 2: Promote all elements to the highest type
-    for (size_t I = 0; I < VecLit->numOfChildren(); ++I) {
-        auto ChildExpr = VecLit->getChildAt(I);
-        auto ChildTy = visit(ChildExpr);
-        if (ChildTy->isSameTypeAs(WidestType))
-            continue;
-        auto Casted = wrapWithCastTo(ChildExpr, WidestType);
-        VecLit->setExprAtPos(Casted, I);
-    }
-
-    if (isa<VectorTy>(WidestType)) {
-        auto VecTy = dyn_cast<VectorTy>(WidestType);
-        auto ResultTy = PM->TypeReg.getMatrixType(VecTy->getInnerTy(), VecLit->numOfChildren(), VecTy->getSize());
-        PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, ResultTy);
-        return ResultTy;
-    } else {
+        // Pass 2: Promote all elements to the highest type
+        for (size_t I = 0; I < VecLit->numOfChildren(); ++I) {
+            auto ChildExpr = VecLit->getChildAt(I);
+            auto ChildTy = visit(ChildExpr);
+            if (ChildTy->isSameTypeAs(WidestType))
+                continue;
+            auto Casted = wrapWithCastTo(ChildExpr, WidestType);
+            VecLit->setExprAtPos(Casted, I);
+        }
         auto VecTy = TypeReg->getVectorType(WidestType, (int) VecLit->numOfChildren());
         annotate(VecLit, VecTy);
         return VecTy;
     }
+
+    IsFirst = true;
+    for (auto I = 0; I < VecLit->numOfChildren(); I++) {
+        auto ChildExpr = VecLit->getExprAtPos(I);
+        auto ChildTy = visit(ChildExpr);
+
+        if (isa<IntervalTy>(ChildTy)) {
+            auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            VecLit->setExprAtPos(wrapWithCastTo(ChildExpr, VecTy), I);
+            ChildTy = VecTy;
+        }
+
+        if (!isa<VectorTy>(ChildTy))
+            throw runtime_error("All elements inside a matrix literal must be vectors.");
+
+        auto InnerTy = TypeRegistry::getInnerTyFromComposite(ChildTy);
+        if (IsFirst)
+            WidestType = InnerTy, IsFirst = false;
+        else
+            WidestType = getWiderType(WidestType, InnerTy);
+    }
+
+    for (auto I = 0; I < VecLit->numOfChildren(); I++) {
+        auto ChildExpr = VecLit->getExprAtPos(I);
+        auto ChildTy = visit(ChildExpr);
+        auto InnerTy = TypeRegistry::getInnerTyFromComposite(ChildTy);
+        if (InnerTy->isSameTypeAs(WidestType))
+            continue;
+        auto TargetTy = TypeReg->getVectorType(WidestType);
+        VecLit->setExprAtPos(wrapWithCastTo(VecLit->getExprAtPos(I), TargetTy), I);
+    }
+
+    auto ResultTy = PM->TypeReg.getMatrixType(WidestType, VecLit->numOfChildren());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(VecLit, ResultTy);
+    return ResultTy;
 }
 
 Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
@@ -1313,7 +1322,6 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
-    
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
@@ -1618,9 +1626,19 @@ void ExprTypeAnnotatorPass::visitTypeSizeExpressions(Type *T) {
 
 Type *ExprTypeAnnotatorPass::visitDomainLoop(DomainLoop *Loop) {
     auto DomainTy = visit(Loop->getDomain());
-    if (isa<IntervalTy>(DomainTy))
+    if (isa<IntervalTy>(DomainTy)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
         Loop->setDomain(wrapWithCastTo(
-                Loop->getDomain(),TypeReg->getVectorType(TypeReg->getIntegerTy())));
+                Loop->getDomain(),VecTy));
+        DomainTy = VecTy;
+    }
+
+    if (!isa<VectorTy>(DomainTy))
+        throw runtime_error("The domain must be a vector or promotable to vector");
+
+    auto InnerTy = TypeRegistry::getInnerTyFromComposite(DomainTy);
+
+    Loop->getID()->setIdentType(InnerTy);
     visit(Loop->getID());
     visit(Loop->getBody());
 }
