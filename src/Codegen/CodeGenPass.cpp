@@ -1928,11 +1928,18 @@ llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
 llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // TODO Check that the index is within the bounds of the array
+    Value *Vec = [&]() {
+        if (auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr()))
+            return SymbolMap[Ident->getReferred()];
 
-    auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr());
-    assert(Ident && "Trying to take reference of a non-lvalue");
+        if (auto MemRef = dyn_cast<MemberReference>(Ref->getBaseExpr()))
+            return visit(MemRef);
 
-    Value *Vec = SymbolMap[Ident->getReferred()];
+        if (auto MemAcc = dyn_cast<MemberAccess>(Ref->getBaseExpr()))
+            return visit(MemAcc);
+        throw runtime_error("Trying to take reference of a non-lvalue");
+    }();
+
     auto ElementPtr = cast<llvm::PointerType>(Vec->getType())->getElementType();
     if (ElementPtr == LLVMVectorPtrTy || ElementPtr == LLVMMatrixPtrTy)
         Vec = IR.CreateLoad(Vec);
@@ -1989,8 +1996,14 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     if (!MemIdx)
         throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
-    return IR.CreateGEP(StructLoc, {
+    auto RetVal = IR.CreateGEP(StructLoc, {
         IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
+
+    auto ElmPtr = cast<llvm::PointerType>(RetVal->getType())->getElementType();
+
+    if (ElmPtr == LLVMVectorPtrTy || ElmPtr == LLVMMatrixPtrTy)
+        return IR.CreateLoad(RetVal);
+    return RetVal;
 }
 
 llvm::Function *CodeGenPass::getOrInsertFunction(Type *Ty,
