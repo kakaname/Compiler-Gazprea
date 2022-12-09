@@ -276,3 +276,10 @@ float rt_scan_real() {
     return read_in_float;
 }
 
+int64_t rt_col_built_in(struct matrix *m) {
+    return m->cols;
+}
+
+int64_t rt_row_built_in(struct matrix *m) {
+    return m->rows;
+}

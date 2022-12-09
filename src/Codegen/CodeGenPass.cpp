@@ -256,6 +256,10 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     ShutdownFilterExprBuilder = Mod.getOrInsertFunction(
             "rt_shutdown_filter_expr_builder", llvm::FunctionType::get(
                     IR.getVoidTy(), {}, false));
+ 
+    LengthBuiltIn = Mod.getOrInsertFunction(
+            "rt_length_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMVectorPtrTy}, false));
 
     // Copy ops
     GetVectorCopy = Mod.getOrInsertFunction(
@@ -266,6 +270,13 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_get_matrix_copy__", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
 
+    RowBuiltIn = Mod.getOrInsertFunction(
+            "rt_row_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMMatrixPtrTy}, false));
+
+    ColBuiltIn = Mod.getOrInsertFunction(
+            "rt_col_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMMatrixPtrTy}, false));
     // Matrix literals
     InitMatrixLiteral = Mod.getOrInsertFunction(
             "rt_init_matrix_literal__", llvm::FunctionType::get(
@@ -281,7 +292,13 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
 
     visit(Root);
 
+   ReverseBuiltIn = Mod.getOrInsertFunction(
+            "rt_rev_built_in", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false)); 
+
+    visit(Root);
     // Dump the module to the output file.
+
     std::ofstream Out(OutputFile);
     llvm::raw_os_ostream OS(Out);
     OS << Mod;
@@ -2297,4 +2314,52 @@ llvm::Value *CodeGenPass::visitFilter(Filter *Flt) {
     }
     IR.CreateCall(ShutdownFilterExprBuilder, {});
     return IR.CreateLoad(ResultTuple);
+}
+
+llvm::Value *CodeGenPass::visitBuiltInLen(LengthFunc *Len){
+    llvm::Value *Vec = visit(Len->getVector());
+
+    auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Len->getVector());
+
+    if(isa<VectorTy>(VecTy)){
+        return IR.CreateCall(LengthBuiltIn, {Vec});
+    }
+
+    assert(false && "Invalid variable type for length() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInRow(RowFunc *Row){
+    llvm::Value *Mat = visit(Row->getMatrix());
+
+    auto MatTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Row->getMatrix());
+
+    if(isa<MatrixTy>(MatTy)){
+        return IR.CreateCall(RowBuiltIn, {Mat});
+    }
+
+    assert(false && "Invalid variable type for row() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInCol(ColFunc *Col){
+    llvm::Value *Mat = visit(Col->getMatrix());
+
+    auto MatTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Col->getMatrix());
+
+    if(isa<MatrixTy>(MatTy)){
+        return IR.CreateCall(ColBuiltIn, {Mat});
+    }
+
+    assert(false && "Invalid variable type for col() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInReverse(ReverseFunc *Rev){
+    llvm::Value *Vec = visit(Rev->getVector());
+
+    auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Rev->getVector());
+
+    if(isa<VectorTy>(VecTy)){
+        return IR.CreateCall(ReverseBuiltIn, {Vec});
+    }
+
+    assert(false && "Invalid variable type for reverse() function");
 }
