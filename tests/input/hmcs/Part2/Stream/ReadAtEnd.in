@@ -1,0 +1,9 @@
+procedure main() returns integer {
+
+    boolean b;
+    b <- std_input;
+    b -> std_output;
+    stream_state(std_input) -> std_output;
+
+    return 0;
+}
