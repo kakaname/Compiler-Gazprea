@@ -52,6 +52,10 @@ struct matrix *rt_matrix_create_deep_copy(struct matrix *m) {
 void rt_matrix_populate_row(struct matrix *m, struct vector *v, u_int64_t row) {
     // Because of prior casting logic, this runtime function assumes the column size
     // and vector size are equal
+    if (row == 0) {
+        exit(1);
+    }
+    row -= 1;
     if (m->cols != v->size) {
         exit(1);
     }
@@ -60,6 +64,14 @@ void rt_matrix_populate_row(struct matrix *m, struct vector *v, u_int64_t row) {
 
 }
 struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t col) {
+
+    if (row == 0 || col == 0) {
+        exit(1);
+    }
+
+    row -= 1;
+    col -= 1;
+
     struct matrix *newM = malloc(sizeof(struct matrix));
 
     newM->rows = 1;
@@ -72,6 +84,11 @@ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t 
 }
 
 struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64_t scalar, u_int64_t orientation) {
+
+    if (scalar == 0) {
+        exit(1);
+    }
+    scalar -= 1;
     struct matrix *newM = malloc(sizeof(struct matrix));
 
     // TODO fix case where one of them gets assigned to 1 and we assume vectors can be assigned?
@@ -83,7 +100,7 @@ struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64
         newM->type = m->type;
         newM->data = malloc(sizeof(struct vector *) * v->size);
         for (int64_t i = 0; i < v->size; i++) {
-            newM->data[i] = rt_vector_view_scalar(m->data[rt_vector_access_int64_t(v, i, 0)], scalar);
+            newM->data[i] = rt_vector_view_scalar(m->data[rt_vector_access_int64_t(v, i+1, 0)-1], scalar);
         }
     } else {
         // if the columns item has a vector, the "easy case"
@@ -107,7 +124,7 @@ struct matrix *rt_matrix_view_matrix(struct matrix *m, struct vector *rows, stru
     newM->type = m->type;
     newM->data = malloc(sizeof(struct vector *) * rows->size);
     for (int64_t i = 0; i < rows->size; i++) {
-        newM->data[i] = rt_vector_view_vector(m->data[rt_vector_access_int64_t(rows, i, 0)], cols);
+        newM->data[i] = rt_vector_view_vector(m->data[rt_vector_access_int64_t(rows, i+1, 0)-1], cols);
     }
 
     return newM;
@@ -211,13 +228,13 @@ void rt_vector_copy(struct vector *from, struct vector *to) {
         switch (from->type) {
             case VECTOR_TYPE_CHAR:
             case VECTOR_TYPE_BOOL:
-                rt_vector_set_char(to, i, rt_vector_access_char(from, i, 0), 0);
+                rt_vector_set_char(to, i+i, rt_vector_access_char(from, i+1, 0), 0);
                 break;
             case VECTOR_TYPE_INT:
-                rt_vector_set_int64_t(to, i, rt_vector_access_int64_t(from, i, 0), 0);
+                rt_vector_set_int64_t(to, i+i, rt_vector_access_int64_t(from, i+1, 0), 0);
                 break;
             case VECTOR_TYPE_FLOAT:
-                rt_vector_set_float(to, i, rt_vector_access_float(from, i, 0), 0);
+                rt_vector_set_float(to, i+i, rt_vector_access_float(from, i+1, 0), 0);
                 break;
         }
     }
@@ -239,13 +256,13 @@ void rt_matrix_set_vector(struct matrix *to, struct vector *from) {
             switch (from->type) {
                 case VECTOR_TYPE_CHAR:
                 case VECTOR_TYPE_BOOL:
-                    rt_vector_set_char(to->data[i], 0, rt_vector_access_char(from, i, 0), 0);
+                    rt_vector_set_char(to->data[i], 0, rt_vector_access_char(from, i+1, 0), 0);
                     break;
                 case VECTOR_TYPE_INT:
-                    rt_vector_set_int64_t(to->data[i], 0, rt_vector_access_int64_t(from, i, 0), 0);
+                    rt_vector_set_int64_t(to->data[i], 0, rt_vector_access_int64_t(from, i+1, 0), 0);
                     break;
                 case VECTOR_TYPE_FLOAT:
-                    rt_vector_set_float(to->data[i], 0, rt_vector_access_float(from, i, 0), 0);
+                    rt_vector_set_float(to->data[i], 0, rt_vector_access_float(from, i+1, 0), 0);
                     break;
             }
         }

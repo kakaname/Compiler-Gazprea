@@ -74,6 +74,11 @@ res_data[i] = a_data[i*stride];            \
 }
 #define VECTOR_ACCESS(type) \
 type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecked) { \
+    if (idx == 0) { \
+        exit(1); \
+    } \
+    idx -= 1; \
+    \
     if (idx >= v->size) {   \
         if (unchecked) {  \
             return 0; \
@@ -89,6 +94,11 @@ type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecke
 }
 #define VECTOR_SET(type) \
 void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t unchecked) { \
+    if (idx == 0) { \
+        exit(1); \
+    } \
+    idx -= 1; \
+    \
     if (idx >= v->size) {\
         if (unchecked) {  \
             return; \
@@ -105,6 +115,12 @@ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t u
 }
 #define MATRIX_ACCESS(type) \
 type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_int64_t unchecked) { \
+    if (row == 0 || col == 0) { \
+        exit(1); \
+    } \
+    row -= 1; \
+    col -= 1; \
+    \
     if (row >= m->rows || col >= m->cols) { \
         if (unchecked) { \
             return 0; \
@@ -122,6 +138,12 @@ type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_i
 }
 #define MATRIX_SET(type) \
 void rt_matrix_set_##type(struct matrix *m, u_int64_t row, u_int64_t col, type val, u_int64_t unchecked) { \
+    if (row == 0 || col == 0) { \
+        exit(1); \
+    } \
+    row -= 1; \
+    col -= 1; \
+    \
     if (row >= m->rows || col >= m->cols) { \
         if (unchecked) { \
             return; \
