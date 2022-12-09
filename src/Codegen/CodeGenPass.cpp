@@ -99,7 +99,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
     PrintVector = Mod.getOrInsertFunction(
             "rt_print_vector", llvm::FunctionType::get(
-                    LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
+                    IR.getVoidTy(), {LLVMVectorPtrTy}, false));
     VectorEq = Mod.getOrInsertFunction(
             "rt_vector_eq", llvm::FunctionType::get(
                     LLVMCharTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
