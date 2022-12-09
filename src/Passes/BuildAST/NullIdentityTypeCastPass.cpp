@@ -16,6 +16,7 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
     bool IsNull = isa<NullTy>(ExprTy);
     auto IsTupleTy = isa<TupleTy>(Cast->getTargetType());
     auto IsIntervalTy = isa<IntervalTy>(Cast->getTargetType());
+
     if (IsTupleTy) {
         auto TupleLit = PM->Builder.build<TupleLiteral>();
         TupleLit->copyCtx(Cast);

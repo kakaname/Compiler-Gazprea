@@ -320,9 +320,12 @@ llvm::Value *CodeGenPass::createAlloca(Type *Ty) {
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
     auto IdentTy = Ident->getIdentType();
-//    if (Val->getType()->isPointerTy() && !IdentTy->isCompositeTy())
-    return IR.CreateLoad(Val);
-//    return Val;
+    if (Val->getType() == LLVMVectorPtrTy || Val->getType() == LLVMMatrixPtrTy)
+        return Val;
+
+    if (Val->getType()->isPointerTy())
+        return IR.CreateLoad(Val);
+    return Val;
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {

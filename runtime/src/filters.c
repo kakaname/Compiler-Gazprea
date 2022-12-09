@@ -42,7 +42,7 @@ void rt_init_filter_expr(struct vector *domain, int64_t number_of_exprs) {
 }
 
 void rt_update_filter_at_pos(int64_t idx, char should_update, void *data) {
-    printf("Updating filter at i=%ld should_update=%b\n", idx, !!should_update);
+//    printf("Updating filter at i=%ld should_update=%b\n", idx, !!should_update);
     if (!should_update)
         return;
 
@@ -52,11 +52,11 @@ void rt_update_filter_at_pos(int64_t idx, char should_update, void *data) {
     assign_to_idx(vec_at_idx->data, data, current_size, vec_at_idx->type);
     vec_at_idx->size++;
 
-    printf("Index is i=%ld\n", idx);
-    printf("After update at i=%ld\n", idx);
 //    printf("Index is i=%ld\n", idx);
-    for (int i = 0; i < vec_at_idx->size; i++)
-        printf("%f\n", *((float *) vec_at_idx->data + i));
+//    printf("After update at i=%ld\n", idx);
+//    printf("Index is i=%ld\n", idx);
+//    for (int i = 0; i < vec_at_idx->size; i++)
+//        printf("%f\n", *((float *) vec_at_idx->data + i));
 
     should_add_to_residual = 0;
 }

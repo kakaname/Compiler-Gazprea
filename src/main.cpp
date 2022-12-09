@@ -113,13 +113,11 @@ int main(int argc, char **argv) {
     Manager.registerPass(ProcedureCallAliasCheckPass());
 
     Manager.registerPass(ChangeMemAccessToMemRef());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
-    Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
-//    Manager.registerPass(SimplifyCompositeTypeCasting());
-//    Manager.registerPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
