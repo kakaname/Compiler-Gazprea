@@ -1605,7 +1605,7 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
         throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
     return IR.CreateGEP(StructLoc, {
-        IR.getInt64(0), IR.getInt64(MemIdx->getVal() - 1)});
+        IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
 }
 
 llvm::Function *CodeGenPass::getOrInsertFunction(Type *Ty,
