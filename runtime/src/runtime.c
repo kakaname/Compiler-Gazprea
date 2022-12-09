@@ -45,8 +45,8 @@ int64_t stream_state() {
 }
 
 void rt_stream_in_init() {
-    for (int i = 0; i < STREAM_BUF_LEN; i++)
-        stream.buf[i] = getchar();
+//    for (int i = 0; i < STREAM_BUF_LEN; i++)
+//        stream.buf[i] = getchar();
 }
 
 static char has_input_ended() {
@@ -140,7 +140,7 @@ void rt_print_vector(struct vector *v) {
                 printf(" ");
         }
     } else if (v->type == VECTOR_TYPE_BOOL) {
-        char *data = (char *) v->data;
+        unsigned char *data = (unsigned char *) v->data;
         for (int64_t i = 0; i < v->size; i++) {
             printf("%c", data[i] ? 'T' : 'F');
             if (i != v->size - 1)

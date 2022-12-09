@@ -1345,9 +1345,8 @@ std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) 
     Filt->setDomain(castToNodeVisit(ctx->expr(0)));
 
     auto PredList = PM->Builder.build<PredicatedList>();
-    for (long long int I = 1; I < ctx->expr().size(); I++) {
-        Filt->addChild(castToNodeVisit(ctx->expr(I)));
-    }
+    for (long I = 1; I < ctx->expr().size(); I++)
+        PredList->addChild(castToNodeVisit(ctx->expr(I)));
 
     Filt->setPredicatedList(PredList);
 

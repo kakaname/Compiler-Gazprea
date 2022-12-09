@@ -114,9 +114,21 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetCastedMatrix;
     llvm::FunctionCallee GetVectorWithValue;
     llvm::FunctionCallee GetMatrixWithValue;
+    llvm::FunctionCallee GetIntVectorFromInterval;
+    llvm::FunctionCallee GetRealVectorFromInterval;
 
     // Init runtime
     llvm::FunctionCallee InitRuntimeStream;
+
+
+    // Filter functions
+    llvm::FunctionCallee WriteValFromVecTo;
+    llvm::FunctionCallee InitFilterExpr;
+    llvm::FunctionCallee UpdateFilterAtPos;
+    llvm::FunctionCallee FilterEndIteration;
+    llvm::FunctionCallee GetCompletedFilterAt;
+    llvm::FunctionCallee ShutdownFilterExprBuilder;
+
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
