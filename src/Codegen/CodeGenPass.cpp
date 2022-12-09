@@ -270,6 +270,14 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_get_matrix_copy__", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
 
+    RowBuiltIn = Mod.getOrInsertFunction(
+            "rt_row_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMMatrixPtrTy}, false));
+
+    ColBuiltIn = Mod.getOrInsertFunction(
+            "rt_col_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMMatrixPtrTy}, false));
+
     visit(Root);
 
     // Dump the module to the output file.
@@ -2249,4 +2257,28 @@ llvm::Value *CodeGenPass::visitBuiltInLen(LengthFunc *Len){
     }
 
     assert(false && "Invalid variable type for length() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInRow(RowFunc *Row){
+    llvm::Value *Mat = visit(Row->getMatrix());
+
+    auto MatTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Row->getMatrix());
+
+    if(isa<MatrixTy>(MatTy)){
+        return IR.CreateCall(RowBuiltIn, {Mat});
+    }
+
+    assert(false && "Invalid variable type for row() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInCol(ColFunc *Col){
+    llvm::Value *Mat = visit(Col->getMatrix());
+
+    auto MatTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Col->getMatrix());
+
+    if(isa<MatrixTy>(MatTy)){
+        return IR.CreateCall(ColBuiltIn, {Mat});
+    }
+
+    assert(false && "Invalid variable type for col() function");
 }

@@ -766,6 +766,24 @@ Type *ExprTypeAnnotatorPass::visitBuiltInLen(LengthFunc *Len){
 
 }
 
+Type *ExprTypeAnnotatorPass::visitBuiltInRow(RowFunc *Row){
+    visit(Row->getMatrix());
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Row, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
+Type *ExprTypeAnnotatorPass::visitBuiltInCol(ColFunc *Col){
+    visit(Col->getMatrix());
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Col, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntegerTy());
     return PM->TypeReg.getIntegerTy();

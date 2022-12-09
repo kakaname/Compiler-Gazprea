@@ -1366,6 +1366,21 @@ std::any ASTBuilderPass::visitBuiltInLen(GazpreaParser::BuiltInLenContext *ctx) 
     
 }
 
+std::any ASTBuilderPass::visitBuiltInRows(GazpreaParser::BuiltInRowsContext *ctx) {
+    auto Row = PM->Builder.build<RowFunc>();
+    Row->setCtx(ctx);
+    Row->setMatrix(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Row);
+}
+
+std::any ASTBuilderPass::visitBuiltInCol(GazpreaParser::BuiltInColContext *ctx) {
+    auto Col = PM->Builder.build<ColFunc>();
+    Col->setCtx(ctx);
+    Col->setMatrix(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Col);
+}
 
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))

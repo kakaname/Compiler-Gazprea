@@ -1542,4 +1542,42 @@ struct LengthFunc : public TreeNode {
     LengthFunc() : TreeNode(TreeNodeKind::N_AST_Length) {};
 
 };
+
+struct RowFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Row;
+    }
+    
+    void setMatrix(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getMatrix(){
+        return getChildAt(ExprIdx);
+    }
+
+    RowFunc() : TreeNode(TreeNodeKind::N_AST_Row) {};
+
+};
+
+struct ColFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Col;
+    }
+    
+    void setMatrix(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getMatrix(){
+        return getChildAt(ExprIdx);
+    }
+
+    ColFunc() : TreeNode(TreeNodeKind::N_AST_Col) {};
+
+};
 #endif //GAZPREABASE_ASTNODES_H

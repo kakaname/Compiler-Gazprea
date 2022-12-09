@@ -108,6 +108,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee MatrixSetVector;
     llvm::FunctionCallee MatrixMul;
     llvm::FunctionCallee LengthBuiltIn;
+    llvm::FunctionCallee RowBuiltIn;
+    llvm::FunctionCallee ColBuiltIn;
 
 
     // Casting functions
@@ -218,6 +220,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitDotProduct(DotProduct *Dot);
     llvm::Value *visitByOp(ByOp *By);
     llvm::Value *visitBuiltInLen(LengthFunc *Len);
+    llvm::Value *visitBuiltInRow(RowFunc *Row);
+    llvm::Value *visitBuiltInCol(ColFunc *Col);
 
 
     uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);

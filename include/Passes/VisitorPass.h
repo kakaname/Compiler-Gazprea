@@ -333,6 +333,16 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitBuiltInRow(RowFunc *Row) {
+        visit(Row->getMatrix());
+        return RetT();
+    }
+
+    RetT visitBuiltInCol(ColFunc *Col) {
+        visit(Col->getMatrix());
+        return RetT();
+    }
+
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
@@ -564,6 +574,13 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitBuiltInLen(Len);
     }
 
+    RetT callVisitBuiltInRowImpl(RowFunc *Row) {
+        return static_cast<DerivedT*>(this)->visitBuiltInRow(Row);
+    }
+
+    RetT callVisitBuiltInColImpl(ColFunc *Col) {
+        return static_cast<DerivedT*>(this)->visitBuiltInCol(Col);
+    }
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
@@ -747,6 +764,12 @@ public:
 
         if (auto *Len = dyn_cast<LengthFunc>(Node))
             return callVisitBuiltInLenImpl(Len);
+
+        if (auto *Col = dyn_cast<ColFunc>(Node))
+            return callVisitBuiltInColImpl(Col);
+
+        if (auto *Row = dyn_cast<RowFunc>(Node))
+            return callVisitBuiltInRowImpl(Row);
 
         assert(false && "Should be unreachable");
         return RetT();
