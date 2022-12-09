@@ -193,6 +193,15 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     MatrixMul = Mod.getOrInsertFunction(
             "rt_matrix_mul", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy, LLVMMatrixPtrTy}, false));
+    MatrixVectorGet = Mod.getOrInsertFunction(
+            "rt_matrix_vector_get", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixVectorInitAssign = Mod.getOrInsertFunction(
+            "rt_matrix_vector_init_assign", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixVectorAssign = Mod.getOrInsertFunction(
+            "rt_matrix_vector_assign", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMVectorPtrTy}, false));
 
 
     // Casting functions.
@@ -385,6 +394,12 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
             VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IndexReference>(Assign->getAssignedTo())->getBaseExpr());
         else
             VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IdentReference>(Assign->getAssignedTo())->getIdentifier());
+
+        // special case: if we assign to a base type of a matrix with a vector, it is a IndexReference and we call a special runtime function
+        // to handle this
+        if (isa<MatrixTy>(VarExprTy) && isa<VectorTy>(ExprTy) && isa<IndexReference>(Assign->getAssignedTo())) {
+            return IR.CreateCall(MatrixVectorAssign, {Expr});
+        }
         
 
         if (isa<VectorTy>(VarExprTy)) {
@@ -951,13 +966,13 @@ llvm::Value *CodeGenPass::visitIndex(Index *Idx) {
 
         } else if (isa<VectorTy>(RowType) && isa<VectorTy>(ColType)) {
             Res = IR.CreateCall(MatrixViewMatrix, {Vec, Row, Col});
+            return IR.CreateCall(MatrixCreateDeepCopy, {Res});
         } else if (isa<VectorTy>(RowType) && isa<IntegerTy>(ColType)) {
-            Res = IR.CreateCall(MatrixViewVector, {Vec, Row, Col, IR.getInt64(0)});
+            return IR.CreateCall(MatrixVectorGet, {Vec, Row, Col, IR.getInt64(0)});
         } else if (isa<IntegerTy>(RowType) && isa<VectorTy>(ColType)) {
-            Res = IR.CreateCall(MatrixViewVector, {Vec, Col, Row, IR.getInt64(1)});
+            return IR.CreateCall(MatrixVectorGet, {Vec, Col, Row, IR.getInt64(1)});
         }
 
-        return IR.CreateCall(MatrixCreateDeepCopy, {Res});
 
     }
 }
@@ -1922,9 +1937,9 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
         } else if (isa<VectorTy>(RowIdxTy) && isa<VectorTy>(ColIdxTy)) {
             return IR.CreateCall(MatrixViewMatrix, {Vec, RowIdx, ColIdx});
         } else if (isa<VectorTy>(RowIdxTy) && isa<IntegerTy>(ColIdxTy)) {
-            return IR.CreateCall(MatrixViewVector, {Vec, RowIdx, ColIdx, IR.getInt64(0)});
+            return IR.CreateCall(MatrixVectorInitAssign, {Vec, RowIdx, ColIdx, IR.getInt64(0)});
         } else if (isa<IntegerTy>(RowIdxTy) && isa<VectorTy>(ColIdxTy)) {
-            return IR.CreateCall(MatrixViewVector, {Vec, ColIdx, RowIdx, IR.getInt64(1)});
+            return IR.CreateCall(MatrixVectorInitAssign, {Vec, ColIdx, RowIdx, IR.getInt64(1)});
         } else {
             assert(false && "Invalid index type");
         }
