@@ -205,3 +205,5 @@ struct vector *rt_vector_view_vector(struct vector *v, struct vector *idx);
 int64_t *rt_get_seq_idx(int64_t size);
 void* rt_get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val);
 struct vector *rt_vector_empty_copy(enum vector_type type, struct vector *v);
+
+struct vector *rt_get_casted_vector(struct vector *base, int64_t size, int64_t target_type);

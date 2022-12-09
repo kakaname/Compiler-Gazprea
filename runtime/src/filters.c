@@ -16,12 +16,13 @@ static void assign_to_idx(void *data_alloc, void *data, int64_t idx, enum vector
         case VECTOR_TYPE_CHAR:
         case VECTOR_TYPE_BOOL:
             *(((unsigned char *) data_alloc) + idx) = *((unsigned char *) data);
+            return;
         case VECTOR_TYPE_INT:
-            printf("Assigning to idx=%ld val=%ld\n", idx, *((int64_t *) data));
             *(((int64_t *) data_alloc) + idx) = *((int64_t *) data);
-
+            return;
         case VECTOR_TYPE_FLOAT:
             *(((float *) data_alloc) + idx) = *((float *) data);
+            return;
     }
 }
 
