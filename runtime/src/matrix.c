@@ -12,7 +12,7 @@ MATRIX_SET(char)
 MATRIX_SET(int64_t)
 MATRIX_SET(float)
 
-struct matrix *rt_matrix_new(enum vector_type type, u_int64_t rows, u_int64_t cols) {
+struct matrix *rt_matrix_new(int64_t type, u_int64_t rows, u_int64_t cols) {
     struct matrix *m = malloc(sizeof(struct matrix));
     m->rows = rows;
     m->cols = cols;
@@ -26,7 +26,7 @@ struct matrix *rt_matrix_create_unpopulated(struct matrix *v) {
     return rt_matrix_new(v->type, v->rows, v->cols);
 }
 
-struct matrix *rt_matrix_empty_from_vector(enum vector_type type, struct vector *row, struct vector *col) {
+struct matrix *rt_matrix_empty_from_vector(int64_t type, struct vector *row, struct vector *col) {
     struct matrix *m = rt_matrix_new(type, row->size, col->size);
     for (int64_t i = 0; i < row->size; i++) {
         m->data[i] = rt_vector_empty_copy(type, col);

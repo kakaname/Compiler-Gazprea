@@ -52,7 +52,7 @@ int64_t *rt_get_seq_idx(int64_t size) {
 }
 
 static void cast_scalar_value(void *src, void *dest,
-                       enum vector_type src_ty, enum vector_type dest_ty) {
+                       int64_t src_ty, int64_t dest_ty) {
     switch (dest_ty) {
         case VECTOR_TYPE_BOOL:
             switch (src_ty) {
@@ -81,7 +81,6 @@ static void cast_scalar_value(void *src, void *dest,
                     *((int64_t *) dest) = (src) ? *((float *) src) : 0;
                     return;
                 case VECTOR_TYPE_CHAR:
-                    printf("Casting from char to integer\n");
                     *((int64_t *) dest) = (src) ?  *((unsigned char *) src) : 0;
                     return;
             }
@@ -118,7 +117,7 @@ static void cast_scalar_value(void *src, void *dest,
     }
 }
 
-void* rt_get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val) {
+void* rt_get_data_alloc_for_vec(int64_t size, int64_t type, void *default_val) {
     switch (type) {
         case VECTOR_TYPE_BOOL:
         case VECTOR_TYPE_CHAR: {
@@ -161,8 +160,9 @@ struct matrix *rt_get_same_matrix_as(struct matrix *target, void *data) {
     new_mat->cols = target->cols;
     new_mat->data = malloc(target->rows * sizeof(struct vector*));
     new_mat->idx = rt_get_seq_idx(target->rows);
-    for (int64_t i = 0; i < target->rows; i++)
-        new_mat->data[i] = rt_get_same_vector_as(target->data[target->idx[i]], data);
+    for (int64_t i = 0; i < target->rows; i++) {
+        new_mat->data[i] = rt_get_same_vector_as(target->data[i], data);
+    }
     return new_mat;
 }
 
@@ -203,7 +203,7 @@ struct vector *rt_get_casted_vector(struct vector *base,
 }
 
 struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
-        int64_t cols, enum vector_type target_type) {
+        int64_t cols, int64_t target_type) {
     int64_t target_rows = (rows > -1) ? rows : base->rows;
     int64_t target_cols = (cols > -1) ? cols : base->cols;
 
@@ -230,7 +230,7 @@ struct matrix *rt_get_casted_matrix(struct matrix* base, int64_t rows,
     return new_mat;
 }
 
-struct vector *rt_get_vector_with_value(int64_t size, enum vector_type type, void *value) {
+struct vector *rt_get_vector_with_value(int64_t size, int64_t type, void *value) {
     struct vector *new_vec = malloc(sizeof (struct vector));
     new_vec->size = size;
     new_vec->idx = rt_get_seq_idx(size);
@@ -239,7 +239,7 @@ struct vector *rt_get_vector_with_value(int64_t size, enum vector_type type, voi
     return new_vec;
 }
 
-struct matrix *rt_get_matrix_with_value(int64_t rows, int64_t cols, enum vector_type type, void *value) {
+struct matrix *rt_get_matrix_with_value(int64_t rows, int64_t cols, int64_t type, void *value) {
     struct matrix *new_mat = malloc(sizeof (struct matrix));
     new_mat->rows = rows;
     new_mat->cols = cols;
