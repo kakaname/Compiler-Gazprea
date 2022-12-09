@@ -323,4 +323,11 @@ bool canCastVectorTo(Type *Base, Type *TargetTy) {
     return (BaseVec->getInnerTy()->canCastTo(VecTy->getInnerTy()));
 }
 
+bool canCastIntervalTo(Type* T) {
+    if (!isa<VectorTy>(T))
+        return false;
+    auto InnerT = TypeRegistry::getInnerTyFromComposite(T);
+    return isa<IntegerTy>(InnerT) || isa<RealTy>(InnerT);
+}
+
 #endif //GAZPREABASE_TYPEHELPERS_H

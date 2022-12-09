@@ -41,6 +41,7 @@ bool isSameVectorAs(Type*, Type*);
 bool canCastVectorTo(Type*, Type*);
 bool canCastBoolCharIntTo(Type*);
 bool canCastRealTo(Type*);
+bool canCastIntervalTo(Type*);
 
 Type *getPromotedScalarType(Type*, Type*);
 
@@ -195,6 +196,8 @@ public:
                 return isValidTupleCast(this, T);
             case T_Vector:
                 return canCastVectorTo(this, T);
+            case T_Interval:
+                return canCastIntervalTo(T);
             default:
                 return false;
         }

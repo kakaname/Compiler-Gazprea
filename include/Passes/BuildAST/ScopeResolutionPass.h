@@ -118,10 +118,14 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         // Here, we declare a new variable, using the inner type of the domain as
         // the inferred expression type
         auto ExprType = runTypeAnnotator(Loop->getDomain());
+
+
         assert(ExprType && "need to know type");
-        if (!isa<VectorTy>(ExprType))
+        auto VecTy = dyn_cast<VectorTy>(ExprType);
+        if (!VecTy && !isa<IntervalTy>(ExprType))
             throw runtime_error("Domain must be a vector type or promotable to one");
-        auto InnerType = dyn_cast<VectorTy>(ExprType)->getInnerTy();
+
+        auto InnerType = (VecTy) ? VecTy->getInnerTy() : PM->TypeReg.getIntegerTy();
         InnerType = PM->TypeReg.getVarTypeOf(InnerType);
         Loop->getID()->setIdentType(InnerType);
         auto Sym = PM->SymTable.defineObject(Loop->getID()->getName(), InnerType);
@@ -476,6 +480,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
         }
         auto Sym = PM->SymTable.defineObject(Filter->getDomainVar()->getName(), DomainVarTy);
         Filter->getDomainVar()->setReferred(Sym);
+        Filter->getDomainVar()->setIdentType(DomainVarTy);
         CurrentScope->declareInScope(Filter->getDomainVar()->getName(), Sym);
 
         visit(Filter->getPredicatedList());
