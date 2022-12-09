@@ -6,6 +6,7 @@ set(
   "${CMAKE_CURRENT_SOURCE_DIR}/vectors.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/casting.c"
   "${CMAKE_CURRENT_SOURCE_DIR}/filters.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/copy_ops.c"
 )
 
 # Build our executable from the source files.

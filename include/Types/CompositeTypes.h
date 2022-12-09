@@ -25,8 +25,8 @@ struct IntervalTy : public Type {
 
     IntervalTy() = delete;
 
-    explicit IntervalTy(int Length):
-        Type(TypeKind::T_Interval, true), Length(Length) {}
+    explicit IntervalTy(int Length, bool IsConst):
+        Type(TypeKind::T_Interval, IsConst), Length(Length) {}
 
     int isLengthKnown()  {
         return Length >= 0;

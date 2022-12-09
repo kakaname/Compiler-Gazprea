@@ -129,6 +129,10 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetCompletedFilterAt;
     llvm::FunctionCallee ShutdownFilterExprBuilder;
 
+    // Copy ops
+    llvm::FunctionCallee GetVectorCopy;
+    llvm::FunctionCallee GetMatrixCopy;
+
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.

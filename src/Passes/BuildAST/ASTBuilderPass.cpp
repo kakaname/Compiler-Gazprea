@@ -383,7 +383,7 @@ std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *c
     auto InnerTy = castToTypeVisit(ctx->type());
     if (!isa<IntegerTy>(InnerTy))
         throw runtime_error("Intervals may only contain integers");
-    return PM->TypeReg.getIntervalTy(false);
+    return PM->TypeReg.getIntervalTy(-1, false);
 }
 
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {

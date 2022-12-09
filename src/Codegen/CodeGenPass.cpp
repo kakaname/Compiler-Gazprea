@@ -108,7 +108,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
     PrintString = Mod.getOrInsertFunction(
             "rt_print_string", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMVectorPtrTy}, false));
@@ -251,7 +251,14 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_shutdown_filter_expr_builder", llvm::FunctionType::get(
                     IR.getVoidTy(), {}, false));
 
+    // Copy ops
+    GetVectorCopy = Mod.getOrInsertFunction(
+            "rt_get_vec_copy__", llvm::FunctionType::get(
+                LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
 
+    GetMatrixCopy = Mod.getOrInsertFunction(
+            "rt_get_matrix_copy__", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
 
     visit(Root);
 
@@ -281,7 +288,7 @@ llvm::Type *CodeGenPass::getLLVMType(Type *Ty) {
         case Type::TypeKind::T_Char:
             return ConstConv(LLVMCharTy, Ty->isConst());
         case Type::TypeKind::T_Interval:
-            return ConstConv(LLVMIntervalTy, Ty->isConst());
+            return LLVMIntervalTy;
         case Type::TypeKind::T_Tuple:
             return ConstConv(getLLVMTupleType(
                     cast<TupleTy>(Ty)), Ty->isConst());
@@ -317,11 +324,26 @@ llvm::Value *CodeGenPass::createAlloca(Type *Ty) {
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
     auto IdentTy = Ident->getIdentType();
-    if (Val->getType() == LLVMVectorPtrTy || Val->getType() == LLVMMatrixPtrTy)
-        return Val;
+    if (Val->getType() == LLVMVectorPtrTy || Val->getType() == LLVMMatrixPtrTy) {
+        if (isa<VectorTy>(IdentTy))
+            return IR.CreateCall(GetVectorCopy, {Val});
 
-    if (Val->getType()->isPointerTy())
-        return IR.CreateLoad(Val);
+        if (isa<MatrixTy>(IdentTy))
+            return IR.CreateCall(GetMatrixCopy, {Val});
+    }
+
+    if (Val->getType()->isPointerTy()) {
+        auto LoadedVal = IR.CreateLoad(Val);
+
+        if (LoadedVal->getType() == LLVMVectorPtrTy || LoadedVal->getType() == LLVMMatrixPtrTy) {
+            if (isa<VectorTy>(IdentTy))
+                return IR.CreateCall(GetVectorCopy, {LoadedVal});
+
+            if (isa<MatrixTy>(IdentTy))
+                return IR.CreateCall(GetMatrixCopy, {LoadedVal});
+        }
+        return LoadedVal;
+    }
     return Val;
 }
 
@@ -445,11 +467,37 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    // Just an assertion, not needed for code gen.
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
-//                                     " not have reached the code gen");
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+
+    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false):
+            break;
+            // Left type if composite the right is scalar.
+        matchPattern(true, false): {
+            auto PtrToVal = createAlloca(RTy);
+            IR.CreateStore(RightOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(LTy))
+                RightOperand = IR.CreateCall(GetSameMatrixAs, {LeftOperand, PtrToVal});
+            else
+                RightOperand = IR.CreateCall(GetSameVectorAs, {LeftOperand, PtrToVal});
+            RTy = LTy;
+            break;
+        }
+        matchPattern(false, true): {
+            auto PtrToVal = createAlloca(LTy);
+            IR.CreateStore(LeftOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(RTy))
+                LeftOperand = IR.CreateCall(GetSameMatrixAs, {RightOperand, PtrToVal});
+            else
+                LeftOperand = IR.CreateCall(GetSameVectorAs, {RightOperand, PtrToVal});
+            LTy = RTy;
+            break;
+        }
+    }
 
     llvm::CmpInst::Predicate Pred;
 
@@ -774,7 +822,6 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
                     llvm::ConstantFP::getZeroValueForNegation(LLVMRealTy), Operand);
             default:
                 assert(false && "Invalid unary operation for real type");
-
         }
     }
 

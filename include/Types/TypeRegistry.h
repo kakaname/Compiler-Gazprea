@@ -108,12 +108,12 @@ public:
         return &RealTypes[Const];
     }
 
-     Type *getIntervalTy(int Length = -1) {
+     Type *getIntervalTy(int Length = -1, bool IsConst = true) {
         auto Res = IntervalTypes.find(Length);
         if (Res != IntervalTypes.end())
             return Res->second.get();
 
-        auto NewIntervalTy = make_unique<IntervalTy>(IntervalTy(Length));
+        auto NewIntervalTy = make_unique<IntervalTy>(IntervalTy(Length, IsConst));
         auto Inserted = IntervalTypes.insert({Length, std::move(NewIntervalTy)});
         assert(Inserted.second && "We just checked that type wasn't in the map");
         return Inserted.first->second.get();
@@ -235,7 +235,7 @@ public:
             return getRealTy(true);
 
         if (isa<IntervalTy>(Ty))
-            return getIntervalTy(true);
+            return getIntervalTy(-1, true);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
             auto RetTy = getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
@@ -285,7 +285,7 @@ public:
             return getRealTy(false);
 
         if (isa<IntervalTy>(Ty))
-            return getIntervalTy(false);
+            return getIntervalTy(-1, false);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
             auto RetTy = getVectorType(Vec->getInnerTy(), Vec->getSize(), false);

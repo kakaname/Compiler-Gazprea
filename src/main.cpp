@@ -90,18 +90,19 @@ int main(int argc, char **argv) {
     Manager.registerPass(ScopeResolutionPass());
 //    Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(LValueReferenceCheckPass());
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);
