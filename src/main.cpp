@@ -37,6 +37,9 @@
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
 #include "Passes/Transformations/TupleUnpackToAssign.h"
+#include "Passes/Transformations/SimplifyTupleLiteralMemberAccess.h"
+#include "Passes/BuildAST/AddingFreeNodesForContinueBreak.h"
+#include "Passes/BuildAST/AddingFreeNodesForReturnPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -59,65 +62,71 @@ class SyntaxErrorListener: public antlr4::BaseErrorListener {
 };
 
 int main(int argc, char **argv) {
-  if (argc < 3) {
-    std::cout << "Missing required argument.\n"
-              << "Required arguments: <input file path> <output file path>\n";
-    return 1;
-  }
+    if (argc < 3) {
+        std::cout << "Missing required argument.\n"
+                  << "Required arguments: <input file path> <output file path>\n";
+        return 1;
+    }
 
-  // Open the file then parse and lex it.
-  antlr4::ANTLRFileStream afs;
-  afs.loadFromFile(argv[1]);
-  gazprea::GazpreaLexer lexer(&afs);
-  antlr4::CommonTokenStream tokens(&lexer);
-  gazprea::GazpreaParser parser(&tokens);
+    // Open the file then parse and lex it.
+    antlr4::ANTLRFileStream afs;
+    afs.loadFromFile(argv[1]);
+    gazprea::GazpreaLexer lexer(&afs);
+    antlr4::CommonTokenStream tokens(&lexer);
+    gazprea::GazpreaParser parser(&tokens);
 
-  // Setup error listener
-  SyntaxErrorListener error_listener;
-  parser.removeErrorListeners();
-  parser.addErrorListener(&error_listener);
+    // Setup error listener
+    SyntaxErrorListener error_listener;
+    parser.removeErrorListeners();
+    parser.addErrorListener(&error_listener);
 
-  // Get the root of the parse tree. Use your base rule name.
-  antlr4::tree::ParseTree *tree = parser.file();
+    // Get the root of the parse tree. Use your base rule name.
+    antlr4::tree::ParseTree *tree = parser.file();
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
+    //Manager.registerAnonymousPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
-        SubExpressionCacheSet());
+            SubExpressionCacheSet());
 
     Manager.registerPass(ScopeResolutionPass());
-//    Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(LValueReferenceCheckPass());
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AssignmentTypeCheckerPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ChangeMemAccessToMemRef());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(CallableArgumentTypeCheckingPass());
     Manager.registerPass(ReturnValuePromotionPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ProcedureCallAliasCheckPass());
-
     Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    //Manager.registerPass(ASTPrinterPassWithTypes());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(SimplifyTupleLiteralMemAccess());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
@@ -127,7 +136,13 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
+
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(AddingFreeNodesForContinueBreak());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(AddingFreeNodesForReturnPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);

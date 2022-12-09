@@ -2,8 +2,8 @@
 // Created by Chen on 2022-11-28.
 //
 
-#ifndef GAZPREABASE_ADDINGFREENODESPASS_H
-#define GAZPREABASE_ADDINGFREENODESPASS_H
+#ifndef GAZPREABASE_ADDINGFREENODESFORRETURNPASS_H
+#define GAZPREABASE_ADDINGFREENODESFORRETURNPASS_H
 
 #include "Passes/VisitorPass.h"
 #include "Passes/PassManager.h"
@@ -12,7 +12,7 @@
 #include <vector>
 using std::vector;
 
-struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
+struct AddingFreeNodesForReturnPass: public VisitorPass<AddingFreeNodesForReturnPass, void> {
     ASTPassManager *PM;
 
     vector<Identifier *> FuncFreedIdentifiers;
@@ -23,7 +23,10 @@ struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
 
     void visitBlock(Block *Blk);
 
-    
+    //void visitReturn(Return *Return);
+
+
+    void addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident);
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");
@@ -33,4 +36,4 @@ struct AddingFreeNodesPass: public VisitorPass<AddingFreeNodesPass, void> {
 };
 
 
-#endif //GAZPREABASE_ADDINGFREENODESPASS_H
+#endif //GAZPREABASE_ADDINGFREENODESFORRETURNPASS_H

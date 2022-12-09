@@ -218,6 +218,9 @@ std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) 
         Loop = PM->Builder.build<DomainLoop>();
         Loop->setCtx(ctx);
         Loop->setBody(Blk);
+        if (i == 0) {
+            Loop->setBreakable(true);
+        }
         auto thisExpr = ctx->expr(i);
         Loop->setDomain(castToNodeVisit(thisExpr));
         Blk->setParent(Loop);
@@ -302,49 +305,44 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine type of inner
     auto Type = castToTypeVisit(ctx->type());
-    bool isString = false;
-
-    if(Type->getKind() == Type::TypeKind::T_String){
-        // if it is type vector, it is a string then
-        Type = PM->TypeReg.getCharTy(false);    
-        isString = true;
-    }
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
+    if (isa<VectorTy>(Type) && Size->MUL()) {
+        // In this case, like for strings, we already have the
+        // specific vector case, so we can just return that with
+        // added size information
+        return Type;
+    }
+
     if (Size->MUL()){
-        if(isString)
-            return PM->TypeReg.getStringType(Type, -1, false);
         return PM->TypeReg.getVectorType(Type, -1, false);
     }
 
     // Try to constant fold it.
     long VecSize = -1;
-//    try {
-//        VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
-//        if(isString)
-//            return PM->TypeReg.getStringType(Type, (int) VecSize);
-//        return PM->TypeReg.getVectorType(Type, (int) VecSize);
-//    } catch (exception&) {}
-
-    // If the size cannot be folded, then there must an expression
-    // specifying the size.
     auto SizeTree = castToNodeVisit(Size->expr());
+
+    if (isa<VectorTy>(Type)) {
+        auto VecTy = dyn_cast<VectorTy>(Type);
+        auto NewVecTy = PM->TypeReg.getVectorType(VecTy->getInnerTy(), VecTy->getSize(), VecTy->isConst(), VecTy->isString());
+        cast<VectorTy>(NewVecTy)->setSizeExpr(SizeTree);
+        return NewVecTy;
+
+    }
+
+
     auto VecTy = PM->TypeReg.getVectorType(Type, (int) VecSize, false);
+
     cast<VectorTy>(VecTy)->setSizeExpr(SizeTree);
 
-//    if(isString){
-//        return PM->TypeReg.getStringType(Type, -1, false);
-//    }
     return VecTy;
 }
 
 std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) {
 
-    // determine type of inner
-
-    // if it is a stringType size is not specified
-    return PM->TypeReg.getStringType(PM->TypeReg.getCharTy(false), -1, false);
+    auto InnerTy = PM->TypeReg.getCharTy(false);
+    return PM->TypeReg.getVectorType(InnerTy, -1, false, true);
 }
 
 // Ignore for part1
@@ -383,7 +381,7 @@ std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *c
     auto InnerTy = castToTypeVisit(ctx->type());
     if (!isa<IntegerTy>(InnerTy))
         throw runtime_error("Intervals may only contain integers");
-    return PM->TypeReg.getIntervalTy(false);
+    return PM->TypeReg.getIntervalTy(-1, false);
 }
 
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {

@@ -1,5 +1,5 @@
 //
-// Created by 陈 on 2022-11-15.
+// Created by Chen on 2022-11-15.
 //
 
 #include <string>
@@ -25,7 +25,7 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
         size_t NumOfMembers = TupleType->getNumOfMembers();
         for (size_t I = 0; I < NumOfMembers; I++) {
             auto MemberType = TupleType->getMemberTypeAt(I);
-            auto ExprAtPos = getScalarLiteral(MemberType->getKind(), IsNull);
+            auto ExprAtPos = getScalarLiteral(MemberType, IsNull);
             ExprAtPos->copyCtx(Cast);
             TupleLit->setExprAtPos(ExprAtPos, I);
         }
@@ -37,9 +37,9 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
         IntervalLit->copyCtx(Cast);
 
         auto IntervalType = cast<IntervalTy>(Cast->getTargetType());
-        auto LowerBound = getScalarLiteral(IntervalType->getKind(), IsNull);
+        auto LowerBound = getScalarLiteral(IntervalType, IsNull);
         LowerBound->copyCtx(Cast);
-        auto UpperBound = getScalarLiteral(IntervalType->getKind(), IsNull);
+        auto UpperBound = getScalarLiteral(IntervalType, IsNull);
         UpperBound->copyCtx(Cast);
         IntervalLit->setLowerExpr(LowerBound);
         IntervalLit->setUpperExpr(UpperBound);
@@ -48,14 +48,14 @@ void NullIdentityTypeCastPass::visitTypeCast(TypeCast *Cast) {
         return;
     }
     // Scalar Types
-    auto NewLit = getScalarLiteral(Cast->TargetType->getKind(), IsNull);
+    auto NewLit = getScalarLiteral(Cast->TargetType, IsNull);
     NewLit->copyCtx(Cast);
     Cast->getParent()->replaceChildWith(Cast, NewLit);
     PM->setAnnotation<ExprTypeAnnotatorPass>(NewLit, Cast->getTargetType());
 }
 
-ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type::TypeKind Kind, bool IsNull) {
-    switch(Kind) {
+ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type* TargetTy, bool IsNull) {
+    switch(TargetTy->getKind()) {
         case Type::T_Bool:
         {
             auto BoolLit = PM->Builder.build<BoolLiteral>();
@@ -84,7 +84,21 @@ ASTNodeT *NullIdentityTypeCastPass::getScalarLiteral(Type::TypeKind Kind, bool I
                 RealLit->setVal("1.0");
             return RealLit;
         }
+        case Type::T_Matrix:
+        case Type::T_Vector: {
+            auto Lit = getScalarLiteral(TypeRegistry::getInnerTyFromComposite(TargetTy), IsNull);
+            return wrapWithCastTo(Lit, TargetTy);
+        }
         default:
             assert(false);
     }
+}
+
+TypeCast *NullIdentityTypeCastPass::wrapWithCastTo(ASTNodeT *Expr, Type *TargetType) {
+    auto Cast = PM->Builder.build<TypeCast>();
+    Cast->copyCtx(Expr);
+    Cast->setExpr(Expr);
+    Cast->setTargetType(TargetType);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Cast, TargetType);
+    return Cast;
 }

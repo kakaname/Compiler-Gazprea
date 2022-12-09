@@ -595,9 +595,9 @@ Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
 
                 if (!isa<BoolTy>(LInner) || !isa<BoolTy>(RInner))
                     throw runtime_error("This operation is only supported for booleans");
-
-                annotate(Op, BoolType);
-                return BoolType;
+                auto ResTy = TypeReg->getCompositeTyWithInner(LType, BoolType);
+                annotateWithConst(Op, ResTy);
+                return ResTy;
             }
 
             matchPattern(true, false): {
@@ -606,8 +606,9 @@ Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
                 if (!isa<BoolTy>(LInner) || !isa<BoolTy>(RType))
                     throw runtime_error("This operation is only supported for booleans");
 
-                annotateWithConst(Op, BoolType);
-                return BoolType;
+                auto ResTy = TypeReg->getCompositeTyWithInner(LType, BoolType);
+                annotateWithConst(Op, ResTy);
+                return ResTy;
             }
 
             matchPattern(false, true): {
@@ -616,8 +617,9 @@ Type *ExprTypeAnnotatorPass::visitLogicalOp(LogicalOp *Op) {
                 if (!isa<BoolTy>(RInner) || !isa<BoolTy>(LType))
                     throw runtime_error("This operation is only supported for booleans");
 
-                annotateWithConst(Op, BoolType);
-                return BoolType;
+                auto ResTy = TypeReg->getCompositeTyWithInner(RType, BoolType);
+                annotateWithConst(Op, ResTy);
+                return ResTy;
             }
 
             matchPattern(false, false): {
@@ -978,8 +980,14 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     Type *WidestType = nullptr;
     bool IsFirst = true;
 
-    if (!VecLit->numOfChildren())
-        throw runtime_error("Unimplemented");
+    if (!VecLit->numOfChildren()) {
+        auto ResTy = TypeReg->getVectorType(TypeReg->getIntegerTy(), 0, true);
+        auto LiteralSize = PM->Builder.build<IntLiteral>();
+        LiteralSize->setIntVal(0);
+        cast<VectorTy>(ResTy)->setSizeExpr(LiteralSize);
+        annotate(VecLit, ResTy);
+        return ResTy;
+    }
 
     for (auto ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
@@ -1050,7 +1058,7 @@ Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
     Type *CharTy = PM->TypeReg.getCharTy();
 
     // Get the vector type
-    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    auto StrTy = dyn_cast<VectorTy>(PM->TypeReg.getVectorType(CharTy, (int) StrLit->numOfChildren(), true, true));
     annotate(StrLit, StrTy);
     return StrTy;
 
@@ -1062,6 +1070,12 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     if (isa<VectorTy>(BaseTy)) {
         auto VecTy = dyn_cast<VectorTy>(BaseTy);
         auto IdxTy = visit(Idx->getIndexExpr());
+
+        if (isa<IntervalTy>(IdxTy)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            IdxTy = CastedTy;
+        }
 
         if (isa<IntegerTy>(IdxTy)) {
             auto ResultTy = VecTy->getInnerTy();
@@ -1083,6 +1097,19 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
         auto MatTy = dyn_cast<MatrixTy>(BaseTy);
         auto Idx1Ty = visit(Idx->getIndexExpr());
         auto Idx2Ty = visit(Idx->getIndex2Expr());
+
+        if (isa<IntervalTy>(Idx1Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            Idx1Ty = CastedTy;
+        }
+
+        if (isa<IntervalTy>(Idx2Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndex2Expr(wrapWithCastTo(Idx->getIndex2Expr(), CastedTy));
+            Idx2Ty = CastedTy;
+        }
+
         if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
             auto ResultTy = MatTy->getInnerTy();
             PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
@@ -1150,23 +1177,26 @@ Type *ExprTypeAnnotatorPass::visitByOp(ByOp *By) {
     auto BaseExprTy = visit(By->getBaseExpr());
     auto ByExprTy = visit(By->getByExpr());
 
+    if (isa<IntervalTy>(BaseExprTy)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        By->setBaseExpr(wrapWithCastTo(By->getBaseExpr(), VecTy));
+        BaseExprTy = VecTy;
+    }
+
+    if (ByExprTy->isOpaqueTy()) {
+        By->setByExpr(wrapWithCastTo(By->getBaseExpr(), TypeReg->getIntegerTy()));
+        ByExprTy = TypeReg->getIntegerTy();
+    }
+
     if (!isa<IntegerTy>(ByExprTy))
         throw runtime_error("The expression used in a by operation must be"
                             " integer");
 
-    if (!BaseExprTy->isValidForBy())
-        throw runtime_error("Only vectors or intervals may be used in a ByOp");
+    if (!isa<VectorTy>(BaseExprTy))
+        throw runtime_error("Only vectors maybe used in a by expr");
 
-    // TODO: Constant fold here.
-    auto ResLen = [&]() {
-      return -1;
-    }();
-
-    auto InnerTy = isa<VectorTy>(BaseExprTy) ?
-            TypeRegistry::getInnerTyFromComposite(BaseExprTy) :
-            TypeReg->getIntegerTy();
-
-    auto ResTy = TypeReg->getVectorType(InnerTy, ResLen);
+    auto InnerTy = TypeRegistry::getInnerTyFromComposite(BaseExprTy);
+    auto ResTy = TypeReg->getVectorType(InnerTy);
     annotate(By, ResTy);
     return ResTy;
 }
@@ -1176,24 +1206,42 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto LHS = visit(Dot->getLHS());
     auto RHS = visit(Dot->getRHS());
 
+    if (isa<IntervalTy>(LHS)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        Dot->setLHS(wrapWithCastTo(Dot->getLHS(), VecTy));
+        LHS = VecTy;
+    }
+
+    if (isa<IntervalTy>(RHS)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        Dot->setLHS(wrapWithCastTo(Dot->getLHS(), VecTy));
+        RHS = VecTy;
+    }
+
     if (isa<VectorTy>(LHS) && isa<VectorTy>(RHS)) {
-
         // Dot product
-
         auto LVecTy = dyn_cast<VectorTy>(LHS);
         auto RVecTy = dyn_cast<VectorTy>(RHS);
 
-        // If the inner types are not the same then the dot product is invalid.
-        if (!LVecTy->getInnerTy()->isSameTypeAs(RVecTy->getInnerTy()))
-            throw std::runtime_error("Dot product can only be applied to vector types"
-                                    " with the same inner type");
+        auto LInner = TypeRegistry::getInnerTyFromComposite(LVecTy);
+        auto RInner = TypeRegistry::getInnerTyFromComposite(RVecTy);
 
-        if (!LVecTy->isSameTypeAs(RVecTy))
-            throw std::runtime_error("Dot product can only be applied to vectors of the same type and size");
+        auto WiderTy = getWiderType(LInner, RInner);
+        if (!WiderTy)
+            throw runtime_error("No suitable promotion found");
 
-        auto ResTy = LVecTy->getInnerTy();
-        annotateWithConst(Dot, ResTy);
-        return ResTy;
+        if (!LInner->isSameTypeAs(WiderTy)) {
+            auto VecTy = TypeReg->getVectorType(WiderTy);
+            Dot->setLHS(wrapWithCastTo(Dot->getLHS(), VecTy));
+        }
+
+        if (!RInner->isSameTypeAs(WiderTy)) {
+            auto VecTy = TypeReg->getVectorType(WiderTy);
+            Dot->setRHS(wrapWithCastTo(Dot->getRHS(), VecTy));
+        }
+
+        annotateWithConst(Dot, WiderTy);
+        return WiderTy;
 
     } else if (isa<MatrixTy>(LHS) && isa<MatrixTy>(RHS)) {
 
@@ -1202,53 +1250,37 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
         auto LHSMatTy = dyn_cast<MatrixTy>(LHS);
         auto RHSMatTy = dyn_cast<MatrixTy>(RHS);
 
-        if (LHSMatTy->getNumOfColumns() != RHSMatTy->getNumOfRows()
-            && LHSMatTy->getNumOfRows() != -1 && RHSMatTy->getNumOfColumns() != -1)
-            throw std::runtime_error("Matrix multiplication can only be applied to matrices of compatible sizes");
+        auto LInner = TypeRegistry::getInnerTyFromComposite(LHSMatTy);
+        auto RInner = TypeRegistry::getInnerTyFromComposite(RHSMatTy);
 
-        auto LHSInnerTy = LHSMatTy->getInnerTy();
-        auto RHSInnerTy = RHSMatTy->getInnerTy();
-        if (!LHSInnerTy->isSameTypeAs(RHSInnerTy))
-            throw std::runtime_error("Matrix multiplication can only be applied to matrices of the same inner type");
+        auto WiderTy = getWiderType(LInner, RInner);
+        if (!WiderTy)
+            throw runtime_error("No suitable promotion found");
 
-        if (!LHSInnerTy->isValidForArithOps())
-            throw std::runtime_error("Matrix multiplication can only be applied to matrices of arithmetic types");
+        if (!LInner->isSameTypeAs(WiderTy)) {
+            auto MatTy = TypeReg->getMatrixType(WiderTy);
+            Dot->setLHS(wrapWithCastTo(Dot->getLHS(), MatTy));
+        }
 
-        auto ResTy = PM->TypeReg.getMatrixType(LHSInnerTy, LHSMatTy->getNumOfRows(), RHSMatTy->getNumOfColumns());
-        annotateWithConst(Dot, ResTy);
-        return ResTy;
+        if (!RInner->isSameTypeAs(WiderTy)) {
+            auto MatTy = TypeReg->getMatrixType(WiderTy);
+            Dot->setRHS(wrapWithCastTo(Dot->getRHS(), MatTy));
+        }
 
+        auto RetTy = TypeReg->getMatrixType(WiderTy);
+        annotateWithConst(Dot, RetTy);
+        return RetTy;
     }
     throw std::runtime_error("Dot product/matrix multiplication can only be applied to vector/matrix types");
 
 }
 
-Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
+    Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto LExpr = Concat->getLHS();
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
-
-    if (isa<StringTy>(LType) && isa<StringTy>(RType)) {
-
-        auto LVecTy = cast<StringTy>(LType);
-        auto RVecTy = cast<StringTy>(RType);
-
-
-        auto ResLen = [&]() {
-            // If either of the sizes is unknown, the result size is unknown.
-            if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
-                return -1;
-            // Otherwise both sizes are known and the result has size as the sum
-            // of the two.
-            return LVecTy->getSize() + RVecTy->getSize();
-        }();
-
-        auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
-        annotateWithConst(Concat, ResTy);
-        return ResTy;
-
-    }
+    
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
@@ -1272,6 +1304,8 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto LVecTy = cast<VectorTy>(LType);
     auto RVecTy = cast<VectorTy>(RType);
 
+    auto IsString = (LVecTy->isString() || RVecTy->isString());
+
     auto LInner = LVecTy->getInnerTy();
     auto RInner = RVecTy->getInnerTy();
 
@@ -1288,9 +1322,7 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     if (LInner->isSameTypeAs(RInner)) {
         Concat->setLHS(LExpr);
         Concat->setRHS(RExpr);
-        auto ResTy = TypeReg->getVectorType(LInner, ResLen);
-        cast<VectorTy>(ResTy)->setSizeExpr(
-                getAddOpBetween(LVecTy->getSizeExpr(), RVecTy->getSizeExpr()));
+        auto ResTy = TypeReg->getVectorType(LInner, -1, true, IsString);
         annotateWithConst(Concat, ResTy);
         return ResTy;
     }
@@ -1305,7 +1337,7 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
 
     Concat->setLHS(LExpr);
     Concat->setRHS(RExpr);
-    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen);
+    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen, true, IsString);
     annotateWithConst(Concat, ResTy);
     return ResTy;
 }
@@ -1341,6 +1373,14 @@ bool ExprTypeAnnotatorPass::isTypeSizeKnown(Type *Ty) {
 
 Type *ExprTypeAnnotatorPass::visitOutStream(OutStream *Out) {
     auto ExprTy = visit(Out->getOutStreamExpr());
+
+    if (isa<IntervalTy>(ExprTy)) {
+        Out->setOutStreamExpr(wrapWithCastTo(
+                Out->getOutStreamExpr(),
+                TypeReg->getVectorType(TypeReg->getIntegerTy())));
+        return nullptr;
+    }
+
     if (!ExprTy->isOpaqueTy())
         return nullptr;
 

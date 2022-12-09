@@ -25,8 +25,8 @@ struct IntervalTy : public Type {
 
     IntervalTy() = delete;
 
-    explicit IntervalTy(int Length):
-        Type(TypeKind::T_Interval, true), Length(Length) {}
+    explicit IntervalTy(int Length, bool IsConst):
+        Type(TypeKind::T_Interval, IsConst), Length(Length) {}
 
     int isLengthKnown()  {
         return Length >= 0;
@@ -44,8 +44,8 @@ struct VectorTy : public Type {
 
     VectorTy() = delete;
 
-    VectorTy(Type *InnerTy, int Size, bool IsConst):
-        Type(TypeKind::T_Vector, IsConst), Size(Size), InnerTy(InnerTy) {}
+    VectorTy(Type *InnerTy, int Size, bool IsConst, bool IsString = false):
+        Type(TypeKind::T_Vector, IsConst), Size(Size), InnerTy(InnerTy), IsString(IsString) {}
 
     bool isSizeKnown() {
         return Size != -1;
@@ -67,6 +67,14 @@ struct VectorTy : public Type {
         SizeExpr = Expr;
     }
 
+    void setString(bool IsString) {
+        this->IsString = IsString;
+    }
+
+    bool isString() {
+        return IsString;
+    }
+
     size_t getPromotedVectorSizeForMatrix(VectorTy *TargetVec) {
 
         if (this->getSize() == -1 || TargetVec->getSize() == -1)
@@ -79,33 +87,7 @@ private:
     ASTNodeT *SizeExpr{nullptr};
     int Size;
     Type *InnerTy;
-};
-
-struct StringTy : public Type {
-    static bool classof(const Type *T) {
-        return T->getKind() == TypeKind::T_String;
-    }
-
-    StringTy() = delete;
-
-    StringTy(Type *InnerTy, int Size, bool IsConst):
-        Type(TypeKind::T_String, IsConst), Size(Size), InnerTy(InnerTy) {}
-
-    bool isSizeKnown()  {
-        return Size != -1;
-    }
-
-    int getSize()  {
-        return Size;
-    }
-
-    Type *getInnerTy()  {
-        return InnerTy;
-    }
-
-private:
-    int Size;
-    Type *InnerTy;
+    bool IsString;
 };
 
 struct MatrixTy : public Type {

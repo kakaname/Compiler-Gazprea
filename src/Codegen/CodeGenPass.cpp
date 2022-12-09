@@ -111,7 +111,7 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
     VectorComp = Mod.getOrInsertFunction(
             "rt_vector_comp", llvm::FunctionType::get(
-                    LLVMVectorTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
+                    LLVMVectorPtrTy, {LLVMVectorTy->getPointerTo(), LLVMVectorTy->getPointerTo(), LLVMIntTy}, false));
     PrintString = Mod.getOrInsertFunction(
             "rt_print_string", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMVectorPtrTy}, false));
@@ -257,7 +257,14 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_shutdown_filter_expr_builder", llvm::FunctionType::get(
                     IR.getVoidTy(), {}, false));
 
+    // Copy ops
+    GetVectorCopy = Mod.getOrInsertFunction(
+            "rt_get_vec_copy__", llvm::FunctionType::get(
+                LLVMVectorPtrTy, {LLVMVectorPtrTy}, false));
 
+    GetMatrixCopy = Mod.getOrInsertFunction(
+            "rt_get_matrix_copy__", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
 
     visit(Root);
 
@@ -287,7 +294,7 @@ llvm::Type *CodeGenPass::getLLVMType(Type *Ty) {
         case Type::TypeKind::T_Char:
             return ConstConv(LLVMCharTy, Ty->isConst());
         case Type::TypeKind::T_Interval:
-            return ConstConv(LLVMIntervalTy, Ty->isConst());
+            return LLVMIntervalTy;
         case Type::TypeKind::T_Tuple:
             return ConstConv(getLLVMTupleType(
                     cast<TupleTy>(Ty)), Ty->isConst());
@@ -323,15 +330,33 @@ llvm::Value *CodeGenPass::createAlloca(Type *Ty) {
 llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
     auto Val = SymbolMap[Ident->getReferred()];
     auto IdentTy = Ident->getIdentType();
-    if (Val->getType() == LLVMVectorPtrTy || Val->getType() == LLVMMatrixPtrTy)
-        return Val;
+    if (Val->getType() == LLVMVectorPtrTy || Val->getType() == LLVMMatrixPtrTy) {
+        if (isa<VectorTy>(IdentTy))
+            return IR.CreateCall(GetVectorCopy, {Val});
 
-    if (Val->getType()->isPointerTy())
-        return IR.CreateLoad(Val);
+        if (isa<MatrixTy>(IdentTy))
+            return IR.CreateCall(GetMatrixCopy, {Val});
+    }
+
+    if (Val->getType()->isPointerTy()) {
+        auto LoadedVal = IR.CreateLoad(Val);
+
+        if (LoadedVal->getType() == LLVMVectorPtrTy || LoadedVal->getType() == LLVMMatrixPtrTy) {
+            if (isa<VectorTy>(IdentTy))
+                return IR.CreateCall(GetVectorCopy, {LoadedVal});
+
+            if (isa<MatrixTy>(IdentTy))
+                return IR.CreateCall(GetMatrixCopy, {LoadedVal});
+        }
+        return LoadedVal;
+    }
     return Val;
 }
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
+
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+    auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
 
     if (isa<IndexReference>(Assign->getAssignedTo())) {
         auto Expr = visit(Assign->getExpr());
@@ -339,8 +364,6 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 
         // These outer types are not representative of the main base type, but rather the type of what is being
         // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
-        auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
-        auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
         assert(ExprTy->isSameTypeAs(AssignedToTy) && "Types are not the same");
 
         auto VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IndexReference>(Assign->getAssignedTo())->getBaseExpr());
@@ -390,11 +413,17 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
     }
 
 
+    // FIXME: Free previous value
     auto *Val = visit(Assign->getExpr());
-    auto *Loc = visit(Assign->getAssignedTo());
 
-
-    // FIXME hotfix for bool assignment into vector
+    auto Loc = [&](){
+        if (!AssignedToTy->isCompositeTy())
+            return visit(Assign->getAssignedTo());
+        auto Ident = dyn_cast<IdentReference>(Assign->getAssignedTo());
+        assert(Ident && "Should only be assigning to an l-value");
+        return SymbolMap[Ident->getIdentifier()->getReferred()];
+        }();
+    
     auto *ValTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
     if (isa<IndexReference>(Assign->getAssignedTo()) &&
         ValTy->isSameTypeAs(PM->TypeReg.getBooleanTy())) {
@@ -406,6 +435,7 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
 
     auto DeclType = Decl->getIdentifier()->getIdentType();
+    auto Ident = Decl->getIdentifier();
 
     if (isa<Program>(Decl->getParent())) {
         // These are global variables, that are only declared here, but later defined in the main function.
@@ -451,11 +481,37 @@ llvm::Value *CodeGenPass::visitComparisonOp(ComparisonOp *Op) {
     Value *LeftOperand = visit(Op->getLeftExpr());
     Value *RightOperand = visit(Op->getRightExpr());
 
-    // Just an assertion, not needed for code gen.
     auto LTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getLeftExpr());
-//    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
-//    assert(RTy->isSameTypeAs(LTy) && "Operation between different types should"
-//                                     " not have reached the code gen");
+    auto RTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Op->getRightExpr());
+
+    matchBoolPair(LTy->isCompositeTy(), RTy->isCompositeTy()) {
+        matchPattern(true, true):
+        matchPattern(false, false):
+            break;
+            // Left type if composite the right is scalar.
+        matchPattern(true, false): {
+            auto PtrToVal = createAlloca(RTy);
+            IR.CreateStore(RightOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(LTy))
+                RightOperand = IR.CreateCall(GetSameMatrixAs, {LeftOperand, PtrToVal});
+            else
+                RightOperand = IR.CreateCall(GetSameVectorAs, {LeftOperand, PtrToVal});
+            RTy = LTy;
+            break;
+        }
+        matchPattern(false, true): {
+            auto PtrToVal = createAlloca(LTy);
+            IR.CreateStore(LeftOperand, PtrToVal);
+            PtrToVal = IR.CreateBitCast(PtrToVal, IR.getInt8PtrTy());
+            if (isa<MatrixTy>(RTy))
+                LeftOperand = IR.CreateCall(GetSameMatrixAs, {RightOperand, PtrToVal});
+            else
+                LeftOperand = IR.CreateCall(GetSameVectorAs, {RightOperand, PtrToVal});
+            LTy = RTy;
+            break;
+        }
+    }
 
     llvm::CmpInst::Predicate Pred;
 
@@ -780,7 +836,6 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
                     llvm::ConstantFP::getZeroValueForNegation(LLVMRealTy), Operand);
             default:
                 assert(false && "Invalid unary operation for real type");
-
         }
     }
 
@@ -1144,8 +1199,10 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
     llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
             GlobalCtx, "loop_end", CurrentFunction);
 
-    LoopBeginBlocks.push(Header);
-    LoopEndBlocks.push(LoopEnd);
+    if (Loop->isBreakable()) {
+        LoopBeginBlocks.push(Header);
+        LoopEndBlocks.push(LoopEnd);
+    }
 
     auto Domain = visit(Loop->getDomain());
     auto DomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Loop->getDomain());
@@ -1194,8 +1251,10 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
 
     IR.SetInsertPoint(LoopEnd);
 
-    LoopBeginBlocks.pop();
-    LoopEndBlocks.pop();
+    if (Loop->isBreakable()) {
+        LoopBeginBlocks.pop();
+        LoopEndBlocks.pop();
+    }
 
     return nullptr;
 
@@ -1631,6 +1690,7 @@ llvm::Value *CodeGenPass::visitBreak(Break *Break) {
     llvm::BasicBlock *AfterBreak = llvm::BasicBlock::Create(
             GlobalCtx, "after_break", CurrentFunction);
     llvm::BasicBlock *LoopEnd = LoopEndBlocks.top();
+    auto Size = LoopEndBlocks.size();
 
     IR.CreateBr(LoopEnd);
 
@@ -1654,14 +1714,17 @@ llvm::Value *CodeGenPass::visitOutStream(OutStream *Stream) {
     auto ValType = PM->getAnnotation<ExprTypeAnnotatorPass>(Stream->getOutStreamExpr());
     assert(ValType->isOutputTy() && "Invalid output stream type");
 
-    if (ValType->getKind() == Type::T_Vector)
-        return IR.CreateCall(PrintVector, {ValToOut});
+    if (ValType->getKind() == Type::T_Vector) {
+        auto VecTy = cast<VectorTy>(ValType);
+        if (VecTy->isString()) {
+            return IR.CreateCall(PrintString, {ValToOut});
+        } else {
+            return IR.CreateCall(PrintVector, {ValToOut});
+        }
+    }
 
     if (ValType->getKind() == Type::T_Matrix)
         return IR.CreateCall(PrintMatrix, {ValToOut});
-    if (ValType->getKind() == Type::T_String) {
-        return IR.CreateCall(PrintString, {ValToOut});
-    }
 
     switch (ValType->getKind()) {
         case Type::TypeKind::T_Char:
@@ -1765,14 +1828,27 @@ llvm::Type *CodeGenPass::getLLVMProcedureType(ProcedureTy *ProcTy) {
 }
 
 llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
-    return SymbolMap[Ref->getIdentifier()->getReferred()];
+    auto Val = SymbolMap[Ref->getIdentifier()->getReferred()];
+    if (Val->getType()->isPointerTy()) {
+        auto ElmPtr = cast<llvm::PointerType>(Val->getType())->getElementType();
+        if (ElmPtr == LLVMVectorPtrTy || ElmPtr == LLVMMatrixPtrTy)
+            return IR.CreateLoad(Val);
+    }
+    return Val;
 }
 
 llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // TODO Check that the index is within the bounds of the array
 
-    Value *Vec = visit(Ref->getBaseExpr());
+    auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr());
+    assert(Ident && "Trying to take reference of a non-lvalue");
+
+    Value *Vec = SymbolMap[Ident->getReferred()];
+    auto ElementPtr = cast<llvm::PointerType>(Vec->getType())->getElementType();
+    if (ElementPtr == LLVMVectorPtrTy || ElementPtr == LLVMMatrixPtrTy)
+        Vec = IR.CreateLoad(Vec);
+
     auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
 
     if (isa<VectorTy>(VecTy)) {
@@ -1929,30 +2005,32 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
 }
 
 llvm::Value *CodeGenPass::visitStringLiteral(StringLiteral *StrLit) {
-    auto StrTy = dyn_cast<StringTy>(PM->getAnnotation<ExprTypeAnnotatorPass>(StrLit));
-    assert(StrTy && "Invalid string type");
 
-    auto StrSize = StrTy->getSize();
-    assert(StrSize >= 0 && "All vector literals should have a size");
+    auto VecLitTy = PM->getAnnotation<ExprTypeAnnotatorPass>(StrLit);
+    auto VecTy = dyn_cast<VectorTy>(VecLitTy);
+    assert(VecTy && "Invalid vector type");
+    assert(VecTy->getInnerTy()->getKind() == Type::TypeKind::T_Char && "Invalid vector type");
 
+    auto VecSize = VecTy->getSize();
+    assert(VecSize >= 0 && "All vector literals should have a size");
 
-    llvm::Value *Result = CreateStringStruct(StrSize, true);
-    auto MallocPtr = CreateStringMallocPtrAccess(Result, StrTy);
+    auto VecStruct = IR.CreateCall(VectorNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(VecTy->getInnerTy()->getKind())),
+                              IR.getInt64(VecSize)});
 
-    // store the elements in the vector
-    for (int i = 0; i < StrSize; i++) {
+    for (int i = 0; i < VecSize; i++) {
         auto Elem = StrLit->getChildAt(i);
         auto ElemVal = visit(Elem);
-        auto ElemPtr = IR.CreateInBoundsGEP(MallocPtr, {IR.getInt32(i)});
-        if (StrTy->getInnerTy()->isSameTypeAs(PM->TypeReg.getBooleanTy()))
-            ElemVal = IR.CreateZExt(ElemVal, IR.getInt8Ty());
-        IR.CreateStore(ElemVal, ElemPtr);
+        switch (VecTy->getInnerTy()->getKind()) {
+            case Type::TypeKind::T_Char:
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            default:
+                assert(false && "Invalid vector type");
+        }
     }
 
-    auto ResultLoc = IR.CreateAlloca(LLVMVectorTy);
-    IR.CreateStore(Result, ResultLoc);
+    return VecStruct;
 
-    return ResultLoc;
 
 }
 
@@ -2063,10 +2141,6 @@ llvm::Value *CodeGenPass::CreateVectorMallocPtrAccess(llvm::Value *VecPtr, Vecto
     return MallocPtr;
 }
 
-llvm::Value *CodeGenPass::CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy) {
-    auto MallocPtr = IR.CreateExtractValue(StrPtr, {3});
-    return MallocPtr;
-}
 
 llvm::Value *CodeGenPass::visitInterval(Interval *Interval) {
     llvm::Value *Lower = visit(Interval->getLowerExpr());

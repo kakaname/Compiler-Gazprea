@@ -17,8 +17,9 @@ static void assign_to_idx(void *data_alloc, void *data, int64_t idx, enum vector
         case VECTOR_TYPE_BOOL:
             *(((unsigned char *) data_alloc) + idx) = *((unsigned char *) data);
         case VECTOR_TYPE_INT:
-//            printf("Assigning to idx=%ld val=%ld\n", idx, *((int64_t *) data));
+            printf("Assigning to idx=%ld val=%ld\n", idx, *((int64_t *) data));
             *(((int64_t *) data_alloc) + idx) = *((int64_t *) data);
+
         case VECTOR_TYPE_FLOAT:
             *(((float *) data_alloc) + idx) = *((float *) data);
     }
@@ -48,15 +49,11 @@ void rt_update_filter_at_pos(int64_t idx, char should_update, void *data) {
 
 
     struct vector *vec_at_idx = current_filter_vecs[idx];
-    int64_t current_size = vec_at_idx->size;
+    int64_t current_size = vec_at_idx->size++;
+    printf("Index is i=%ld, vector idx to update is %ld\n", idx, current_size);
     assign_to_idx(vec_at_idx->data, data, current_size, vec_at_idx->type);
-    vec_at_idx->size++;
-
-//    printf("Index is i=%ld\n", idx);
-//    printf("After update at i=%ld\n", idx);
-//    printf("Index is i=%ld\n", idx);
-//    for (int i = 0; i < vec_at_idx->size; i++)
-//        printf("%f\n", *((float *) vec_at_idx->data + i));
+    if (current_size >= 1)
+        printf("Reading assigned from update val=%ld\n", *(((int64_t *) vec_at_idx->data) + current_size-1));
 
     should_add_to_residual = 0;
 }
@@ -87,8 +84,7 @@ void rt_write_val_from_vec_to(struct vector* vec, int64_t idx, void *loc) {
             *((unsigned char *) loc) = *((unsigned char *) vec->data + vec->idx[idx]);
             return;
         case VECTOR_TYPE_INT:
-//            printf("Writing %ld\n", *((int64_t *) vec->data + vec->idx[idx]));
-            *((int64_t *) loc) = *((int64_t *) vec->data + vec->idx[idx]);
+            *((int64_t *) loc) = *(((int64_t *) vec->data) + vec->idx[idx]);
             return;
         case VECTOR_TYPE_FLOAT:
 //            printf("Writing %f\n", *((float *) vec->data + vec->idx[idx]));

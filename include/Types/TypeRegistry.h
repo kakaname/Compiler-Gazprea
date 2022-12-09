@@ -36,7 +36,6 @@ class TypeRegistry {
     template<typename T>
     using ConstTypeIdPair = pair<bool, T>;
 
-    using StringTyId = ConstTypeIdPair<pair<Type*, int>>;
     using VectorTyId = ConstTypeIdPair<pair< Type*, int>>;
     using MatrixTypeId = ConstTypeIdPair<pair< Type*, pair<int, int>>>;
     using TupleTypeId = ConstTypeIdPair<pair<vector< Type*>, map<string, int>>>;
@@ -46,7 +45,6 @@ class TypeRegistry {
     // A size of -1 for sized types implies that the size is not known at
     // compile time.
     using VectorTyContainer = map<VectorTyId, unique_ptr<VectorTy>>;
-    using StringTyContainer = map<StringTyId, unique_ptr<StringTy>>;
     using MatrixTyContainer =map<MatrixTypeId, unique_ptr<MatrixTy>>;
     using TupleTyContainer = map<TupleTypeId, unique_ptr<TupleTy>>;
     using FunctionTypeContainer = map<FunctionTypeId, unique_ptr<FunctionTy>>;
@@ -61,7 +59,6 @@ class TypeRegistry {
     array<RealTy, 2> RealTypes;
 
     VectorTyContainer VectorTypes;
-    StringTyContainer StringTypes;
     MatrixTyContainer MatrixTypes;
     TupleTyContainer TupleTypes;
     FunctionTypeContainer FunctionTypes;
@@ -108,38 +105,31 @@ public:
         return &RealTypes[Const];
     }
 
-     Type *getIntervalTy(int Length = -1) {
+     Type *getIntervalTy(int Length = -1, bool IsConst = true) {
         auto Res = IntervalTypes.find(Length);
         if (Res != IntervalTypes.end())
             return Res->second.get();
 
-        auto NewIntervalTy = make_unique<IntervalTy>(IntervalTy(Length));
+        auto NewIntervalTy = make_unique<IntervalTy>(IntervalTy(Length, IsConst));
         auto Inserted = IntervalTypes.insert({Length, std::move(NewIntervalTy)});
         assert(Inserted.second && "We just checked that type wasn't in the map");
         return Inserted.first->second.get();
     }
 
-    Type *getStringType(Type *InnerTy, int Size = -1, bool IsConst = true) {
-        auto Res = StringTypes.find({IsConst, {InnerTy, Size}});
+    Type *getStringType(Type *InnerTy, int Size = -1, bool IsConst = true, bool IsString = true) {
 
-        if (Res != StringTypes.end()){
-            return Res->second.get();
-
-        }
-
-        auto NewStrTy = make_unique<StringTy>(StringTy(InnerTy, Size, IsConst));
-        StringTyId Key{IsConst, {InnerTy, Size}};
-        auto Inserted = StringTypes.insert({Key, std::move(NewStrTy)});
-        assert(Inserted.second && "We just checked that type wasn't in the map");
-        return Inserted.first->second.get();
+         auto Inserted = UnknownVectors.insert({
+             CurrentId++,
+             make_unique<VectorTy>(InnerTy, Size, IsConst, IsString)});
+         return Inserted.first->second.get();
     }
 
-     Type *getVectorType( Type *InnerTy, int Size = -1, bool IsConst = true) {
+     Type *getVectorType( Type *InnerTy, int Size = -1, bool IsConst = true, bool IsString = false) {
 
 //         if (Size < 0) {
          auto Inserted = UnknownVectors.insert({
              CurrentId++,
-             make_unique<VectorTy>(InnerTy, Size, IsConst)});
+             make_unique<VectorTy>(InnerTy, Size, IsConst, IsString)});
          return Inserted.first->second.get();
 //         }
 
@@ -235,10 +225,10 @@ public:
             return getRealTy(true);
 
         if (isa<IntervalTy>(Ty))
-            return getIntervalTy(true);
+            return getIntervalTy(-1, true);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
-            auto RetTy = getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true);
+            auto RetTy = getVectorType(getConstTypeOf(Vec->getInnerTy()), Vec->getSize(), true, Vec->isString());
             cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
             return RetTy;
         }
@@ -251,9 +241,7 @@ public:
             return RetTy;
         }
 
-        if (auto *Str = dyn_cast<StringTy>(Ty)){
-            return getStringType(getConstTypeOf(Str->getInnerTy()), Str->getSize(), true);
-        }
+        
 
         if (auto *Tup = dyn_cast<TupleTy>(Ty)) {
             vector<Type*> VarMembers;
@@ -285,16 +273,15 @@ public:
             return getRealTy(false);
 
         if (isa<IntervalTy>(Ty))
-            return getIntervalTy(false);
+            return getIntervalTy(-1, false);
 
         if (auto *Vec = dyn_cast<VectorTy>(Ty)) {
             auto RetTy = getVectorType(Vec->getInnerTy(), Vec->getSize(), false);
             cast<VectorTy>(RetTy)->setSizeExpr(Vec->getSizeExpr());
+            cast<VectorTy>(RetTy)->setString(Vec->isString());
             return RetTy;
         }
 
-        if (auto *Str = dyn_cast<StringTy>(Ty))
-            return getStringType(getCharTy(false), Str->getSize(), false);
 
         if (auto *Mat = dyn_cast<MatrixTy>(Ty)) {
             auto RetTy = getMatrixType(Mat->getInnerTy(), Mat->getNumOfRows(),
