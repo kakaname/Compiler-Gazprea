@@ -355,7 +355,9 @@ llvm::Value *CodeGenPass::visitIdentifier(Identifier *Ident) {
 
 llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 
-    if (isa<IndexReference>(Assign->getAssignedTo())) {
+    auto AssTo = Assign->getAssignedTo();
+
+    if (isa<IndexReference>(Assign->getAssignedTo()) || isa<IdentReference>(Assign->getAssignedTo())) {
         auto Expr = visit(Assign->getExpr());
         auto AssignedTo = visit(Assign->getAssignedTo());
 
@@ -363,13 +365,34 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
         // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
         auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
         auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
-        assert(ExprTy->isSameTypeAs(AssignedToTy) && "Types are not the same");
 
-        auto VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IndexReference>(Assign->getAssignedTo())->getBaseExpr());
+
+        auto VarTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
+
+        Type *VarExprTy;
+        if (isa<IndexReference>(Assign->getAssignedTo()))
+            VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IndexReference>(Assign->getAssignedTo())->getBaseExpr());
+        else
+            VarExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(dyn_cast<IdentReference>(Assign->getAssignedTo())->getIdentifier());
+        
+
         if (isa<VectorTy>(VarExprTy)) {
             // TODO fix assigning boolean to function with bad function call signature
 
             if (ExprTy->isScalarTy()) {
+
+                if (!VarTy->isScalarTy()) {
+                    // Case of scalar assignment to a vector
+                    auto ExprLoc = IR.CreateAlloca(getLLVMType(ExprTy));
+                    IR.CreateStore(Expr, ExprLoc);
+                    auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
+                    if (isa<IdentReference>(Assign->getAssignedTo()))
+                        AssignedTo = IR.CreateLoad(AssignedTo);
+                    auto NewVec = IR.CreateCall(GetSameVectorAs, {AssignedTo, ExprPtr});
+                    return IR.CreateCall(VectorCopy, {NewVec, AssignedTo});
+
+                }
+
                 llvm::Value *Res;
                 switch (ExprTy->getKind()) {
                     case Type::TypeKind::T_Int:
@@ -384,10 +407,22 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
                         assert(false && "Unknown type");
                 }
             } else if (isa<VectorTy>(ExprTy)) {
-                return IR.CreateCall(VectorCopy, {AssignedTo, Expr});
+                return IR.CreateCall(VectorCopy, {Expr, AssignedTo});
             }
         } else if (isa<MatrixTy>(VarExprTy)) {
             if (ExprTy->isScalarTy()) {
+
+                if (!VarTy->isScalarTy()) {
+                    // Case of scalar assignment to a vector
+                    auto ExprLoc = IR.CreateAlloca(getLLVMType(ExprTy));
+                    IR.CreateStore(Expr, ExprLoc);
+                    auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
+                    if (isa<IdentReference>(Assign->getAssignedTo()))
+                        AssignedTo = IR.CreateLoad(AssignedTo);
+                    auto NewVec = IR.CreateCall(GetSameMatrixAs, {AssignedTo, ExprPtr});
+                    return IR.CreateCall(MatrixCopy, {NewVec, AssignedTo});
+
+                }
                 llvm::Value *Res;
                 switch (ExprTy->getKind()) {
                     case Type::TypeKind::T_Int:
@@ -1823,7 +1858,8 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // TODO Check that the index is within the bounds of the array
 
-    Value *Vec = visit(Ref->getBaseExpr());
+    llvm::Value *VecRef = SymbolMap[dyn_cast<Identifier>(Ref->getBaseExpr())->getReferred()];
+    auto Vec = IR.CreateLoad(VecRef);
     auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Ref->getBaseExpr());
 
     if (isa<VectorTy>(VecTy)) {
