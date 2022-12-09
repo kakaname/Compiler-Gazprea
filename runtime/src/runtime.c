@@ -26,6 +26,12 @@ static int put_data_in_read_buf() {
         current_pop_idx = (current_pop_idx + 1) % STREAM_BUF_LEN;
     }
 
+    // If we hit EOF while
+    if (stream.buf[current_pop_idx] == EOF) {
+        stream.state = 2;
+        return 0;
+    }
+
     while (characters_read < STREAM_BUF_LEN - 1
     && !isspace(stream.buf[current_pop_idx])
     && stream.buf[current_pop_idx] != EOF) {
@@ -205,6 +211,12 @@ char rt_scan_bool() {
     }
 
     int buf_len = put_data_in_read_buf();
+
+    // Stream has ended.
+    if (buf_len == 0) {
+        return 0;
+    }
+
     char bool;
     int consumed;
     sscanf(stream.scan_buf, " %c%n", &bool, &consumed);
@@ -233,6 +245,12 @@ int64_t rt_scan_int() {
     }
 
     int buf_len = put_data_in_read_buf();
+
+    // Stream has ended.
+    if (buf_len == 0) {
+        return 0;
+    }
+
     char *endptr;
 
     int64_t read_val = strtol(stream.scan_buf, &endptr, 10);
@@ -261,6 +279,11 @@ float rt_scan_real() {
     }
 
     int buf_len = put_data_in_read_buf();
+
+    // Stream has ended.
+    if (buf_len == 0) {
+        return 0;
+    }
 
     float read_in_float;
     int consumed;
