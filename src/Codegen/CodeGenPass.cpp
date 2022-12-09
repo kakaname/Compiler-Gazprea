@@ -729,6 +729,16 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
             default:
                 assert(false && "Invalid unary operation for matrix type");
         }
+    } else if (isa<RealTy>(ResultType)) {
+
+        switch (Op->getOpKind()) {
+            case UnaryOp::SUB:
+                return IR.CreateFSub(
+                    llvm::ConstantFP::getZeroValueForNegation(LLVMRealTy), Operand);
+            default:
+                assert(false && "Invalid unary operation for real type");
+
+    }
     }
 
     switch (Op->getOpKind()) {
