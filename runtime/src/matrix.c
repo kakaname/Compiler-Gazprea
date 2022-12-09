@@ -26,6 +26,14 @@ struct matrix *rt_matrix_create_unpopulated(struct matrix *v) {
     return rt_matrix_new(v->type, v->rows, v->cols);
 }
 
+struct matrix *rt_matrix_empty_from_vector(enum vector_type type, struct vector *row, struct vector *col) {
+    struct matrix *m = rt_matrix_new(type, row->size, col->size);
+    for (int64_t i = 0; i < row->size; i++) {
+        m->data[i] = rt_vector_empty_copy(type, col);
+    }
+    return m;
+}
+
 struct matrix *rt_matrix_create_deep_copy(struct matrix *m) {
     struct matrix *newM = malloc(sizeof(struct matrix));
     newM->rows = m->rows;

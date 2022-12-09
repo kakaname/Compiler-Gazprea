@@ -14,6 +14,11 @@ struct vector *rt_vector_new(enum vector_type type, u_int64_t size) {
     return v;
 }
 
+struct vector *rt_vector_empty_copy(enum vector_type type, struct vector *v) {
+    struct vector *res = rt_vector_new(type, v->size);
+    return res;
+}
+
 char rt_vector_out_of_bounds(struct vector *v, u_int64_t idx) {
     return (idx >= v->size) ? 1 : 0;
 }
