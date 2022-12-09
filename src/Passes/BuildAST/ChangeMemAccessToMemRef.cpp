@@ -21,6 +21,9 @@ void ChangeMemAccessToMemRef::visitProcedureCall(ProcedureCall *Call) {
         if (isa<MemberReference>(Expr))
             continue;
 
+        if (isa<IndexReference>(Expr))
+            continue;
+
         if (auto Ident = dyn_cast<Identifier>(Expr)) {
             ArgsList->setExprAtPos(getRefFromIdent(Ident), I);
             continue;
@@ -31,7 +34,8 @@ void ChangeMemAccessToMemRef::visitProcedureCall(ProcedureCall *Call) {
             continue;
         }
 
-        ArgsList->setExprAtPos(getRefFromMemAccess(cast<MemberAccess>(Expr)), I);
+        if (auto MemAccess = dyn_cast<MemberAccess>(Expr))
+            ArgsList->setExprAtPos(getRefFromMemAccess(MemAccess), I);
     }
 }
 

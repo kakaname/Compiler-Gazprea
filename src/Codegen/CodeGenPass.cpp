@@ -2013,9 +2013,6 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
     }
 
     assert(false && "Invalid index reference");
-
-
-
 }
 
 llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
