@@ -1437,18 +1437,11 @@ Type *ExprTypeAnnotatorPass::visitGenerator(Generator *Gen) {
     auto DomainType = visit(Gen->getDomain());
     auto InnerType = visit(Gen->getExpr());
 
-    Type* ResTy = nullptr;
-    if (dyn_cast<VectorTy>(DomainType)) {
-        ResTy = TypeReg->getVectorType(InnerType, dyn_cast<VectorTy>(DomainType)->getSize());
+    if (isa<IntervalTy>(DomainType)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        Gen->setDomain(wrapWithCastTo(Gen->getDomain(), VecTy));
     }
-    else if (dyn_cast<IntervalTy>(DomainType)) {
-        // Cast the interval to a vector<int>
-        auto CastNode = PM->Builder.build<ExplicitCast>();
-        CastNode->setExpr(Gen->getDomain());
-        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
-        ResTy = CastNode->getTargetType();
-    }
-
+    auto ResTy = TypeReg->getVectorType(InnerType);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
     return ResTy;
 }
@@ -1459,38 +1452,29 @@ Type *ExprTypeAnnotatorPass::visitMatrixGenerator(MatrixGenerator *Gen) {
     visit(Gen->getColumnDomainVar());
 
     auto RowType = visit(Gen->getRowDomain());
-    Type *RowResTy = nullptr;
-    if (dyn_cast<VectorTy>(RowType)) {
-        auto RowVectorType = dyn_cast<VectorTy>(RowType);
-        RowResTy = TypeReg->getVectorType(RowVectorType->getInnerTy(), RowVectorType->getSize());
-    }
-    else if (dyn_cast<IntervalTy>(RowType)) {
-        // Cast the interval to a vector<int>
-        auto CastNode = PM->Builder.build<ExplicitCast>();
-        CastNode->setExpr(Gen->getRowDomain());
-        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
-        RowResTy = CastNode->getTargetType();
+
+    if (isa<IntervalTy>(RowType)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        Gen->setRowDomain(wrapWithCastTo(Gen->getRowDomain(), VecTy));
+        RowType = VecTy;
     }
 
-    auto ColumnType = visit(Gen->getRowDomain());
-    Type *ColumnResTy = nullptr;
-    if (dyn_cast<VectorTy>(ColumnType)) {
-        auto ColumnVectorType = dyn_cast<VectorTy>(ColumnType);
-        ColumnResTy = TypeReg->getVectorType(ColumnVectorType->getInnerTy(), ColumnVectorType->getSize());
+    if (!isa<VectorTy>(RowType))
+        throw runtime_error("The row must be a vector");
+
+    auto ColumnType = visit(Gen->getColumnDomain());
+
+    if (isa<IntervalTy>(ColumnType)) {
+        auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+        Gen->setColumnDomain(wrapWithCastTo(Gen->getColumnDomain(), VecTy));
+        ColumnType = VecTy;
     }
-    else if (dyn_cast<IntervalTy>(ColumnType)) {
-        // Cast the interval to a vector<int>
-        auto CastNode = PM->Builder.build<ExplicitCast>();
-        CastNode->setExpr(Gen->getColumnDomain());
-        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
-        ColumnResTy = CastNode->getTargetType();
-    }
+
+    if (!isa<VectorTy>(ColumnType))
+        throw runtime_error("The row must be a vector");
 
     auto ExprTy = visit(Gen->getExpr());
-    auto ResTy = TypeReg->getMatrixType(ExprTy,
-                                        dyn_cast<VectorTy>(RowResTy)->getSize(),
-                                        dyn_cast<VectorTy>(ColumnResTy)->getSize());
-
+    auto ResTy = TypeReg->getMatrixType(ExprTy);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Gen, ResTy);
     return ResTy;
 }
