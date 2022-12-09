@@ -15,7 +15,9 @@ struct NullIdentityTypeCastPass: public VisitorPass<NullIdentityTypeCastPass, vo
 
     void visitTypeCast(TypeCast *Cast);
 
-    ASTNodeT *getScalarLiteral(Type::TypeKind Kind, bool IsNull);
+    TypeCast *wrapWithCastTo(ASTNodeT *Expr, Type *TargetType);
+
+    ASTNodeT *getScalarLiteral(Type* TargetTy, bool IsNull);
 
     void runOnAST(ASTPassManager &PManager, ASTNodeT *Root) {
         assert(isa<Program>(Root) && "ExplicitCastCheckPass should run on the entire program");

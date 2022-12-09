@@ -12,7 +12,7 @@ procedure main() returns integer {
     '\n' -> std_output;
     a + 1 > a1 -> std_output;
     '\n' -> std_output;
-    a - 1 < std_output;
+    a - 1 -> std_output;
     '\n' -> std_output;
 
     d == d1 -> std_output;

@@ -980,8 +980,14 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     Type *WidestType = nullptr;
     bool IsFirst = true;
 
-    if (!VecLit->numOfChildren())
-        throw runtime_error("Unimplemented");
+    if (!VecLit->numOfChildren()) {
+        auto ResTy = TypeReg->getVectorType(TypeReg->getIntegerTy(), 0, true);
+        auto LiteralSize = PM->Builder.build<IntLiteral>();
+        LiteralSize->setIntVal(0);
+        cast<VectorTy>(ResTy)->setSizeExpr(LiteralSize);
+        annotate(VecLit, ResTy);
+        return ResTy;
+    }
 
     for (auto ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
@@ -1065,6 +1071,12 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
         auto VecTy = dyn_cast<VectorTy>(BaseTy);
         auto IdxTy = visit(Idx->getIndexExpr());
 
+        if (isa<IntervalTy>(IdxTy)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            IdxTy = CastedTy;
+        }
+
         if (isa<IntegerTy>(IdxTy)) {
             auto ResultTy = VecTy->getInnerTy();
             PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
@@ -1085,6 +1097,19 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
         auto MatTy = dyn_cast<MatrixTy>(BaseTy);
         auto Idx1Ty = visit(Idx->getIndexExpr());
         auto Idx2Ty = visit(Idx->getIndex2Expr());
+
+        if (isa<IntervalTy>(Idx1Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            Idx1Ty = CastedTy;
+        }
+
+        if (isa<IntervalTy>(Idx2Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndex2Expr(wrapWithCastTo(Idx->getIndex2Expr(), CastedTy));
+            Idx2Ty = CastedTy;
+        }
+
         if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
             auto ResultTy = MatTy->getInnerTy();
             PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);

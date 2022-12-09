@@ -1,7 +1,7 @@
 procedure main() returns integer {
   // vector dot product
    integer[4] a = [1,2,3,4];
-    boolean c = [false, true, false];
+    boolean[3] c = [false, true, false];
    real[4] d = [1.0,2.0,3.0,4.0];
 
     // integer

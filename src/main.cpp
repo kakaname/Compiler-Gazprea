@@ -37,6 +37,7 @@
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
 #include "Passes/Transformations/TupleUnpackToAssign.h"
+#include "Passes/Transformations/SimplifyTupleLiteralMemberAccess.h"
 #include "Passes/BuildAST/AddingFreeNodesForContinueBreak.h"
 #include "Passes/BuildAST/AddingFreeNodesForReturnPass.h"
 
@@ -125,6 +126,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(SimplifyTupleLiteralMemAccess());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
@@ -133,6 +136,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
+
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AddingFreeNodesForContinueBreak());
     Manager.registerPass(ExprTypeAnnotatorPass());

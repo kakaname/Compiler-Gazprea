@@ -1,6 +1,6 @@
 procedure main() returns integer {
   // vector dot product
-   integer[6] a = [1,2,3,4,5,6];
+    integer[6] v = [1,2,3,4,5,6];
     integer[3] a1;
     integer[2] a2;
     
