@@ -1966,10 +1966,18 @@ llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // TODO Check that the index is within the bounds of the array
 
-    auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr());
-    assert(Ident && "Trying to take reference of a non-lvalue");
+    Value *Vec = [&]() {
+        if (auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr()))
+            return SymbolMap[Ident->getReferred()];
 
-    Value *Vec = SymbolMap[Ident->getReferred()];
+        if (auto MemRef = dyn_cast<MemberReference>(Ref->getBaseExpr()))
+            return visit(MemRef);
+
+        if (auto MemAcc = dyn_cast<MemberAccess>(Ref->getBaseExpr()))
+            return visit(MemAcc);
+        throw runtime_error("Trying to take reference of a non-lvalue");
+    }();
+
     auto ElementPtr = cast<llvm::PointerType>(Vec->getType())->getElementType();
     if (ElementPtr == LLVMVectorPtrTy || ElementPtr == LLVMMatrixPtrTy)
         Vec = IR.CreateLoad(Vec);
