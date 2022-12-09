@@ -100,7 +100,6 @@ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t u
     if (v->idx != 0) { \
         real_idx = v->idx[idx];\
     }                    \
-                         \
     ((type *) v->data)[real_idx] = val;                        \
 }
 #define MATRIX_ACCESS(type) \
@@ -169,23 +168,23 @@ enum vector_logical_op_kind {
 };
 
 struct vector {
-    u_int64_t size;
-    u_int64_t *idx;
-    u_int64_t type;
+    int64_t size;
+    int64_t *idx;
+    int64_t type;
     void *data;
 };
 
 struct matrix {
 
-    u_int64_t rows;
-    u_int64_t cols;
-    u_int64_t *idx;
-    u_int64_t type;
+    int64_t rows;
+    int64_t cols;
+    int64_t *idx;
+    int64_t type;
     struct vector **data;
 };
 
 
-struct vector *rt_vector_new(enum vector_type type, u_int64_t size);
+struct vector *rt_vector_new(int64_t type, u_int64_t size);
 struct vector *rt_vector_not(struct vector *v);
 struct vector *rt_vector_sub(struct vector *v);
 struct vector *rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op);
@@ -203,5 +202,5 @@ struct vector *rt_vector_view_scalar(struct vector *v, u_int64_t idx);
 struct vector *rt_vector_view_vector(struct vector *v, struct vector *idx);
 
 int64_t *rt_get_seq_idx(int64_t size);
-void* rt_get_data_alloc_for_vec(int64_t size, enum vector_type type, void *default_val);
-struct vector *rt_vector_empty_copy(enum vector_type type, struct vector *v);
+void* rt_get_data_alloc_for_vec(int64_t size, int64_t type, void *default_val);
+struct vector *rt_vector_empty_copy(int64_t type, struct vector *v);

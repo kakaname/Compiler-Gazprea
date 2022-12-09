@@ -1280,7 +1280,6 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
-    
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
