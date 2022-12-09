@@ -271,10 +271,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     }
 
     RetT visitTupleDestruct(TupleDestruct *TupleDestruct) {
-        for (auto *child : *TupleDestruct)
+        for (auto *child: *TupleDestruct)
             visit(child);
         return RetT();
-
+    }
+    
     RetT visitStringLiteral(StringLiteral *String) {
         for (auto *child : *String)
             visit(child);
