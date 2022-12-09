@@ -1,0 +1,11 @@
+procedure foo(var integer[*] v, const integer[*] c) {
+    v[2] = 42;
+    v[2] -> std_output;
+    c[2] -> std_output;
+}
+
+procedure main() returns integer {
+    var v = [1,2,3];
+    call foo(v, v);
+    return 0;
+}
