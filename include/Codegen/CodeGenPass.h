@@ -60,6 +60,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee PowInt;
     llvm::FunctionCallee Malloc;
     llvm::FunctionCallee VectorNew;
+    llvm::FunctionCallee VectorEmptyCopy;
     llvm::FunctionCallee VectorConcat;
     llvm::FunctionCallee VectorDotProductInt;
     llvm::FunctionCallee VectorDotProductReal;
@@ -83,6 +84,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorOOB;
     llvm::FunctionCallee PrintMatrix;
     llvm::FunctionCallee MatrixNew;
+    llvm::FunctionCallee MatrixEmptyFromVec;
     llvm::FunctionCallee MatrixPopulateRow;
     llvm::FunctionCallee MatrixAccessInt;
     llvm::FunctionCallee MatrixAccessFloat;
@@ -160,6 +162,8 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitInfiniteLoop(InfiniteLoop *Loop);
     llvm::Value *visitConditionalLoop(ConditionalLoop *Loop);
     llvm::Value *visitDomainLoop(DomainLoop *Loop);
+    llvm::Value *visitGenerator(Generator *Gen);
+    llvm::Value *visitMatrixGenerator(MatrixGenerator *Gen);
     llvm::Value *visitIntLiteral(IntLiteral *IntLit);
     static llvm::Value *visitNullLiteral(NullLiteral *NullLit);
     static llvm::Value *visitIdentityLiteral(IdentityLiteral *IdentityLit);
