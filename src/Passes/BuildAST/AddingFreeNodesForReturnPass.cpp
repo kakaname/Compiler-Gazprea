@@ -4,6 +4,7 @@
 
 #include "Passes/BuildAST/AddingFreeNodesForReturnPass.h"
 
+
 void AddingFreeNodesForReturnPass::visitFunctionDef(FunctionDef *FuncDef) {
     // Get all the parameters type of vector or matrix
     for(auto Child : *FuncDef->getParamList()) {
@@ -51,11 +52,12 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
                 NumOfFreedIdentifiers++;
             }
         }
-        else if (dyn_cast<Block>(Child))
-            visit(Child);
         else if (dyn_cast<Return>(Child)) {
             HasReturn = true;
             ReturnStat = dyn_cast<Return>(Child);
+        }
+        else {
+            visit(Child);
         }
     }
 
@@ -79,7 +81,7 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
         ReturnResultDeclar->setIdent(ReturnResultIdent);
         ReturnResultDeclar->setInitExpr(ReturnStat->getReturnExpr());
 
-        Blk->insertChildBefore(ReturnResultDeclar, FreeN);
+        Blk->insertChildBefore(ReturnStat, ReturnResultDeclar);
         // Add the Free Node before the return statement
         Blk->insertChildBefore(ReturnStat, FreeN);
         // change the expression of the return statement
@@ -98,10 +100,28 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
 }
 
 
+/*
+void AddingFreeNodesForReturnPass::visitFunctionDef(FunctionDef *FuncDef) {
+
+}
+
+void AddingFreeNodesForReturnPass::visitProcedureDef(ProcedureDef *ProcedureDef) {
+
+}
+
+void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
+
+}
+
+void AddingFreeNodesForReturnPass::visitReturn(Return *Return) {
+
+}
+ */
+
 void AddingFreeNodesForReturnPass::addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident) {
     auto NewIdent = PM->Builder.build<Identifier>();
     NewIdent->setName(Ident->getName());
     NewIdent->setReferred(Ident->getReferred());
     NewIdent->setIdentType(Ident->getIdentType());
-    FreeNode->addChild(FreeNode);
+    FreeNode->addChild(NewIdent);
 }

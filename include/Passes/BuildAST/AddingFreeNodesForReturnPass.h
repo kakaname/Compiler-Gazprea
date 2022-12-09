@@ -23,6 +23,8 @@ struct AddingFreeNodesForReturnPass: public VisitorPass<AddingFreeNodesForReturn
 
     void visitBlock(Block *Blk);
 
+    //void visitReturn(Return *Return);
+
 
     void addFreedIdentifier(FreeNode *FreeNode, Identifier *Ident);
 

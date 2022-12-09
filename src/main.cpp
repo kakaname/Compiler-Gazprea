@@ -38,6 +38,7 @@
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
 #include "Passes/Transformations/TupleUnpackToAssign.h"
 #include "Passes/BuildAST/AddingFreeNodesForContinueBreak.h"
+#include "Passes/BuildAST/AddingFreeNodesForReturnPass.h"
 
 #include <iostream>
 #include <fstream>
@@ -118,6 +119,8 @@ int main(int argc, char **argv) {
     Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AddingFreeNodesForContinueBreak());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(AddingFreeNodesForReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
