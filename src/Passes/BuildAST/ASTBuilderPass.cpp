@@ -1352,7 +1352,39 @@ std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) 
 }
 
 
+std::any ASTBuilderPass::visitBuiltInLen(GazpreaParser::BuiltInLenContext *ctx) {
+    auto Length = PM->Builder.build<LengthFunc>();
+    Length->setCtx(ctx);
+    Length->setVector(castToNodeVisit(ctx->expr()));
 
+    return cast<ASTNodeT>(Length);
+    
+}
+
+std::any ASTBuilderPass::visitBuiltInRows(GazpreaParser::BuiltInRowsContext *ctx) {
+    auto Row = PM->Builder.build<RowFunc>();
+    Row->setCtx(ctx);
+    Row->setMatrix(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Row);
+}
+
+std::any ASTBuilderPass::visitBuiltInCol(GazpreaParser::BuiltInColContext *ctx) {
+    auto Col = PM->Builder.build<ColFunc>();
+    Col->setCtx(ctx);
+    Col->setMatrix(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Col);
+}
+
+std::any ASTBuilderPass::visitBuiltInReverse(GazpreaParser::BuiltInReverseContext *ctx) {
+    auto Reverse = PM->Builder.build<ReverseFunc>();
+    Reverse->setCtx(ctx);
+    Reverse->setVector(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Reverse);
+
+}
 
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))
@@ -1362,4 +1394,3 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
-

@@ -66,6 +66,12 @@ output : expr PUT STDOUT SC;
 
 input : lvalue GET STDIN SC;
 
+builtInCall: LENGTH LPAREN expr RPAREN      #builtInLen
+            | ROWS LPAREN expr RPAREN       #builtInRows
+            | COLUMNS LPAREN expr RPAREN    #builtInCol
+            | REVERSE LPAREN expr RPAREN    #builtInReverse
+            | STRSTA LPAREN STDIN RPAREN    #builtInStreamState
+            ;
 
 return : RETURN (expr)? SC;
 
@@ -158,6 +164,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | LSQRPAREN ID IN expr AND expr RSQRPAREN       # filterExpr
     | LSQRPAREN ID IN expr COMMA ID IN expr BAR expr RSQRPAREN  #matrixGeneratorExpr
     | LSQRPAREN ID IN expr AND expr (COMMA expr)* RSQRPAREN #filterExpr
+    | builtInCall                           # builtInFuncCall
     | functionCall                          # funcCall
     | LPAREN expr COMMA expr (COMMA expr)* RPAREN   #tupleLiteral
     | LSQRPAREN (expr (COMMA expr)*)? RSQRPAREN        #vectorLiteral

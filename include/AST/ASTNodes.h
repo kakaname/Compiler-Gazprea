@@ -1521,4 +1521,79 @@ struct AppendNode : public TreeNode {
     AppendNode() : TreeNode(TreeNodeKind::N_AST_AppendNode) {};
 };
 
+struct LengthFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Length;
+    }
+    
+    void setVector(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getVector(){
+        return getChildAt(ExprIdx);
+    }
+
+    LengthFunc() : TreeNode(TreeNodeKind::N_AST_Length) {};
+
+};
+
+struct RowFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Row;
+    }
+    
+    void setMatrix(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getMatrix(){
+        return getChildAt(ExprIdx);
+    }
+
+    RowFunc() : TreeNode(TreeNodeKind::N_AST_Row) {};
+
+};
+
+struct ColFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Col;
+    }
+    
+    void setMatrix(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getMatrix(){
+        return getChildAt(ExprIdx);
+    }
+
+    ColFunc() : TreeNode(TreeNodeKind::N_AST_Col) {};
+
+};
+
+struct ReverseFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Reverse;
+    }
+    
+    void setVector(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getVector(){
+        return getChildAt(ExprIdx);
+    }
+
+    ReverseFunc() : TreeNode(TreeNodeKind::N_AST_Reverse) {};
+
+};
 #endif //GAZPREABASE_ASTNODES_H
