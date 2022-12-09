@@ -1,0 +1,416 @@
+diff --git a/runtime/include/runtime.h b/runtime/include/runtime.h
+index 47655f2..919e185 100644
+--- a/runtime/include/runtime.h
++++ b/runtime/include/runtime.h
+@@ -74,6 +74,12 @@ res_data[i] = a_data[i*stride];            \
+ }
+ #define VECTOR_ACCESS(type) \
+ type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecked) { \
++    if (idx == 0) {         \
++        fprintf(stderr, "Tried to access index 0 of a vector");                    \
++        exit(1); \
++    } \
++    idx -= 1; \
++    \
+     if (idx >= v->size) {   \
+         if (unchecked) {  \
+             return 0; \
+@@ -84,11 +90,16 @@ type rt_vector_access_##type(struct vector *v, u_int64_t idx, u_int64_t unchecke
+     u_int64_t real_idx = idx;                                                        \
+     if (v->idx != 0) { \
+         real_idx = v->idx[idx];\
++        real_idx -= 1; \
+     }                       \
+     return ((type *) v->data)[real_idx];                        \
+ }
+ #define VECTOR_SET(type) \
+ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t unchecked) { \
++    if (idx == 0) { \
++        exit(1); \
++    } \
++    idx -= 1; \
+     if (idx >= v->size) {\
+         if (unchecked) {  \
+             return; \
+@@ -99,11 +110,18 @@ void rt_vector_set_##type(struct vector *v, u_int64_t idx, type val, u_int64_t u
+     u_int64_t real_idx = idx; \
+     if (v->idx != 0) { \
+         real_idx = v->idx[idx];\
++        real_idx -= 1; \
+     }                    \
+     ((type *) v->data)[real_idx] = val;                        \
+ }
+ #define MATRIX_ACCESS(type) \
+ type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_int64_t unchecked) { \
++    if (row == 0 || col == 0) { \
++        exit(1); \
++    } \
++    row -= 1; \
++    col -= 1; \
++    \
+     if (row >= m->rows || col >= m->cols) { \
+         if (unchecked) { \
+             return 0; \
+@@ -121,6 +139,13 @@ type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_i
+ }
+ #define MATRIX_SET(type) \
+ void rt_matrix_set_##type(struct matrix *m, u_int64_t row, u_int64_t col, type val, u_int64_t unchecked) { \
++    if (row == 0 || col == 0) {                                                                            \
++        fprintf(stderr, "Either dimension is zero for rt_matrix_set");             \
++        exit(1); \
++    } \
++    row -= 1; \
++    col -= 1; \
++    \
+     if (row >= m->rows || col >= m->cols) { \
+         if (unchecked) { \
+             return; \
+diff --git a/runtime/src/casting.c b/runtime/src/casting.c
+index 986e1dc..d31cc3b 100644
+--- a/runtime/src/casting.c
++++ b/runtime/src/casting.c
+@@ -13,7 +13,7 @@ struct interval_t {
+ #define GET_CASTED_VEC_LOOP_INNER(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
+     for (int64_t i = 0; i < TARGET_SIZE; ++i) { \
+         if(i < BASE->size) {    \
+-            cast_scalar_value(&CASTED_BASE[BASE->idx[i]], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
++            cast_scalar_value(&CASTED_BASE[BASE->idx[i] - 1], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
+             continue; \
+         } \
+         cast_scalar_value(NULL, NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
+@@ -47,7 +47,7 @@ struct interval_t {
+ int64_t *rt_get_seq_idx(int64_t size) {
+     int64_t *idx = malloc(size * sizeof(int64_t));
+     for (int64_t i = 0; i < size; i++)
+-        idx[i] = i;
++        idx[i] = i+1;
+     return idx;
+ }
+ 
+@@ -159,7 +159,7 @@ struct matrix *rt_get_same_matrix_as(struct matrix *target, void *data) {
+     new_mat->rows = target->rows;
+     new_mat->cols = target->cols;
+     new_mat->data = malloc(target->rows * sizeof(struct vector*));
+-    new_mat->idx = rt_get_seq_idx(target->rows);
++    new_mat->idx = 0;
+     for (int64_t i = 0; i < target->rows; i++) {
+         new_mat->data[i] = rt_get_same_vector_as(target->data[i], data);
+     }
+diff --git a/runtime/src/copy_ops.c b/runtime/src/copy_ops.c
+index 310b29d..c8bb1c2 100644
+--- a/runtime/src/copy_ops.c
++++ b/runtime/src/copy_ops.c
+@@ -15,7 +15,7 @@ struct vector *rt_get_vec_copy__(struct vector *to_copy) {
+             unsigned char *data = malloc(sizeof (unsigned char ) * copy->size);
+             unsigned char *buf_to_copy = (unsigned char *) to_copy->data;
+             for (int64_t i = 0; i < to_copy->size; i++)
+-                data[i] = buf_to_copy[to_copy->idx[i]];
++                data[i] = buf_to_copy[to_copy->idx[i] - 1];
+             copy->data = data;
+             return copy;
+         }
+@@ -23,15 +23,16 @@ struct vector *rt_get_vec_copy__(struct vector *to_copy) {
+             float *data = malloc(sizeof (float ) * copy->size);
+             float *buf_to_copy = (float *) to_copy->data;
+             for (int64_t i = 0; i < to_copy->size; i++)
+-                data[i] = buf_to_copy[to_copy->idx[i]];
++                data[i] = buf_to_copy[to_copy->idx[i] - 1];
+             copy->data = data;
+             return copy;
+         }
+         case VECTOR_TYPE_INT: {
+             int64_t *data = malloc(sizeof (int64_t ) * copy->size);
+             int64_t *buf_to_copy = (int64_t *) to_copy->data;
+-            for (int64_t i = 0; i < to_copy->size; i++)
+-                data[i] = buf_to_copy[to_copy->idx[i]];
++            for (int64_t i = 0; i < to_copy->size; i++) {
++                data[i] = buf_to_copy[to_copy->idx[i] - 1];
++            }
+             copy->data = data;
+             return copy;
+         }
+diff --git a/runtime/src/filters.c b/runtime/src/filters.c
+index 92e833d..0a79963 100644
+--- a/runtime/src/filters.c
++++ b/runtime/src/filters.c
+@@ -44,7 +44,6 @@ void rt_update_filter_at_pos(int64_t idx, char should_update, void *data) {
+     if (!should_update)
+         return;
+ 
+-
+     struct vector *vec_at_idx = current_filter_vecs[idx];
+     int64_t current_size = vec_at_idx->size++;
+     assign_to_idx(vec_at_idx->data, data, current_size, vec_at_idx->type);
+@@ -66,16 +65,16 @@ void rt_filter_end_iter(void *current_value) {
+ void rt_write_val_from_vec_to(struct vector* vec, int64_t idx, void *loc) {
+     switch (vec->type) {
+         case VECTOR_TYPE_BOOL:
+-            *((unsigned char *) loc) = (*((unsigned char *) vec->data + vec->idx[idx]) == 1);
++            *((unsigned char *) loc) = (*((unsigned char *) vec->data + vec->idx[idx] - 1) == 1);
+             return;
+         case VECTOR_TYPE_CHAR:
+-            *((unsigned char *) loc) = *((unsigned char *) vec->data + vec->idx[idx]);
++            *((unsigned char *) loc) = *((unsigned char *) vec->data + vec->idx[idx] - 1);
+             return;
+         case VECTOR_TYPE_INT:
+-            *((int64_t *) loc) = *(((int64_t *) vec->data) + vec->idx[idx]);
++            *((int64_t *) loc) = *(((int64_t *) vec->data) + vec->idx[idx] - 1);
+             return;
+         case VECTOR_TYPE_FLOAT:
+-            *((float *) loc) = *((float *) vec->data + vec->idx[idx]);
++            *((float *) loc) = *((float *) vec->data + vec->idx[idx] - 1);
+             return;
+     }
+ }
+diff --git a/runtime/src/matrix.c b/runtime/src/matrix.c
+index 367d56e..71c43ce 100644
+--- a/runtime/src/matrix.c
++++ b/runtime/src/matrix.c
+@@ -52,6 +52,10 @@ struct matrix *rt_matrix_create_deep_copy(struct matrix *m) {
+ void rt_matrix_populate_row(struct matrix *m, struct vector *v, u_int64_t row) {
+     // Because of prior casting logic, this runtime function assumes the column size
+     // and vector size are equal
++    if (row == 0) {
++        exit(1);
++    }
++    row -= 1;
+     if (m->cols != v->size) {
+         exit(1);
+     }
+@@ -60,6 +64,14 @@ void rt_matrix_populate_row(struct matrix *m, struct vector *v, u_int64_t row) {
+ 
+ }
+ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t col) {
++
++    if (row == 0 || col == 0) {
++        exit(1);
++    }
++
++    row -= 1;
++    col -= 1;
++
+     struct matrix *newM = malloc(sizeof(struct matrix));
+ 
+     newM->rows = 1;
+@@ -72,6 +84,11 @@ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t
+ }
+ 
+ struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64_t scalar, u_int64_t orientation) {
++
++    if (scalar == 0) {
++        exit(1);
++    }
++    scalar -= 1;
+     struct matrix *newM = malloc(sizeof(struct matrix));
+ 
+     // TODO fix case where one of them gets assigned to 1 and we assume vectors can be assigned?
+@@ -83,7 +100,7 @@ struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64
+         newM->type = m->type;
+         newM->data = malloc(sizeof(struct vector *) * v->size);
+         for (int64_t i = 0; i < v->size; i++) {
+-            newM->data[i] = rt_vector_view_scalar(m->data[rt_vector_access_int64_t(v, i, 0)], scalar);
++            newM->data[i] = rt_vector_view_scalar(m->data[rt_vector_access_int64_t(v, i+1, 0)-1], scalar);
+         }
+     } else {
+         // if the columns item has a vector, the "easy case"
+@@ -107,7 +124,7 @@ struct matrix *rt_matrix_view_matrix(struct matrix *m, struct vector *rows, stru
+     newM->type = m->type;
+     newM->data = malloc(sizeof(struct vector *) * rows->size);
+     for (int64_t i = 0; i < rows->size; i++) {
+-        newM->data[i] = rt_vector_view_vector(m->data[rt_vector_access_int64_t(rows, i, 0)], cols);
++        newM->data[i] = rt_vector_view_vector(m->data[rt_vector_access_int64_t(rows, i+1, 0)-1], cols);
+     }
+ 
+     return newM;
+@@ -188,6 +205,7 @@ struct matrix *rt_matrix_logical(struct matrix *a, struct matrix *b, u_int64_t o
+ 
+ u_int8_t rt_matrix_eq(struct matrix *a, struct matrix *b, u_int64_t op) {
+     if (a->rows != b->rows || a->cols != b->cols) {
++        fprintf(stderr, "Dimensions not compatible for operation\n");
+         exit(1);
+     }
+ 
+@@ -211,13 +229,13 @@ void rt_vector_copy(struct vector *from, struct vector *to) {
+         switch (from->type) {
+             case VECTOR_TYPE_CHAR:
+             case VECTOR_TYPE_BOOL:
+-                rt_vector_set_char(to, i, rt_vector_access_char(from, i, 0), 0);
++                rt_vector_set_char(to, i+1, rt_vector_access_char(from, i+1, 0), 0);
+                 break;
+             case VECTOR_TYPE_INT:
+-                rt_vector_set_int64_t(to, i, rt_vector_access_int64_t(from, i, 0), 0);
++                rt_vector_set_int64_t(to, i+1, rt_vector_access_int64_t(from, i+1, 0), 0);
+                 break;
+             case VECTOR_TYPE_FLOAT:
+-                rt_vector_set_float(to, i, rt_vector_access_float(from, i, 0), 0);
++                rt_vector_set_float(to, i+1, rt_vector_access_float(from, i+1, 0), 0);
+                 break;
+         }
+     }
+@@ -239,13 +257,13 @@ void rt_matrix_set_vector(struct matrix *to, struct vector *from) {
+             switch (from->type) {
+                 case VECTOR_TYPE_CHAR:
+                 case VECTOR_TYPE_BOOL:
+-                    rt_vector_set_char(to->data[i], 0, rt_vector_access_char(from, i, 0), 0);
++                    rt_vector_set_char(to->data[i], 0, rt_vector_access_char(from, i+1, 0), 0);
+                     break;
+                 case VECTOR_TYPE_INT:
+-                    rt_vector_set_int64_t(to->data[i], 0, rt_vector_access_int64_t(from, i, 0), 0);
++                    rt_vector_set_int64_t(to->data[i], 0, rt_vector_access_int64_t(from, i+1, 0), 0);
+                     break;
+                 case VECTOR_TYPE_FLOAT:
+-                    rt_vector_set_float(to->data[i], 0, rt_vector_access_float(from, i, 0), 0);
++                    rt_vector_set_float(to->data[i], 0, rt_vector_access_float(from, i+1, 0), 0);
+                     break;
+             }
+         }
+diff --git a/runtime/src/vectors.c b/runtime/src/vectors.c
+index f4563d6..a4c3d49 100644
+--- a/runtime/src/vectors.c
++++ b/runtime/src/vectors.c
+@@ -20,7 +20,7 @@ struct vector *rt_vector_empty_copy(int64_t type, struct vector *v) {
+ }
+ 
+ char rt_vector_out_of_bounds(struct vector *v, u_int64_t idx) {
+-    return (idx >= v->size) ? 1 : 0;
++    return (idx > v->size || idx == 0) ? 1 : 0;
+ }
+ 
+ struct vector *rt_vector_not(struct vector *a) {
+@@ -54,12 +54,8 @@ struct vector *rt_vector_arith(struct vector *a, struct vector *b, u_int64_t op)
+     // At this point, the vectors should be of the same type (innerty and size)
+     // As well, only vectors of real and float are supported
+ 
+-    printf("Vector A length: %ld, type: %lul\n", a->size, a->type);
+-    printf("Vector B length: %ld, type: %lul\n", b->size, b->type);
+-
+     struct vector *res = rt_vector_new(a->type, a->size);
+ 
+-
+     if (res->type == VECTOR_TYPE_INT) {
+         VECTOR_DATA_INIT_RES(int64_t)
+         for (int64_t i = 0; i < res->size; i++) {
+@@ -243,17 +239,17 @@ struct vector *rt_vector_create_deep_copy(struct vector *v) {
+         case VECTOR_TYPE_BOOL:
+         case VECTOR_TYPE_CHAR:
+             for (int64_t i = 0; i < v->size; i++) {
+-                ((char *) newV->data)[i] = rt_vector_access_char(v, i, 0);
++                ((char *) newV->data)[i] = rt_vector_access_char(v, i+1, 0);
+             }
+             break;
+         case VECTOR_TYPE_INT:
+             for (int64_t i = 0; i < v->size; i++) {
+-                ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i, 0);
++                ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, i+1, 0);
+             }
+             break;
+         case VECTOR_TYPE_FLOAT:
+             for (int64_t i = 0; i < v->size; i++) {
+-                ((float *) newV->data)[i] = rt_vector_access_float(v, i, 0);
++                ((float *) newV->data)[i] = rt_vector_access_float(v, i+1, 0);
+             }
+             break;
+     }
+diff --git a/src/Codegen/CodeGenPass.cpp b/src/Codegen/CodeGenPass.cpp
+index 738b885..638deed 100644
+--- a/src/Codegen/CodeGenPass.cpp
++++ b/src/Codegen/CodeGenPass.cpp
+@@ -370,10 +370,10 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
+ 
+     auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
+     auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
++    auto Expr = visit(Assign->getExpr());
++    auto AssignedTo = visit(Assign->getAssignedTo());
+ 
+     if (isa<IndexReference>(Assign->getAssignedTo()) || isa<IdentReference>(Assign->getAssignedTo())) {
+-        auto Expr = visit(Assign->getExpr());
+-        auto AssignedTo = visit(Assign->getAssignedTo());
+ 
+         // These outer types are not representative of the main base type, but rather the type of what is being
+         // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
+@@ -450,16 +450,16 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
+             }
+ 
+         }
+-        assert(false && "Should not reach here");
++//        assert(false && "Should not reach here");
+     }
+ 
+ 
+     // FIXME: Free previous value
+-    auto *Val = visit(Assign->getExpr());
++    auto *Val = Expr;
+ 
+     auto Loc = [&](){
+         if (!AssignedToTy->isCompositeTy())
+-            return visit(Assign->getAssignedTo());
++            return AssignedTo;
+         auto Ident = dyn_cast<IdentReference>(Assign->getAssignedTo());
+         assert(Ident && "Should only be assigning to an l-value");
+         return SymbolMap[Ident->getIdentifier()->getReferred()];
+@@ -1034,7 +1034,7 @@ llvm::Value *CodeGenPass::visitGenerator(Generator *Gen) {
+     auto VecTy = dyn_cast<VectorTy>(DomainTy);
+ 
+     auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+-    IR.CreateStore(IR.getInt64(-1), IterIndex);
++    IR.CreateStore(IR.getInt64(0), IterIndex);
+ 
+     auto IterItem = createAlloca(VecTy->getInnerTy());
+     SymbolMap[Gen->getDomainVar()->getReferred()] = IterItem;
+@@ -1128,7 +1128,7 @@ llvm::Value *CodeGenPass::visitMatrixGenerator(MatrixGenerator *Gen) {
+     auto ColVecTy = dyn_cast<VectorTy>(ColDomainTy);
+ 
+     auto RowIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+-    IR.CreateStore(IR.getInt64(-1), RowIterIndex);
++    IR.CreateStore(IR.getInt64(0), RowIterIndex);
+     auto ColIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+ 
+     auto RowIterItem = createAlloca(RowVecTy->getInnerTy());
+@@ -1141,7 +1141,7 @@ llvm::Value *CodeGenPass::visitMatrixGenerator(MatrixGenerator *Gen) {
+     IR.CreateBr(HeaderRow);
+ 
+     IR.SetInsertPoint(HeaderRow);
+-    IR.CreateStore(IR.getInt64(-1), ColIterIndex);
++    IR.CreateStore(IR.getInt64(0), ColIterIndex);
+     auto OldRowIdx = IR.CreateLoad(RowIterIndex);
+     auto RowIdx = IR.CreateAdd(OldRowIdx, IR.getInt64(1));
+     IR.CreateStore(RowIdx, RowIterIndex);
+@@ -1251,7 +1251,7 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
+     auto VecTy = dyn_cast<VectorTy>(DomainTy);
+ 
+     auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+-    IR.CreateStore(IR.getInt64(-1), IterIndex);
++    IR.CreateStore(IR.getInt64(0), IterIndex);
+ 
+     auto IterItem = createAlloca(PM->TypeReg.getConstTypeOf(VecTy->getInnerTy()));
+     SymbolMap[Loop->getID()->getReferred()] = IterItem;
+@@ -2005,7 +2005,7 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
+         for (int i = 0; i < MatTy->getNumOfRows(); i++) {
+             IR.CreateCall(AddVecToMatrixLiteral, {
+                 visit(VecLit->getChildAt(i)),
+-                IR.getInt64(i)});
++                IR.getInt64(i+1)});
+         }
+         return IR.CreateCall(GetMatrixLiteralFromRT, {});
+     }
+@@ -2025,16 +2025,16 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
+         auto ElemVal = visit(Elem);
+         switch (VecTy->getInnerTy()->getKind()) {
+             case Type::TypeKind::T_Int:
+-                IR.CreateCall(VectorSetInt, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
++                IR.CreateCall(VectorSetInt, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
+                 break;
+             case Type::TypeKind::T_Real:
+-                IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
++                IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
+                 break;
+             case Type::TypeKind::T_Char:
+-                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
++                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i+1), ElemVal, IR.getInt64(0)});
+                 break;
+             case Type::TypeKind::T_Bool:
+-                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
++                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i+1), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
+                 break;
+             default:
+                 assert(false && "Invalid vector type");
