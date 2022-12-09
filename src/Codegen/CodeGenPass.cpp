@@ -49,12 +49,12 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PowInt = Mod.getOrInsertFunction(
             "rt_ipow", llvm::FunctionType::get(
                     LLVMIntTy, {LLVMIntTy, LLVMIntTy}, false));
-    Malloc = Mod.getOrInsertFunction(
-            "malloc", llvm::FunctionType::get(
-                    LLVMPtrTy, {LLVMIntTy}, false));
     VectorNew = Mod.getOrInsertFunction(
             "rt_vector_new", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMIntTy, LLVMIntTy}, false));
+    VectorEmptyCopy = Mod.getOrInsertFunction(
+            "rt_vector_empty_copy", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMIntTy, LLVMVectorPtrTy}, false));
     VectorConcat = Mod.getOrInsertFunction(
             "rt_vector_concat", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
@@ -124,6 +124,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     MatrixNew = Mod.getOrInsertFunction(
             "rt_matrix_new", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMIntTy, LLVMIntTy, LLVMIntTy}, false));
+    MatrixEmptyFromVec = Mod.getOrInsertFunction(
+            "rt_matrix_empty_from_vector", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {LLVMIntTy, LLVMVectorPtrTy, LLVMVectorPtrTy}, false));
     MatrixPopulateRow = Mod.getOrInsertFunction(
             "rt_matrix_populate_row", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMMatrixPtrTy, LLVMVectorPtrTy, LLVMIntTy}, false));
@@ -770,13 +773,15 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
     } else if (isa<RealTy>(ResultType)) {
 
         switch (Op->getOpKind()) {
+            case UnaryOp::ADD:
+                return Operand;
             case UnaryOp::SUB:
                 return IR.CreateFSub(
                     llvm::ConstantFP::getZeroValueForNegation(LLVMRealTy), Operand);
             default:
                 assert(false && "Invalid unary operation for real type");
 
-    }
+        }
     }
 
     switch (Op->getOpKind()) {
@@ -915,6 +920,219 @@ llvm::Value *CodeGenPass::visitConditionalLoop(ConditionalLoop *Loop) {
     LoopEndBlocks.pop();
 
     return nullptr;
+}
+
+llvm::Value *CodeGenPass::visitGenerator(Generator *Gen) {
+    llvm::BasicBlock *Header = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_header", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_body", CurrentFunction);
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_end", CurrentFunction);
+
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Gen->getExpr());
+
+    auto Domain = visit(Gen->getDomain());
+    auto DomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Gen->getDomain());
+    assert(isa<VectorTy>(DomainTy) && "Domain must be a vector");
+    auto VecTy = dyn_cast<VectorTy>(DomainTy);
+
+    auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+    IR.CreateStore(IR.getInt64(-1), IterIndex);
+
+    auto IterItem = createAlloca(VecTy->getInnerTy());
+    SymbolMap[Gen->getDomainVar()->getReferred()] = IterItem;
+
+    auto NewVec = IR.CreateCall(VectorEmptyCopy, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(ExprTy->getKind())), Domain});
+
+    IR.CreateBr(Header);
+
+    IR.SetInsertPoint(Header);
+    auto OldIdx = IR.CreateLoad(IterIndex);
+    auto Idx = IR.CreateAdd(OldIdx, IR.getInt64(1));
+    IR.CreateStore(Idx, IterIndex);
+    llvm::Value *OOB = IR.CreateCall(VectorOOB, {Domain, Idx});
+    OOB = IR.CreateICmpEQ(OOB, IR.getInt8(1));
+    IR.CreateCondBr(OOB, LoopEnd, LoopBody);
+
+    IR.SetInsertPoint(LoopBody);
+    llvm::Value *Item;
+    switch (VecTy->getInnerTy()->getKind()) {
+        case Type::T_Int:
+            Item = IR.CreateCall(VectorAccessInt, {Domain, Idx, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            Item = IR.CreateCall(VectorAccessFloat, {Domain, Idx, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            Item = IR.CreateCall(VectorAccessChar, {Domain, Idx, IR.getInt64(0)});
+            Item = IR.CreateICmpNE(Item, IR.getInt8(0));
+            break;
+        case Type::T_Char:
+            Item = IR.CreateCall(VectorAccessChar, {Domain, Idx, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+    IR.CreateStore(Item, IterItem);
+
+    auto Res = visit(Gen->getExpr());
+
+    // store item
+    switch (ExprTy->getKind()) {
+        case Type::T_Int:
+            IR.CreateCall(VectorSetInt, {NewVec, Idx, Res, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            IR.CreateCall(VectorSetFloat, {NewVec, Idx, Res, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            IR.CreateCall(VectorSetChar, {NewVec, Idx, IR.CreateZExt(Res, LLVMCharTy), IR.getInt64(0)});
+            break;
+        case Type::T_Char:
+            IR.CreateCall(VectorSetChar, {NewVec, Idx, Res, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+
+    IR.CreateBr(Header);
+
+    IR.SetInsertPoint(LoopEnd);
+
+    return NewVec;
+
+}
+
+llvm::Value *CodeGenPass::visitMatrixGenerator(MatrixGenerator *Gen) {
+
+    llvm::BasicBlock *HeaderRow = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_header_row", CurrentFunction);
+    llvm::BasicBlock *HeaderCol = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_header_col", CurrentFunction);
+    llvm::BasicBlock *RowBody = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_row", CurrentFunction);
+    llvm::BasicBlock *LoopBody = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_body", CurrentFunction);
+    llvm::BasicBlock *LoopEnd = llvm::BasicBlock::Create(
+            GlobalCtx, "generator_end", CurrentFunction);
+
+    auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Gen->getExpr());
+
+    auto RowDomain = visit(Gen->getRowDomain());
+    auto RowDomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Gen->getRowDomain());
+    assert(isa<VectorTy>(RowDomainTy) && "Domain must be a vector");
+    auto RowVecTy = dyn_cast<VectorTy>(RowDomainTy);
+
+    auto ColDomain = visit(Gen->getColumnDomain());
+    auto ColDomainTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Gen->getColumnDomain());
+    assert(isa<VectorTy>(ColDomainTy) && "Domain must be a vector");
+    auto ColVecTy = dyn_cast<VectorTy>(ColDomainTy);
+
+    auto RowIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+    IR.CreateStore(IR.getInt64(-1), RowIterIndex);
+    auto ColIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
+
+    auto RowIterItem = createAlloca(RowVecTy->getInnerTy());
+    SymbolMap[Gen->getRowDomainVar()->getReferred()] = RowIterItem;
+    auto ColIterItem = createAlloca(ColVecTy->getInnerTy());
+    SymbolMap[Gen->getColumnDomainVar()->getReferred()] = ColIterItem;
+
+    auto NewMat = IR.CreateCall(MatrixEmptyFromVec, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(ExprTy->getKind())), RowDomain, ColDomain});
+
+    IR.CreateBr(HeaderRow);
+
+    IR.SetInsertPoint(HeaderRow);
+    IR.CreateStore(IR.getInt64(-1), ColIterIndex);
+    auto OldRowIdx = IR.CreateLoad(RowIterIndex);
+    auto RowIdx = IR.CreateAdd(OldRowIdx, IR.getInt64(1));
+    IR.CreateStore(RowIdx, RowIterIndex);
+    llvm::Value *RowOOB = IR.CreateCall(VectorOOB, {RowDomain, RowIdx});
+    RowOOB = IR.CreateICmpEQ(RowOOB, IR.getInt8(1));
+    IR.CreateCondBr(RowOOB, LoopEnd, RowBody);
+
+    IR.SetInsertPoint(RowBody);
+    llvm::Value *RowItem;
+    switch (RowVecTy->getInnerTy()->getKind()) {
+        case Type::T_Int:
+            RowItem = IR.CreateCall(VectorAccessInt, {RowDomain, RowIdx, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            RowItem = IR.CreateCall(VectorAccessFloat, {RowDomain, RowIdx, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            RowItem = IR.CreateCall(VectorAccessChar, {RowDomain, RowIdx, IR.getInt64(0)});
+            RowItem = IR.CreateICmpNE(RowItem, IR.getInt8(0));
+            break;
+        case Type::T_Char:
+            RowItem = IR.CreateCall(VectorAccessChar, {RowDomain, RowIdx, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+    IR.CreateStore(RowItem, RowIterItem);
+    IR.CreateBr(HeaderCol);
+
+    IR.SetInsertPoint(HeaderCol);
+    auto OldColIdx = IR.CreateLoad(ColIterIndex);
+    auto ColIdx = IR.CreateAdd(OldColIdx, IR.getInt64(1));
+    IR.CreateStore(ColIdx, ColIterIndex);
+    llvm::Value *ColOOB = IR.CreateCall(VectorOOB, {ColDomain, ColIdx});
+    ColOOB = IR.CreateICmpEQ(ColOOB, IR.getInt8(1));
+    IR.CreateCondBr(ColOOB, HeaderRow, LoopBody);
+
+    IR.SetInsertPoint(LoopBody);
+    llvm::Value *ColItem;
+    switch (ColVecTy->getInnerTy()->getKind()) {
+        case Type::T_Int:
+            ColItem = IR.CreateCall(VectorAccessInt, {ColDomain, ColIdx, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            ColItem = IR.CreateCall(VectorAccessFloat, {ColDomain, ColIdx, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            ColItem = IR.CreateCall(VectorAccessChar, {ColDomain, ColIdx, IR.getInt64(0)});
+            ColItem = IR.CreateICmpNE(ColItem, IR.getInt8(0));
+            break;
+        case Type::T_Char:
+            ColItem = IR.CreateCall(VectorAccessChar, {ColDomain, ColIdx, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+    IR.CreateStore(ColItem, ColIterItem);
+
+    auto Res = visit(Gen->getExpr());
+
+    // store item
+    switch (ExprTy->getKind()) {
+        case Type::T_Int:
+            IR.CreateCall(MatrixSetInt, {NewMat, RowIdx, ColIdx, Res, IR.getInt64(0)});
+            break;
+        case Type::T_Real:
+            IR.CreateCall(MatrixSetFloat, {NewMat, RowIdx, ColIdx, Res, IR.getInt64(0)});
+            break;
+        case Type::T_Bool:
+            IR.CreateCall(MatrixSetChar, {NewMat, RowIdx, ColIdx, Res, IR.CreateZExt(Res, LLVMCharTy), IR.getInt64(0)});
+            break;
+        case Type::T_Char:
+            IR.CreateCall(MatrixSetChar, {NewMat, RowIdx, ColIdx, Res, IR.getInt64(0)});
+            break;
+        default:
+            assert(false && "Invalid type for vector");
+    }
+
+
+    IR.CreateBr(HeaderCol);
+
+    IR.SetInsertPoint(LoopEnd);
+
+    return NewMat;
+
 }
 
 llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
@@ -1365,7 +1583,7 @@ llvm::Value *CodeGenPass::visitProcedureDef(ProcedureDef *Def) {
     CurrentFunction = Proc;
 
     if (ProcName == "main") {
-        IR.CreateCall(InitRuntimeStream);
+        // IR.CreateCall(InitRuntimeStream);
         assignGlobals();
     }
 
@@ -1695,10 +1913,10 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
             case Type::TypeKind::T_Real:
                 IR.CreateCall(VectorSetFloat, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
                 break;
-            case Type::TypeKind::T_Bool:
-                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
-                break;
             case Type::TypeKind::T_Char:
+                IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), ElemVal, IR.getInt64(0)});
+                break;
+            case Type::TypeKind::T_Bool:
                 IR.CreateCall(VectorSetChar, {VecStruct, IR.getInt64(i), IR.CreateZExt(ElemVal, LLVMCharTy), IR.getInt64(0)});
                 break;
             default:
@@ -1814,10 +2032,10 @@ llvm::Value *CodeGenPass::CreateStringStruct(uint64_t size, bool malloc) {
 
     if (malloc) {
         // malloc space for the vector
-        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
+//        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
 
         // store the malloced pointer in the vector
-        Result = IR.CreateInsertValue(Result, MallocCall, {3});
+//        Result = IR.CreateInsertValue(Result, MallocCall, {3});
     }
 
     return Result;
