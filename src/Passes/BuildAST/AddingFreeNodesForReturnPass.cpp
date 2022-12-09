@@ -53,6 +53,8 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
             }
         }
         else if (dyn_cast<Return>(Child)) {
+            if (HasReturn)
+                continue;
             HasReturn = true;
             ReturnStat = dyn_cast<Return>(Child);
         }
@@ -68,7 +70,7 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
             addFreedIdentifier(FreeN, Node);
         }
 
-        if (ReturnStat->getReturnExpr()) {
+        if (!isa<NoOp>(ReturnStat->getReturnExpr())) {
             auto ReturnResultTy = PM->getAnnotation<ExprTypeAnnotatorPass>(ReturnStat->getReturnExpr());
             // A new variable
             auto ReturnResultSym = PM->SymTable.defineObject("", ReturnResultTy);
