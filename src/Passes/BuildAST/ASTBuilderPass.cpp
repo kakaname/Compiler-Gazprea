@@ -77,6 +77,7 @@ std::any ASTBuilderPass::visitIdentDecl(GazpreaParser::IdentDeclContext *ctx) {
     } else
         Decl->setInitExpr(castToNodeVisit(ctx->expr()));
 
+
     return cast<ASTNodeT>(Decl);
 }
 
@@ -301,17 +302,29 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // determine type of inner
     auto Type = castToTypeVisit(ctx->type());
+    bool isString = false;
+
+    if(Type->getKind() == Type::TypeKind::T_String){
+        // if it is type vector, it is a string then
+        Type = PM->TypeReg.getCharTy(false);    
+        isString = true;
+    }
 
     // determine if we have a known size or wildcard
     auto Size = ctx->expressionOrWildcard();
-    // Size must be inferred.
-    if (Size->MUL())
+    if (Size->MUL()){
+        if(isString)
+            return PM->TypeReg.getStringType(Type, -1, false);
         return PM->TypeReg.getVectorType(Type, -1, false);
+    }
 
     // Try to constant fold it.
     long VecSize = -1;
     try {
         VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+        if(isString)
+            return PM->TypeReg.getStringType(Type, (int) VecSize);
+        return PM->TypeReg.getVectorType(Type, (int) VecSize);
     } catch (exception&) {}
 
     // If the size cannot be folded, then there must an expression
@@ -319,9 +332,22 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     auto SizeTree = castToNodeVisit(Size->expr());
     auto VecTy = PM->TypeReg.getVectorType(Type, (int) VecSize, false);
     cast<VectorTy>(VecTy)->setSizeExpr(SizeTree);
+
+    if(isString){
+        return PM->TypeReg.getStringType(Type, -1, false);
+    }
     return VecTy;
 }
 
+std::any ASTBuilderPass::visitStringType(GazpreaParser::StringTypeContext *ctx) {
+
+    // determine type of inner
+
+    // if it is a stringType size is not specified
+    return PM->TypeReg.getStringType(PM->TypeReg.getCharTy(false), -1, false);
+}
+
+// Ignore for part1
 std::any ASTBuilderPass::visitMatrixType(GazpreaParser::MatrixTypeContext *ctx) {
     auto InnerTy = castToTypeVisit(ctx->type());
 
@@ -905,6 +931,71 @@ std::any ASTBuilderPass::visitVectorLiteral(GazpreaParser::VectorLiteralContext 
     return cast<ASTNodeT>(VectorLit);;
 }
 
+
+
+std::any ASTBuilderPass::visitStringLiteral(GazpreaParser::StringLiteralContext *ctx) {
+    auto StringLit = PM->Builder.build<StringLiteral>();
+    StringLit->setCtx(ctx);
+
+    std::string CharVal = ctx->StringLit()->getText();
+
+    long len = CharVal.length();
+    bool escapeSequence = false;
+
+    for(long i=1;i<len-1;i++){
+        char Val;
+        if(escapeSequence == true){ // for special characters
+            switch (CharVal[i]) {
+                case '0':
+                    Val = 0x00;
+                    break;
+                case 'a':
+                    Val = 0x07;
+                    break;
+                case 'b':
+                    Val = 0x08;
+                    break;
+                case 't':
+                    Val = 0x09;
+                    break;
+                case 'n':
+                    Val = 0x0A;
+                    break;
+                case 'r':
+                    Val = 0x0D;
+                    break;
+                case '\"':
+                    Val = 0x22;
+                    break;
+                case '\'':
+                    Val = 0x27;
+                    break;
+                case '\\':
+                    Val = 0x5C;
+                    break;
+                default:
+                    Val = CharVal[i];
+                    break;
+            }
+
+            escapeSequence = false;
+        }else if(CharVal[i] == '\\'){ // next value is special character
+            escapeSequence = true;
+            continue;
+        }else{ // is normal character
+            Val = CharVal[i];
+        }
+
+        auto CharLit = PM->Builder.build<CharLiteral>();
+        CharLit->setCtx(ctx);
+        CharLit->setCharacter(Val);
+        StringLit->addChild(cast<ASTNodeT>(CharLit));
+        
+    }
+
+    return cast<ASTNodeT>(StringLit);
+}
+
 // ignored for part1
 std::any ASTBuilderPass::visitAppendOp(GazpreaParser::AppendOpContext *ctx) {
     auto ConcatOp = PM->Builder.build<Concat>();
@@ -1123,7 +1214,24 @@ std::any ASTBuilderPass::visitMemAccessLValue(GazpreaParser::MemAccessLValueCont
 }
 
 std::any ASTBuilderPass::visitTupleUnpackLValue(GazpreaParser::TupleUnpackLValueContext *ctx) {
-    throw std::runtime_error("Unimplemented: TupleUnpack");
+
+    auto Dest = PM->Builder.build<TupleDestruct>();
+    Dest->setCtx(ctx);
+
+
+    for (auto ID : ctx->ID()) {
+        auto IdentRef = PM->Builder.build<IdentReference>();
+        IdentRef->setCtx(ctx);
+        auto Ident = PM->Builder.build<Identifier>();
+        IdentRef->setIdentifier(Ident);
+        Ident->setParent(IdentRef);
+        Ident->setName(ID->getText());
+        Dest->addChild(IdentRef);
+    }
+
+    return cast<ASTNodeT>(Dest);
+
+
 }
 
 std::any ASTBuilderPass::visitRealLit1(GazpreaParser::RealLit1Context *ctx) {

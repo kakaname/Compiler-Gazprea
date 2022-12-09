@@ -69,6 +69,27 @@ bool isSameVectorAs(Type* BaseType, Type *TargetTy) {
     return BaseTy->getSize() == TargetVecTy->getSize();
 }
 
+bool isSameStringAs(Type* BaseType, Type *TargetTy) {
+    auto BaseTy = cast<StringTy>(BaseType);
+    auto TargetStrTy = dyn_cast<StringTy>(TargetTy);
+
+    if (!TargetStrTy)
+        return false;
+
+    // The inner type must be the same.
+    if (!BaseTy->getInnerTy()->isSameTypeAs(TargetStrTy->getInnerTy()))
+        return false;
+
+    // If any of the sizes are not known, we assume they are the same type.
+    // In this case the program will fail at runtime is this is not the case.
+    if (!BaseTy->isSizeKnown() || !TargetStrTy->isSizeKnown())
+        return true;
+
+    // Sizes of both vectors are known. If they are different, the types are
+    // different.
+    return BaseTy->getSize() == TargetStrTy->getSize();
+}
+
 bool canPromoteTupleTo(Type *BaseTy, Type *TargetTy) {
     auto BaseTuple = cast<TupleTy>(BaseTy);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
@@ -146,6 +167,20 @@ std::string getVectorTypeName(Type *Ty) {
     TypeName += VectorType->getInnerTy()->getTypeName();
     TypeName += "[";
     int NumOfElements = VectorType->getSize();
+    if (NumOfElements < 0)
+        TypeName += "*";
+    else
+        TypeName += std::to_string(NumOfElements);
+    TypeName += "])";
+    return TypeName;
+}
+
+std::string getStringTypeName(Type *Ty) {
+    auto StringType = cast<StringTy>(Ty);
+    std::string TypeName = "string(";
+    TypeName += StringType->getInnerTy()->getTypeName();
+    TypeName += "[";
+    int NumOfElements = StringType->getSize();
     if (NumOfElements < 0)
         TypeName += "*";
     else

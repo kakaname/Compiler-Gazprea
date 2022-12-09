@@ -722,6 +722,20 @@ Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
     return TupleTy;
 }
 
+Type *ExprTypeAnnotatorPass::visitTupleDestruct(TupleDestruct *TupDestr) {
+    vector<Type*> ChildTypes;
+    for (auto *ChildExpr : *TupDestr) {
+        auto ChildTy = visit(ChildExpr);
+        ChildTy = PM->TypeReg.getVarTypeOf(ChildTy);
+        ChildTypes.emplace_back(ChildTy);
+    }
+    map<string, int> Temp{};
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
+    TupleTy = PM->TypeReg.getVarTypeOf(TupleTy);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(TupDestr, TupleTy);
+    return TupleTy;
+}
+
 Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
@@ -1026,6 +1040,21 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     }
 }
 
+Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
+
+
+    if (!StrLit->numOfChildren())
+        throw runtime_error("Unimplemented");
+
+    Type *CharTy = PM->TypeReg.getCharTy();
+
+    // Get the vector type
+    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    annotate(StrLit, StrTy);
+    return StrTy;
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
 
@@ -1198,6 +1227,27 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
+
+    if (isa<StringTy>(LType) && isa<StringTy>(RType)) {
+
+        auto LVecTy = cast<StringTy>(LType);
+        auto RVecTy = cast<StringTy>(RType);
+
+
+        auto ResLen = [&]() {
+            // If either of the sizes is unknown, the result size is unknown.
+            if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
+                return -1;
+            // Otherwise both sizes are known and the result has size as the sum
+            // of the two.
+            return LVecTy->getSize() + RVecTy->getSize();
+        }();
+
+        auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
+        annotateWithConst(Concat, ResTy);
+        return ResTy;
+
+    }
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
