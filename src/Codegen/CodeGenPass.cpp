@@ -370,10 +370,10 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
 
     auto ExprTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getExpr());
     auto AssignedToTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Assign->getAssignedTo());
+    auto Expr = visit(Assign->getExpr());
+    auto AssignedTo = visit(Assign->getAssignedTo());
 
     if (isa<IndexReference>(Assign->getAssignedTo()) || isa<IdentReference>(Assign->getAssignedTo())) {
-        auto Expr = visit(Assign->getExpr());
-        auto AssignedTo = visit(Assign->getAssignedTo());
 
         // These outer types are not representative of the main base type, but rather the type of what is being
         // assigned. We essentially visit the IndexReference on our own, and then assign the correct value.
@@ -450,16 +450,16 @@ llvm::Value *CodeGenPass::visitAssignment(Assignment *Assign) {
             }
 
         }
-        assert(false && "Should not reach here");
+//        assert(false && "Should not reach here");
     }
 
 
     // FIXME: Free previous value
-    auto *Val = visit(Assign->getExpr());
+    auto *Val = Expr;
 
     auto Loc = [&](){
         if (!AssignedToTy->isCompositeTy())
-            return visit(Assign->getAssignedTo());
+            return AssignedTo;
         auto Ident = dyn_cast<IdentReference>(Assign->getAssignedTo());
         assert(Ident && "Should only be assigning to an l-value");
         return SymbolMap[Ident->getIdentifier()->getReferred()];
