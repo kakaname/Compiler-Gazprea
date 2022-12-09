@@ -59,7 +59,7 @@ void CallableArgumentTypeCheckingPass::visitProcedureCall(ProcedureCall *Call) {
         auto Expr = Call->getArgsList()->getExprAtPos(I);
         auto ExprType = PM->getAnnotation<ExprTypeAnnotatorPass>(Expr);
         if (!ParamType->isConst()) {
-            if(!isa<Identifier>(Expr) && !isa<MemberAccess>(Expr))
+            if(!isa<IdentReference>(Expr) && !isa<MemberReference>(Expr) && !isa<IndexReference>(Expr))
                 throw VariableArgumentError(Call, I + 1, Call->getIdentifier()->getName());
 
             if (!ParamType->isSameTypeAs(ExprType))
