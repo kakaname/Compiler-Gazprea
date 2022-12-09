@@ -26,7 +26,9 @@ static int put_data_in_read_buf() {
         current_pop_idx = (current_pop_idx + 1) % STREAM_BUF_LEN;
     }
 
-    while (characters_read < STREAM_BUF_LEN - 1 && !isspace(stream.buf[current_pop_idx])) {
+    while (characters_read < STREAM_BUF_LEN - 1
+    && !isspace(stream.buf[current_pop_idx])
+    && stream.buf[current_pop_idx] != EOF) {
         stream.scan_buf[characters_read++] = stream.buf[current_pop_idx];
         current_pop_idx = (current_pop_idx + 1) % STREAM_BUF_LEN;
     }
@@ -45,8 +47,15 @@ int64_t stream_state() {
 }
 
 void rt_stream_in_init() {
+
+}
+
+static void ensure_stream_state_init() {
+    if (stream.has_been_initialized)
+        return;
     for (int i = 0; i < STREAM_BUF_LEN; i++)
         stream.buf[i] = getchar();
+    stream.has_been_initialized = 1;
 }
 
 static char has_input_ended() {
@@ -140,7 +149,7 @@ void rt_print_vector(struct vector *v) {
                 printf(" ");
         }
     } else if (v->type == VECTOR_TYPE_BOOL) {
-        char *data = (char *) v->data;
+        unsigned char *data = (unsigned char *) v->data;
         for (int64_t i = 0; i < v->size; i++) {
             printf("%c", data[i] ? 'T' : 'F');
             if (i != v->size - 1)
@@ -148,6 +157,13 @@ void rt_print_vector(struct vector *v) {
         }
     }
     printf("]");
+}
+
+void rt_print_string(struct vector *v) {
+    char *data = (char *) v->data;
+    for (int i = 0; i < v->size; i++) {
+        printf("%c", data[i]);
+    }
 }
 
 void rt_print_int(int64_t i) {
@@ -167,6 +183,7 @@ void rt_print_bool(int64_t b) {
 }
 
 char rt_scan_char() {
+    ensure_stream_state_init();
     // If the stream has ended we just set the state and return -1 for
     // the character.
     if (has_input_ended()) {
@@ -180,7 +197,7 @@ char rt_scan_char() {
 }
 
 char rt_scan_bool() {
-
+    ensure_stream_state_init();
     if (has_input_ended()) {
         stream.state = 2;
         return 0;
@@ -207,49 +224,34 @@ char rt_scan_bool() {
 }
 
 int64_t rt_scan_int() {
-
+    ensure_stream_state_init();
     if (has_input_ended()) {
         stream.state = 2;
         return 0;
     }
 
     int buf_len = put_data_in_read_buf();
-    int64_t read_in_int;
-    int consumed;
-    if (!sscanf(stream.scan_buf, " %ld%n", &read_in_int, &consumed)) {
+    char *endptr;
+
+    int64_t read_val = strtol(stream.scan_buf, &endptr, 10);
+
+    if (read_val > INT_MAX || read_val < INT_MIN) {
         stream.state = 1;
         return 0;
     }
 
-    // There are some extra characters in the buffer.
-    if (consumed != buf_len) {
-        stream.state = 1;
-        return 0;
-    }
-
-    char *without_ws = stream.scan_buf;
-
-    while (isspace(without_ws))
-        ++without_ws;
-
-
-    // If without space, the buf len is more than 11, then obviously its an error
-    // as the min int32 takes 11 characters to represent.
-    if (strlen(without_ws) > 11) {
-        stream.state = 1;
-        return 0;
-    }
-
-    if (read_in_int < INT_MIN || read_in_int > INT_MAX) {
+    // Something still in the buffer.
+    if ((endptr - stream.scan_buf) != buf_len) {
         stream.state = 1;
         return 0;
     }
 
     consume_next_n(buf_len);
-    return read_in_int;
+    return read_val;
 }
 
 float rt_scan_real() {
+    ensure_stream_state_init();
     if (has_input_ended()) {
         stream.state = 2;
         return 0.0f;

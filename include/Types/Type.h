@@ -34,6 +34,7 @@ bool isMatrixValidForUnaryNot(Type*);
 bool isVectorValidForUnaryAddSub(Type*);
 bool isMatrixValidForUnaryAddSub(Type*);
 
+bool isSameStringAs(Type*, Type*);
 bool isSameFuncAs(Type*, Type*);
 bool isSameProcAs(Type*, Type*);
 bool isSameVectorAs(Type*, Type*);
@@ -41,9 +42,11 @@ bool isSameVectorAs(Type*, Type*);
 bool canCastVectorTo(Type*, Type*);
 bool canCastBoolCharIntTo(Type*);
 bool canCastRealTo(Type*);
+bool canCastIntervalTo(Type*);
 
 Type *getPromotedScalarType(Type*, Type*);
 
+string getStringTypeName(Type* Ty);
 string getVectorTypeName(Type* Ty);
 string getTupleTypeName(Type *Ty);
 string getMatrixTypeName(Type *Ty);
@@ -78,7 +81,7 @@ public:
     }
 
     bool isCompositeTy() const {
-        return T_Vector == Kind || T_Matrix == Kind;
+        return T_Vector == Kind || T_Matrix == Kind || T_String == Kind;
     }
 
     bool isSameTypeAs( Type *T) {
@@ -97,6 +100,8 @@ public:
                 return isSameProcAs(this, T);
             case T_Vector:
                 return isSameVectorAs(this, T);
+            case T_String:
+                return isSameStringAs(this, T);
             default:
                 return T->getKind() == Kind;
         }
@@ -180,7 +185,8 @@ public:
                T_Bool == Kind || T_Char == Kind ||
                T_Int == Kind || T_Real == Kind ||
                T_Interval == Kind || T_String == Kind ||
-               T_Vector == Kind || T_Matrix == Kind;
+               T_Vector == Kind || T_Matrix == Kind ||
+               T_String == Kind;
     }
 
     bool canCastTo( Type *T)  {
@@ -195,6 +201,8 @@ public:
                 return isValidTupleCast(this, T);
             case T_Vector:
                 return canCastVectorTo(this, T);
+            case T_Interval:
+                return canCastIntervalTo(T);
             default:
                 return false;
         }
@@ -266,6 +274,8 @@ public:
                 return getProcedureTypeName(this);
             case T_Vector:
                 return getVectorTypeName(this);
+            case T_String:
+                return getStringTypeName(this);
             case T_Matrix:
                 return getMatrixTypeName(this);
             case T_Interval:

@@ -270,6 +270,17 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitTupleDestruct(TupleDestruct *TupleDestruct) {
+        for (auto *child: *TupleDestruct)
+            visit(child);
+        return RetT();
+    }
+    
+    RetT visitStringLiteral(StringLiteral *String) {
+        for (auto *child : *String)
+            visit(child);
+    }
+
     RetT visitInterval(Interval *Interval) {
         visit(Interval->getUpperExpr());
         visit(Interval->getLowerExpr());
@@ -489,6 +500,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitVectorLiteral(V);
     }
 
+    RetT callVisitStringLiteralImpl(StringLiteral *S) {
+        return static_cast<DerivedT*>(this)->visitStringLiteral(S);
+    }
+
     RetT callVisitIndexImpl(Index *I) {
         return static_cast<DerivedT*>(this)->visitIndex(I);
     }
@@ -534,6 +549,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
 
     RetT callVisitAppendNodeImpl(AppendNode *Append) {
         return static_cast<DerivedT*>(this)->visitAppendNode(Append);
+    }
+
+    RetT callVisitTupleDestructImpl(TupleDestruct *Tuple) {
+        return static_cast<DerivedT*>(this)->visitTupleDestruct(Tuple);
     }
 
 public:
@@ -694,6 +713,9 @@ public:
         if (auto *Vec = dyn_cast<VectorLiteral>(Node))
             return callVisitVectorLiteralImpl(Vec);
 
+        if (auto *Str = dyn_cast<StringLiteral>(Node))
+            return callVisitStringLiteralImpl(Str);
+
         if (auto *Gen = dyn_cast<Generator>(Node))
             return callVisitGeneratorImpl(Gen);
 
@@ -710,6 +732,9 @@ public:
 
         if (auto *Append = dyn_cast<AppendNode>(Node))
             return callVisitAppendNodeImpl(Append);
+        
+        if (auto *Dest = dyn_cast<TupleDestruct>(Node))
+            return callVisitTupleDestructImpl(Dest);
 
         assert(false && "Should be unreachable");
         return RetT();

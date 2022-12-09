@@ -4,6 +4,12 @@
 
 #include "runtime.h"
 
+
+struct interval_t {
+    int64_t lower;
+    int64_t upper;
+};
+
 #define GET_CASTED_VEC_LOOP_INNER(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
     for (int64_t i = 0; i < TARGET_SIZE; ++i) { \
         if(i < BASE->size) {    \
@@ -164,7 +170,7 @@ struct vector *rt_get_casted_vector(struct vector *base,
         int64_t size, int64_t target_type) {
     int64_t target_size = (size > -1) ? size : base->size;
     struct vector *new_vec = malloc(sizeof(struct vector));
-    new_vec->type = base->type;
+    new_vec->type = target_type;
     new_vec->size = target_size;
     new_vec->idx = rt_get_seq_idx(target_size);
     void *new_alloc = rt_get_data_alloc_for_vec(target_size, target_type, NULL);
@@ -246,5 +252,42 @@ struct matrix *rt_get_matrix_with_value(int64_t rows, int64_t cols, enum vector_
     return new_mat;
 }
 
-// TODO: Implement this after the interval struct is known.
-struct vector *rt_get_vector_from_interval() {return NULL;}
+struct vector *rt_get_int_vector_from_interval(struct interval_t interval, int64_t target_size) {
+    int64_t interval_size = (interval.upper - interval.lower) + 1;
+    int64_t size = (target_size > -1) ? target_size : (interval.upper - interval.lower) + 1;
+
+    struct vector* res = malloc(sizeof (struct vector));
+    int64_t *data_buf = malloc(sizeof(int64_t) * (size));
+    for (int64_t i = 0; i < size; i++) {
+        if (i < interval_size) {
+            data_buf[i] = interval.lower + i;
+            continue;
+        }
+        data_buf[i] = 0;
+    }
+    res->type = VECTOR_TYPE_INT;
+    res->size = size;
+    res->data = data_buf;
+    res->idx = rt_get_seq_idx(size);
+    return res;
+}
+
+struct vector *rt_get_real_vector_from_interval(struct interval_t interval, int64_t target_size) {
+    int64_t interval_size = (interval.upper - interval.lower) + 1;
+    int64_t size = (target_size > -1) ? target_size : (interval.upper - interval.lower) + 1;
+
+    struct vector* res = malloc(sizeof (struct vector));
+    float *data_buf = malloc(sizeof(float) * (size));
+    for (int64_t i = 0; i < size; i++) {
+        if (i < interval_size) {
+            data_buf[i] = (float) interval.lower + (float) i;
+            continue;
+        }
+        data_buf[i] = 0.0f;
+    }
+    res->type = VECTOR_TYPE_FLOAT;
+    res->size = size;
+    res->data = data_buf;
+    res->idx = rt_get_seq_idx(size);
+    return res;
+}

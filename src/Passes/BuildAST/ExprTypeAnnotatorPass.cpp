@@ -722,6 +722,20 @@ Type *ExprTypeAnnotatorPass::visitTupleLiteral(TupleLiteral *TupLit) {
     return TupleTy;
 }
 
+Type *ExprTypeAnnotatorPass::visitTupleDestruct(TupleDestruct *TupDestr) {
+    vector<Type*> ChildTypes;
+    for (auto *ChildExpr : *TupDestr) {
+        auto ChildTy = visit(ChildExpr);
+        ChildTy = PM->TypeReg.getVarTypeOf(ChildTy);
+        ChildTypes.emplace_back(ChildTy);
+    }
+    map<string, int> Temp{};
+    auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
+    TupleTy = PM->TypeReg.getVarTypeOf(TupleTy);
+    PM->setAnnotation<ExprTypeAnnotatorPass>(TupDestr, TupleTy);
+    return TupleTy;
+}
+
 Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     visit(Call->getArgsList());
     auto IdentTy = visit(Call->getIdentifier());
@@ -753,6 +767,19 @@ Type *ExprTypeAnnotatorPass::visitRealLiteral(RealLiteral *Real) const {
 
 Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
     auto CastedTy = visit(Cast->getExpr());
+
+    if (auto VecTy = dyn_cast<VectorTy>(Cast->getTargetType()))
+        if (VecTy->getSizeExpr())
+            visit(VecTy->getSizeExpr());
+
+    if (auto MatTy = dyn_cast<MatrixTy>(Cast->getTargetType())) {
+        if (MatTy->getRowSizeExpr())
+            visit(MatTy->getRowSizeExpr());
+
+        if (MatTy->getColSizeExpr())
+            visit(MatTy->getColSizeExpr());
+    }
+
     matchBoolPair(CastedTy->isCompositeTy(), Cast->getTargetType()->isCompositeTy()) {
         matchPattern(true, true):
         matchPattern(false, false): {
@@ -766,11 +793,9 @@ Type *ExprTypeAnnotatorPass::visitExplicitCast(ExplicitCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy))
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
-                annotateWithConst(Cast, Cast->getTargetType());
-                return Cast->getTargetType();
-            }
+            annotateWithConst(Cast, Cast->getTargetType());
             return Cast->getTargetType();
         }
     }
@@ -788,6 +813,19 @@ Type *ExprTypeAnnotatorPass::visitIdentityLiteral(IdentityLiteral *ID) {
 
 Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
     auto CastedTy = visit(Cast->getExpr());
+
+    if (auto VecTy = dyn_cast<VectorTy>(Cast->getTargetType()))
+        if (VecTy->getSizeExpr())
+            visit(VecTy->getSizeExpr());
+
+    if (auto MatTy = dyn_cast<MatrixTy>(Cast->getTargetType())) {
+        if (MatTy->getRowSizeExpr())
+            visit(MatTy->getRowSizeExpr());
+
+        if (MatTy->getColSizeExpr())
+            visit(MatTy->getColSizeExpr());
+    }
+
     matchBoolPair(CastedTy->isCompositeTy(), Cast->getTargetType()->isCompositeTy()) {
         matchPattern(true, true):
         matchPattern(false, false): {
@@ -801,11 +839,9 @@ Type *ExprTypeAnnotatorPass::visitTypeCast(TypeCast *Cast) {
 
         matchPattern(false, true): {
             auto InnerTy = TypeRegistry::getInnerTyFromComposite(Cast->getTargetType());
-            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy)) {
+            if (!CastedTy->isSameTypeAs(InnerTy) && !isa<IntervalTy>(CastedTy))
                 Cast->setExpr(wrapWithCastTo(Cast->getExpr(), InnerTy));
-                annotateWithConst(Cast, Cast->getTargetType());
-                return Cast->getTargetType();
-            }
+            annotateWithConst(Cast, Cast->getTargetType());
             return Cast->getTargetType();
         }
     }
@@ -1005,6 +1041,21 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     }
 }
 
+Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
+
+
+    if (!StrLit->numOfChildren())
+        throw runtime_error("Unimplemented");
+
+    Type *CharTy = PM->TypeReg.getCharTy();
+
+    // Get the vector type
+    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    annotate(StrLit, StrTy);
+    return StrTy;
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     auto BaseTy = visit(Idx->getBaseExpr());
 
@@ -1177,6 +1228,27 @@ Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
+
+    if (isa<StringTy>(LType) && isa<StringTy>(RType)) {
+
+        auto LVecTy = cast<StringTy>(LType);
+        auto RVecTy = cast<StringTy>(RType);
+
+
+        auto ResLen = [&]() {
+            // If either of the sizes is unknown, the result size is unknown.
+            if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
+                return -1;
+            // Otherwise both sizes are known and the result has size as the sum
+            // of the two.
+            return LVecTy->getSize() + RVecTy->getSize();
+        }();
+
+        auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
+        annotateWithConst(Concat, ResTy);
+        return ResTy;
+
+    }
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
@@ -1380,29 +1452,28 @@ Type *ExprTypeAnnotatorPass::visitFilter(Filter *Filter) {
     visit(Filter->getDomainVar());
     auto DomainType = visit(Filter->getDomain());
 
-    Type* DomainResTy = nullptr;
-    if (dyn_cast<VectorTy>(DomainType)) {
-        auto VectorType = dyn_cast<VectorTy>(DomainType);
-        DomainResTy = TypeReg->getVectorType(VectorType->getInnerTy(), -1);
-    }
-    else if (dyn_cast<IntervalTy>(DomainType)) {
-        // Cast the interval to a vector<int>
-        auto CastNode = PM->Builder.build<ExplicitCast>();
-        CastNode->setExpr(Filter->getDomain());
-        CastNode->setTargetType(PM->TypeReg.getVectorType(PM->TypeReg.getIntegerTy()));
-        DomainResTy = CastNode->getTargetType();
-    }
+
+    auto DomainVarType = [&]() {
+        if (isa<IntervalTy>(DomainType)) {
+            auto VecTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Filter->setDomain(wrapWithCastTo(Filter->getDomain(), VecTy));
+            return TypeReg->getIntegerTy();
+        }
+        if (!DomainType->isCompositeTy())
+            throw runtime_error("Cannot use a non composite type as a filter domain.");
+        return TypeRegistry::getInnerTyFromComposite(DomainType);
+    }();
 
     map<string, int> Temp{};
 
     vector<Type *> ChildTypes;
     for (auto ChildExpr: *Filter->getPredicatedList()) {
         visit(ChildExpr);
-        auto ElementTy = PM->TypeReg.getVectorType(dyn_cast<VectorTy>(DomainResTy)->getInnerTy());
+        auto ElementTy = PM->TypeReg.getVectorType(DomainVarType);
         ChildTypes.emplace_back(ElementTy);
     }
     // There's an additional vector
-    ChildTypes.emplace_back(PM->TypeReg.getVectorType(dyn_cast<VectorTy>(DomainResTy)->getInnerTy()));
+    ChildTypes.emplace_back(PM->TypeReg.getVectorType(DomainVarType));
 
     auto TupleTy = PM->TypeReg.getTupleType(ChildTypes, Temp);
     PM->setAnnotation<ExprTypeAnnotatorPass>(Filter, TupleTy);
@@ -1470,4 +1541,13 @@ void ExprTypeAnnotatorPass::visitTypeSizeExpressions(Type *T) {
         if (MatTy->getRowSizeExpr())
             visit(MatTy->getRowSizeExpr());
     }
+}
+
+Type *ExprTypeAnnotatorPass::visitDomainLoop(DomainLoop *Loop) {
+    auto DomainTy = visit(Loop->getDomain());
+    if (isa<IntervalTy>(DomainTy))
+        Loop->setDomain(wrapWithCastTo(
+                Loop->getDomain(),TypeReg->getVectorType(TypeReg->getIntegerTy())));
+    visit(Loop->getID());
+    visit(Loop->getBody());
 }

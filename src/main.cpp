@@ -36,6 +36,7 @@
 #include "Passes/Transformations/BubbleGlobalDeclarationPass.h"
 #include "Passes/Utils/ASTPrinterPass.h"
 #include "Passes/Transformations/SimplifyCompositeTypeCasting.h"
+#include "Passes/Transformations/TupleUnpackToAssign.h"
 
 #include <iostream>
 #include <fstream>
@@ -112,22 +113,21 @@ int main(int argc, char **argv) {
     Manager.registerPass(ProcedureCallAliasCheckPass());
 
     Manager.registerPass(ChangeMemAccessToMemRef());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
-//    Manager.registerPass(SimplifyCompositeTypeCasting());
-//    Manager.registerPass(ASTPrinterPass());
-    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleNotEqualTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(TupleUnpackToAssignTransformationPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);

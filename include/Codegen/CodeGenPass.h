@@ -77,6 +77,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorNot;
     llvm::FunctionCallee VectorSub;
     llvm::FunctionCallee PrintVector;
+    llvm::FunctionCallee PrintString;
     llvm::FunctionCallee VectorLogical;
     llvm::FunctionCallee VectorEq;
     llvm::FunctionCallee VectorArith;
@@ -115,9 +116,21 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetCastedMatrix;
     llvm::FunctionCallee GetVectorWithValue;
     llvm::FunctionCallee GetMatrixWithValue;
+    llvm::FunctionCallee GetIntVectorFromInterval;
+    llvm::FunctionCallee GetRealVectorFromInterval;
 
     // Init runtime
     llvm::FunctionCallee InitRuntimeStream;
+
+
+    // Filter functions
+    llvm::FunctionCallee WriteValFromVecTo;
+    llvm::FunctionCallee InitFilterExpr;
+    llvm::FunctionCallee UpdateFilterAtPos;
+    llvm::FunctionCallee FilterEndIteration;
+    llvm::FunctionCallee GetCompletedFilterAt;
+    llvm::FunctionCallee ShutdownFilterExprBuilder;
+
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
@@ -193,6 +206,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *visitIndexReference(IndexReference *Ref);
     llvm::Value *visitMemberReference(MemberReference *Ref);
     llvm::Value *visitVectorLiteral(VectorLiteral *VecLit);
+    llvm::Value *visitStringLiteral(StringLiteral *String);
     llvm::Value *visitBlock(Block *Blk);
     llvm::Value *visitInterval(Interval *Interval);
     llvm::Value *visitConcat(Concat *Con);
@@ -202,6 +216,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     uint64_t TypeKindMapToVectorTypeInRuntime(Type::TypeKind Kind);
     llvm::Value *createAlloca(Type *Ty);
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
+    llvm::Value *CreateStringStruct(uint64_t size, bool malloc = false);
+    llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
+    llvm::Value *CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, Type *SrcTy, Type *DestTy);
