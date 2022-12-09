@@ -135,7 +135,18 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+
+            if (auto VectorType = dyn_cast<VectorTy>(IdentTy)) {
+                if (VectorType->getSize() != -1) {
+                    Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+                }
+            }
+            else if (auto MatrixType = dyn_cast<MatrixTy>(IdentTy)) {
+                if (MatrixType->getNumOfRows() != -1 || MatrixType->getNumOfColumns() != -1) {
+                    Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+                }
+            }
+
             return;
         }
     }
