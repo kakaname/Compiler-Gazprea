@@ -784,7 +784,6 @@ Type *ExprTypeAnnotatorPass::visitBuiltInCol(ColFunc *Col){
 
 Type *ExprTypeAnnotatorPass::visitBuiltInReverse(ReverseFunc *Rev){
     auto retType = visit(Rev->getVector());
-
     PM->setAnnotation<ExprTypeAnnotatorPass>(Rev, retType);
 
     return retType;

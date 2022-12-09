@@ -1593,7 +1593,7 @@ struct ReverseFunc : public TreeNode {
         return getChildAt(ExprIdx);
     }
 
-    ReverseFunc() : TreeNode(TreeNodeKind::N_AST_Col) {};
+    ReverseFunc() : TreeNode(TreeNodeKind::N_AST_Reverse) {};
 
 };
 #endif //GAZPREABASE_ASTNODES_H
