@@ -1,0 +1,12 @@
+typedef real i32;
+typedef i32[5 + 10] five_reals;
+typedef string[3] three_chars;
+
+procedure main() returns integer {
+    three_chars s = "\na\0";
+    string s1 = "\0Hello There\"  IT WORKS";
+    five_reals five_reals = 1;
+    five_reals + 2 -> std_output;
+    s || s1 -> std_output;
+    return 0;
+}
