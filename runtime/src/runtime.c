@@ -283,3 +283,7 @@ int64_t rt_col_built_in(struct matrix *m) {
 int64_t rt_row_built_in(struct matrix *m) {
     return m->rows;
 }
+
+int64_t rt_length_built_in(struct vector *v) {
+    return v->size;
+}
