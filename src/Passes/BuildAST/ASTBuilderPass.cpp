@@ -218,6 +218,9 @@ std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) 
         Loop = PM->Builder.build<DomainLoop>();
         Loop->setCtx(ctx);
         Loop->setBody(Blk);
+        if (i == 0) {
+            Loop->setBreakable(true);
+        }
         auto thisExpr = ctx->expr(i);
         Loop->setDomain(castToNodeVisit(thisExpr));
         Blk->setParent(Loop);
@@ -383,7 +386,7 @@ std::any ASTBuilderPass::visitIntervalType(GazpreaParser::IntervalTypeContext *c
     auto InnerTy = castToTypeVisit(ctx->type());
     if (!isa<IntegerTy>(InnerTy))
         throw runtime_error("Intervals may only contain integers");
-    return PM->TypeReg.getIntervalTy(false);
+    return PM->TypeReg.getIntervalTy(-1, false);
 }
 
 std::any ASTBuilderPass::visitIntType(GazpreaParser::IntTypeContext *ctx) {

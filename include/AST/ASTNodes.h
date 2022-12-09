@@ -396,7 +396,19 @@ struct DomainLoop: public TreeNode {
         return getChildAt(DomainIdx);
     }
 
+    bool isBreakable() const {
+        return Breakable;
+    }
+
+    void setBreakable(bool b) {
+        Breakable = b;
+    }
+
     DomainLoop(): TreeNode(TreeNodeKind::N_AST_DomainLoop) {}
+
+private:
+    bool Breakable = false;
+
 };
 
 struct IntLiteral: public TreeNode {

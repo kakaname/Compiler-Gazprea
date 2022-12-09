@@ -84,26 +84,27 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
+    //Manager.registerAnonymousPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
             SubExpressionCacheSet());
 
     Manager.registerPass(ScopeResolutionPass());
-//    Manager.registerAnonymousPass(ASTPrinterPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ConvertIdentMemberAccessToIdxPass());
 //    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExprTypeAnnotatorPass());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.registerPass(ConvertFuncCallNodesToProcCallPass());
     Manager.registerPass(EnsureReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(ExplicitCastCheckPass());
     Manager.registerPass(ContinueAndBreakCheckPass());
     Manager.registerPass(BadStreamPass());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(LValueReferenceCheckPass());
     Manager.registerPass(EnsureDefinitionPass());
     Manager.registerPass(EnsureValidGlobalInitPass());
@@ -118,14 +119,26 @@ int main(int argc, char **argv) {
     Manager.registerPass(ProcedureCallAliasCheckPass());
     Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ExprTypeAnnotatorPass());
+    //Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
+    Manager.registerPass(NullIdentityTypeCastPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(SimplifyTupleCasting());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(TupleNotEqualTransformationPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(TupleCompToMemberCompPass());
+    Manager.registerPass(TupleUnpackToAssignTransformationPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerPass(NullIdentityTypeCastPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
+    Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
+    Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AddingFreeNodesForContinueBreak());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(AddingFreeNodesForReturnPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(ASTPrinterPassWithTypes());
-//    Manager.registerPass(ASTPrinterPassWithTypes());
-
-//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);

@@ -67,25 +67,29 @@ void AddingFreeNodesForReturnPass::visitBlock(Block *Blk) {
         for (auto Node : FuncFreedIdentifiers) {
             addFreedIdentifier(FreeN, Node);
         }
-        auto ReturnResultTy = PM->getAnnotation<ExprTypeAnnotatorPass>(ReturnStat->getReturnExpr());
 
-        // A new variable
-        auto ReturnResultSym = PM->SymTable.defineObject("", ReturnResultTy);
-        auto ReturnResultIdent = PM->Builder.build<Identifier>();
-        ReturnResultIdent->setIdentType(ReturnResultTy);
-        ReturnResultIdent->setReferred(ReturnResultSym);
+        if (ReturnStat->getReturnExpr()) {
+            auto ReturnResultTy = PM->getAnnotation<ExprTypeAnnotatorPass>(ReturnStat->getReturnExpr());
+            // A new variable
+            auto ReturnResultSym = PM->SymTable.defineObject("", ReturnResultTy);
+            auto ReturnResultIdent = PM->Builder.build<Identifier>();
+            ReturnResultIdent->setIdentType(ReturnResultTy);
+            ReturnResultIdent->setReferred(ReturnResultSym);
 
-        // A new declaration
-        auto ReturnResultDeclar = PM->Builder.build<Declaration>();
-        ReturnResultDeclar->setIdentType(ReturnResultTy);
-        ReturnResultDeclar->setIdent(ReturnResultIdent);
-        ReturnResultDeclar->setInitExpr(ReturnStat->getReturnExpr());
+            // A new declaration
+            auto ReturnResultDeclar = PM->Builder.build<Declaration>();
+            ReturnResultDeclar->setIdentType(ReturnResultTy);
+            ReturnResultDeclar->setIdent(ReturnResultIdent);
+            ReturnResultDeclar->setInitExpr(ReturnStat->getReturnExpr());
 
-        Blk->insertChildBefore(ReturnStat, ReturnResultDeclar);
+            Blk->insertChildBefore(ReturnStat, ReturnResultDeclar);
+
+            // change the expression of the return statement
+            ReturnStat->setReturnExpr(ReturnResultIdent);
+        }
         // Add the Free Node before the return statement
         Blk->insertChildBefore(ReturnStat, FreeN);
-        // change the expression of the return statement
-        ReturnStat->setReturnExpr(ReturnResultIdent);
+
     }
     else {
         for (auto Node : LocalFreedIdentifiers) {
