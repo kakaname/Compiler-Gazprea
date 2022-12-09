@@ -757,6 +757,39 @@ Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     return RetTy;
 }
 
+Type *ExprTypeAnnotatorPass::visitBuiltInLen(LengthFunc *Len){
+    visit(Len->getVector());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Len, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
+Type *ExprTypeAnnotatorPass::visitBuiltInRow(RowFunc *Row){
+    visit(Row->getMatrix());
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Row, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
+Type *ExprTypeAnnotatorPass::visitBuiltInCol(ColFunc *Col){
+    visit(Col->getMatrix());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Col, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
+Type *ExprTypeAnnotatorPass::visitBuiltInReverse(ReverseFunc *Rev){
+    auto retType = visit(Rev->getVector());
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Rev, retType);
+
+    return retType;
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntegerTy());
     return PM->TypeReg.getIntegerTy();
@@ -866,6 +899,13 @@ Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
     if (isa<VectorTy>(BaseTy)) {
         auto VecTy = dyn_cast<VectorTy>(BaseTy);
         auto IdxTy = visit(Ref->getIndexExpr());
+
+        if (isa<IntervalTy>(IdxTy)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Ref->setIndexExpr(wrapWithCastTo(Ref->getIndexExpr(), CastedTy));
+            IdxTy = CastedTy;
+        }
+
         if (isa<IntegerTy>(IdxTy)) {
             auto ResultTy = VecTy->getInnerTy();
             ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
@@ -885,12 +925,24 @@ Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
         auto MatTy = dyn_cast<MatrixTy>(BaseTy);
         auto Idx1Ty = visit(Ref->getIndexExpr());
         auto Idx2Ty = visit(Ref->getIndex2Expr());
+
+        if (isa<IntervalTy>(Idx1Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Ref->setIndexExpr(wrapWithCastTo(Ref->getIndexExpr(), CastedTy));
+            Idx1Ty = CastedTy;
+        }
+
+        if (isa<IntervalTy>(Idx2Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Ref->setIndex2Expr(wrapWithCastTo(Ref->getIndex2Expr(), CastedTy));
+            Idx2Ty = CastedTy;
+        }
+
         if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
             auto ResultTy = MatTy->getInnerTy();
             ResultTy = PM->TypeReg.getVarTypeOf(ResultTy);
             PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
             return ResultTy;
-
         } else if (isa<VectorTy>(Idx1Ty) && isa<VectorTy>(Idx2Ty)) {
             auto Idx1VecTy = dyn_cast<VectorTy>(Idx1Ty);
             auto Idx2VecTy = dyn_cast<VectorTy>(Idx2Ty);
@@ -919,7 +971,6 @@ Type *ExprTypeAnnotatorPass::visitIndexReference(IndexReference *Ref) {
             PM->setAnnotation<ExprTypeAnnotatorPass>(Ref, ResultTy);
             return ResultTy;
         }
-        throw runtime_error("Index type not set for index reference.");
     }
     throw runtime_error("Base type is not a vector or matrix.");
 }

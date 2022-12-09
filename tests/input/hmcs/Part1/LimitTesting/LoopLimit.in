@@ -4,7 +4,7 @@ procedure main() returns integer {
   integer x = -2147483648;
 
   loop while (x < 2147483640){
-    x = x + 9;
+    x = x + 20;
   }
 
   /* must have a return */

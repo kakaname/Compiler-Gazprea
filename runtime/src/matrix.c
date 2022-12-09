@@ -22,6 +22,12 @@ struct matrix *rt_matrix_new(int64_t type, u_int64_t rows, u_int64_t cols) {
     return m;
 }
 
+void rt_matrix_empty_rows(struct matrix *m) {
+    for (int64_t i = 0; i < m->rows; i++) {
+        m->data[i] = rt_vector_new(m->type, m->cols);
+    }
+}
+
 struct matrix *rt_matrix_create_unpopulated(struct matrix *v) {
     return rt_matrix_new(v->type, v->rows, v->cols);
 }
@@ -70,7 +76,6 @@ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t 
     }
 
     row -= 1;
-    col -= 1;
 
     struct matrix *newM = malloc(sizeof(struct matrix));
 
@@ -81,6 +86,86 @@ struct matrix *rt_matrix_view_scalar(struct matrix *m, u_int64_t row, u_int64_t 
     newM->data = malloc(sizeof(struct vector *));
     newM->data[0] = rt_vector_view_scalar(m->data[row], col);
     return newM;
+}
+
+struct vector *rt_matrix_vector_get(struct matrix *m, struct vector *domain, int64_t scalar, int64_t orientation) {
+
+    struct vector *v = rt_vector_new(m->type, domain->size);
+
+    for (int64_t i = 0; i < domain->size; i++) {
+        if (orientation == 0) {
+            // case where the rows item has a vector
+            if (m->type == VECTOR_TYPE_INT) {
+                rt_vector_set_int64_t(v, i+1, rt_matrix_access_int64_t(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, 0), 0);
+            } else if (m->type == VECTOR_TYPE_FLOAT) {
+                rt_vector_set_float(v, i+1, rt_matrix_access_float(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, 0), 0);
+            } else if (m->type == VECTOR_TYPE_CHAR || m->type == VECTOR_TYPE_BOOL) {
+                rt_vector_set_char(v, i+1, rt_matrix_access_char(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, 0), 0);
+            }
+        } else {
+            // case where the cols item has a vector
+            if (m->type == VECTOR_TYPE_INT) {
+                rt_vector_set_int64_t(v, i+1, rt_matrix_access_int64_t(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), 0), 0);
+            } else if (m->type == VECTOR_TYPE_FLOAT) {
+                rt_vector_set_float(v, i+1, rt_matrix_access_float(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), 0), 0);
+            } else if (m->type == VECTOR_TYPE_CHAR || m->type == VECTOR_TYPE_BOOL) {
+                rt_vector_set_char(v, i+1, rt_matrix_access_char(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), 0), 0);
+            }
+        }
+    }
+    
+    return v;
+
+}
+
+static struct matrix *mv_m = NULL;
+static struct vector *mv_domain = NULL;
+static int64_t mv_scalar = 0;
+static int64_t mv_orientation = 0;
+
+void rt_matrix_vector_init_assign(struct matrix *m, struct vector *domain, int64_t scalar, int64_t orientation) {
+    mv_m = m;
+    mv_domain = domain;
+    mv_scalar = scalar;
+    mv_orientation = orientation;
+}
+
+void rt_matrix_vector_assign(struct vector *from) {
+    struct matrix *m = mv_m;
+    struct vector *domain = mv_domain;
+    int64_t scalar = mv_scalar;
+    int64_t orientation = mv_orientation;
+
+    // This special case is for when we are assigning a vector to a row
+    for (int64_t i = 0; i < domain->size; i++) {
+        if (orientation == 0) {
+            // case where the rows item has a vector
+            if (m->type == VECTOR_TYPE_INT) {
+                rt_matrix_set_int64_t(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, rt_vector_access_int64_t(from, i+1, 0), 0);
+            } else if (m->type == VECTOR_TYPE_FLOAT) {
+                rt_matrix_set_float(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, rt_vector_access_float(from, i+1, 0), 0);
+            } else if (m->type == VECTOR_TYPE_CHAR || m->type == VECTOR_TYPE_BOOL) {
+                rt_matrix_set_char(m, rt_vector_access_int64_t(domain, i+1, 0), scalar, rt_vector_access_char(from, i+1, 0), 0);
+            }
+        } else {
+            // case where the cols item has a vector
+            if (m->type == VECTOR_TYPE_INT) {
+                rt_matrix_set_int64_t(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), rt_vector_access_int64_t(from, i+1, 0), 0);
+            } else if (m->type == VECTOR_TYPE_FLOAT) {
+                rt_matrix_set_float(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), rt_vector_access_float(from, i+1, 0), 0);
+            } else if (m->type == VECTOR_TYPE_CHAR || m->type == VECTOR_TYPE_BOOL) {
+                rt_matrix_set_char(m, scalar, rt_vector_access_int64_t(domain, i+1, 0), rt_vector_access_char(from, i+1, 0), 0);
+            }
+        }
+    }
+
+    // clear the static variables
+    mv_m = NULL;
+    mv_domain = NULL;
+    mv_scalar = 0;
+    mv_orientation = 0;
+
+
 }
 
 struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64_t scalar, u_int64_t orientation) {
@@ -114,6 +199,7 @@ struct matrix *rt_matrix_view_vector(struct matrix *m, struct vector *v, u_int64
 
     return newM;
 }
+
 
 struct matrix *rt_matrix_view_matrix(struct matrix *m, struct vector *rows, struct vector *cols) {
     struct matrix *newM = malloc(sizeof(struct matrix));
@@ -205,6 +291,7 @@ struct matrix *rt_matrix_logical(struct matrix *a, struct matrix *b, u_int64_t o
 
 u_int8_t rt_matrix_eq(struct matrix *a, struct matrix *b, u_int64_t op) {
     if (a->rows != b->rows || a->cols != b->cols) {
+        fprintf(stderr, "Dimensions not compatible for operation\n");
         exit(1);
     }
 

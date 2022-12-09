@@ -4,7 +4,7 @@ procedure main() returns integer {
     integer interval b;
     integer interval c;
 
-    a = - 1 .. 5;
+    a = - (1 .. 5);
     a -> std_output;
     '\n' -> std_output;
 

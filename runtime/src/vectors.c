@@ -302,3 +302,34 @@ int64_t rt_ipow(int64_t base, int64_t exp) {
     return result;
 }
 
+
+struct vector *rt_rev_built_in(struct vector *v){
+
+    struct vector *newV = malloc(sizeof(struct vector));
+    newV->size = v->size;
+    newV->idx = rt_get_seq_idx(v->size);
+    newV->type = v->type;
+    newV->data = rt_get_data_alloc_for_vec(newV->size, newV->type, NULL);
+
+    if(v->size > 1){
+        switch (v->type) {
+            case VECTOR_TYPE_BOOL:
+            case VECTOR_TYPE_CHAR:
+                for (int64_t i = 0; i < v->size; i++) {
+                    ((char *) newV->data)[i] = rt_vector_access_char(v, v->size-i, 0);
+                }
+                break;
+            case VECTOR_TYPE_INT:
+                for (int64_t i = 0; i < v->size; i++) {
+                    ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, v->size-i, 0);
+                }
+                break;
+            case VECTOR_TYPE_FLOAT:
+                for (int64_t i = 0; i < v->size; i++) {
+                    ((float *) newV->data)[i] = rt_vector_access_float(v, v->size-i, 0);
+                }
+                break;
+        }
+    }
+    return newV;
+}
