@@ -18,6 +18,9 @@ void ChangeMemAccessToMemRef::visitProcedureCall(ProcedureCall *Call) {
         if (isa<IdentReference>(Expr))
             continue;
 
+        if (isa<MemberReference>(Expr))
+            continue;
+
         if (auto Ident = dyn_cast<Identifier>(Expr)) {
             ArgsList->setExprAtPos(getRefFromIdent(Ident), I);
             continue;
