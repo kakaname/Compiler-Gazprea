@@ -49,9 +49,6 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     PowInt = Mod.getOrInsertFunction(
             "rt_ipow", llvm::FunctionType::get(
                     LLVMIntTy, {LLVMIntTy, LLVMIntTy}, false));
-    Malloc = Mod.getOrInsertFunction(
-            "malloc", llvm::FunctionType::get(
-                    LLVMPtrTy, {LLVMIntTy}, false));
     VectorNew = Mod.getOrInsertFunction(
             "rt_vector_new", llvm::FunctionType::get(
                     LLVMVectorPtrTy, {LLVMIntTy, LLVMIntTy}, false));
@@ -770,13 +767,15 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
     } else if (isa<RealTy>(ResultType)) {
 
         switch (Op->getOpKind()) {
+            case UnaryOp::ADD:
+                return Operand;
             case UnaryOp::SUB:
                 return IR.CreateFSub(
                     llvm::ConstantFP::getZeroValueForNegation(LLVMRealTy), Operand);
             default:
                 assert(false && "Invalid unary operation for real type");
 
-    }
+        }
     }
 
     switch (Op->getOpKind()) {
@@ -1814,10 +1813,10 @@ llvm::Value *CodeGenPass::CreateStringStruct(uint64_t size, bool malloc) {
 
     if (malloc) {
         // malloc space for the vector
-        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
+//        auto MallocCall = IR.CreateCall(Malloc, {IR.getInt64(size * InnerTySize)});
 
         // store the malloced pointer in the vector
-        Result = IR.CreateInsertValue(Result, MallocCall, {3});
+//        Result = IR.CreateInsertValue(Result, MallocCall, {3});
     }
 
     return Result;
