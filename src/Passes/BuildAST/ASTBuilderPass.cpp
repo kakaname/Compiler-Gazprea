@@ -1377,6 +1377,15 @@ std::any ASTBuilderPass::visitBuiltInCol(GazpreaParser::BuiltInColContext *ctx) 
     return cast<ASTNodeT>(Col);
 }
 
+std::any ASTBuilderPass::visitBuiltInReverse(GazpreaParser::BuiltInReverseContext *ctx) {
+    auto Reverse = PM->Builder.build<ReverseFunc>();
+    Reverse->setCtx(ctx);
+    Reverse->setVector(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Reverse);
+
+}
+
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     if (isa<Declaration>(Stmt))
         throw std::runtime_error("Declaration may only occur"

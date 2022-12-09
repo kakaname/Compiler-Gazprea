@@ -343,6 +343,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitBuiltInReverse(ReverseFunc *Rev) {
+        visit(Rev->getVector());
+        return RetT();
+    }
+
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
@@ -581,6 +586,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
     RetT callVisitBuiltInColImpl(ColFunc *Col) {
         return static_cast<DerivedT*>(this)->visitBuiltInCol(Col);
     }
+
+    RetT callVisitBuiltInReverseImpl(ReverseFunc *Rev) {
+        return static_cast<DerivedT*>(this)->visitBuiltInReverse(Rev);
+    }
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
@@ -770,6 +779,9 @@ public:
 
         if (auto *Row = dyn_cast<RowFunc>(Node))
             return callVisitBuiltInRowImpl(Row);
+
+        if (auto *Rev = dyn_cast<ReverseFunc>(Node))
+            return callVisitBuiltInReverseImpl(Rev);
 
         assert(false && "Should be unreachable");
         return RetT();

@@ -759,7 +759,6 @@ Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
 
 Type *ExprTypeAnnotatorPass::visitBuiltInLen(LengthFunc *Len){
     visit(Len->getVector());
-
     PM->setAnnotation<ExprTypeAnnotatorPass>(Len, PM->TypeReg.getIntegerTy());
 
     return PM->TypeReg.getIntegerTy();
@@ -777,10 +776,18 @@ Type *ExprTypeAnnotatorPass::visitBuiltInRow(RowFunc *Row){
 
 Type *ExprTypeAnnotatorPass::visitBuiltInCol(ColFunc *Col){
     visit(Col->getMatrix());
-
     PM->setAnnotation<ExprTypeAnnotatorPass>(Col, PM->TypeReg.getIntegerTy());
 
     return PM->TypeReg.getIntegerTy();
+
+}
+
+Type *ExprTypeAnnotatorPass::visitBuiltInReverse(ReverseFunc *Rev){
+    auto retType = visit(Rev->getVector());
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Rev, retType);
+
+    return retType;
 
 }
 

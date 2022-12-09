@@ -278,9 +278,13 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_col_built_in", llvm::FunctionType::get(
                     LLVMIntTy, {LLVMMatrixPtrTy}, false));
 
-    visit(Root);
+   ReverseBuiltIn = Mod.getOrInsertFunction(
+            "rt_rev_built_in", llvm::FunctionType::get(
+                    LLVMVectorPtrTy, {LLVMVectorPtrTy}, false)); 
 
+    visit(Root);
     // Dump the module to the output file.
+
     std::ofstream Out(OutputFile);
     llvm::raw_os_ostream OS(Out);
     OS << Mod;
@@ -2304,4 +2308,16 @@ llvm::Value *CodeGenPass::visitBuiltInCol(ColFunc *Col){
     }
 
     assert(false && "Invalid variable type for col() function");
+}
+
+llvm::Value *CodeGenPass::visitBuiltInReverse(ReverseFunc *Rev){
+    llvm::Value *Vec = visit(Rev->getVector());
+
+    auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Rev->getVector());
+
+    if(isa<VectorTy>(VecTy)){
+        return IR.CreateCall(ReverseBuiltIn, {Vec});
+    }
+
+    assert(false && "Invalid variable type for reverse() function");
 }

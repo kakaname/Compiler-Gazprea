@@ -1577,4 +1577,23 @@ struct ColFunc : public TreeNode {
     ColFunc() : TreeNode(TreeNodeKind::N_AST_Col) {};
 
 };
+
+struct ReverseFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Reverse;
+    }
+    
+    void setVector(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getVector(){
+        return getChildAt(ExprIdx);
+    }
+
+    ReverseFunc() : TreeNode(TreeNodeKind::N_AST_Col) {};
+
+};
 #endif //GAZPREABASE_ASTNODES_H

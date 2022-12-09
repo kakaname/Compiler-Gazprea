@@ -226,9 +226,9 @@ public:
 
     std::any visitBuiltInCol(GazpreaParser::BuiltInColContext *ctx) override;
 
-/*
     std::any visitBuiltInReverse(GazpreaParser::BuiltInReverseContext *ctx) override;
 
+/*
     std::any visitBuiltInStreamState(GazpreaParser::BuiltInStreamStateContext *ctx) override;
     */
 
