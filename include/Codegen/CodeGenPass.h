@@ -135,6 +135,11 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee GetVectorCopy;
     llvm::FunctionCallee GetMatrixCopy;
 
+    // Matrix Literals
+    llvm::FunctionCallee InitMatrixLiteral;
+    llvm::FunctionCallee AddVecToMatrixLiteral;
+    llvm::FunctionCallee GetMatrixLiteralFromRT;
+
 
     // Use to keep track of which llvm values represents which symbols in the
     // program.
