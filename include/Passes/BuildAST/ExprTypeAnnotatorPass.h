@@ -57,6 +57,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
     Type *visitBuiltInRow(RowFunc *Row);
     Type *visitBuiltInCol(ColFunc *Col);
     Type *visitBuiltInReverse(ReverseFunc *Rev);
+    Type *visitStreamState(StreamState *State);
 
     void setOpaqueTyCastTargetTy(Type *Ty) {
         OpaqueTyCastTarget = Ty;

@@ -1644,3 +1644,8 @@ Type *ExprTypeAnnotatorPass::visitDomainLoop(DomainLoop *Loop) {
     visit(Loop->getID());
     visit(Loop->getBody());
 }
+
+Type *ExprTypeAnnotatorPass::visitStreamState(StreamState *State) {
+    annotate(State, TypeReg->getIntegerTy());
+    return TypeReg->getIntegerTy();
+}
