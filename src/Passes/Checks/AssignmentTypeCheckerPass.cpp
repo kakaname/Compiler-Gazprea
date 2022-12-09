@@ -67,7 +67,7 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentTy));
+            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentInner));
             return;
         }
     }
@@ -145,7 +145,18 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+
+            if (auto VectorType = dyn_cast<VectorTy>(IdentTy)) {
+                if (VectorType->getSizeExpr()) {
+                    Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+                }
+            }
+            else if (auto MatrixType = dyn_cast<MatrixTy>(IdentTy)) {
+                if (MatrixType->getRowSizeExpr() || MatrixType->getColSizeExpr()) {
+                    Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), IdentTy));
+                }
+            }
+
             return;
         }
     }
