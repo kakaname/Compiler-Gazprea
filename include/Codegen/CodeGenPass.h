@@ -107,6 +107,9 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee VectorCopy;
     llvm::FunctionCallee MatrixSetVector;
     llvm::FunctionCallee MatrixMul;
+    llvm::FunctionCallee MatrixVectorGet;
+    llvm::FunctionCallee MatrixVectorInitAssign;
+    llvm::FunctionCallee MatrixVectorAssign;
     llvm::FunctionCallee LengthBuiltIn;
     llvm::FunctionCallee RowBuiltIn;
     llvm::FunctionCallee ColBuiltIn;

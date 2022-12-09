@@ -120,9 +120,8 @@ type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_i
         exit(1); \
     } \
     row -= 1; \
-    col -= 1; \
     \
-    if (row >= m->rows || col >= m->cols) { \
+    if (row >= m->rows || col > m->cols) { \
         if (unchecked) { \
             return 0; \
         } else { \
@@ -133,8 +132,9 @@ type rt_matrix_access_##type(struct matrix *m, u_int64_t row, u_int64_t col, u_i
     u_int64_t row_idx = row;\
     if (m->idx != 0) { \
         row_idx = m->idx[row]; \
+        row_idx -= 1; \
     } \
-    struct vector *v = m->data[row]; \
+    struct vector *v = m->data[row_idx]; \
     return rt_vector_access_##type(v, col, unchecked);                    \
 }
 #define MATRIX_SET(type) \
@@ -144,9 +144,8 @@ void rt_matrix_set_##type(struct matrix *m, u_int64_t row, u_int64_t col, type v
         exit(1); \
     } \
     row -= 1; \
-    col -= 1; \
     \
-    if (row >= m->rows || col >= m->cols) { \
+    if (row >= m->rows || col > m->cols) { \
         if (unchecked) { \
             return; \
         } else { \
@@ -157,8 +156,9 @@ void rt_matrix_set_##type(struct matrix *m, u_int64_t row, u_int64_t col, type v
     u_int64_t row_idx = row;\
     if (m->idx != 0) { \
         row_idx = m->idx[row]; \
+        row_idx -= 1; \
     } \
-    struct vector *v = m->data[row]; \
+    struct vector *v = m->data[row_idx]; \
     rt_vector_set_##type(v, col, val, unchecked);                    \
 }
 struct stream_store {
