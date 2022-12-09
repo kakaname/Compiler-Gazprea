@@ -13,7 +13,7 @@ struct interval_t {
 #define GET_CASTED_VEC_LOOP_INNER(BASE, NEW_ALLOC, TARGET_SIZE, TARGET_TYPE, CASTED_BASE) \
     for (int64_t i = 0; i < TARGET_SIZE; ++i) { \
         if(i < BASE->size) {    \
-            cast_scalar_value(&CASTED_BASE[BASE->idx[i]], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
+            cast_scalar_value(&CASTED_BASE[BASE->idx[i] - 1], NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
             continue; \
         } \
         cast_scalar_value(NULL, NEW_ALLOC+i, BASE->type, TARGET_TYPE); \
