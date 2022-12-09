@@ -938,7 +938,7 @@ llvm::Value *CodeGenPass::visitGenerator(Generator *Gen) {
     auto VecTy = dyn_cast<VectorTy>(DomainTy);
 
     auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
-    IR.CreateStore(IR.getInt64(-1), IterIndex);
+    IR.CreateStore(IR.getInt64(0), IterIndex);
 
     auto IterItem = createAlloca(VecTy->getInnerTy());
     SymbolMap[Gen->getDomainVar()->getReferred()] = IterItem;
@@ -1032,7 +1032,7 @@ llvm::Value *CodeGenPass::visitMatrixGenerator(MatrixGenerator *Gen) {
     auto ColVecTy = dyn_cast<VectorTy>(ColDomainTy);
 
     auto RowIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
-    IR.CreateStore(IR.getInt64(-1), RowIterIndex);
+    IR.CreateStore(IR.getInt64(0), RowIterIndex);
     auto ColIterIndex = createAlloca(PM->TypeReg.getIntegerTy());
 
     auto RowIterItem = createAlloca(RowVecTy->getInnerTy());
@@ -1045,7 +1045,7 @@ llvm::Value *CodeGenPass::visitMatrixGenerator(MatrixGenerator *Gen) {
     IR.CreateBr(HeaderRow);
 
     IR.SetInsertPoint(HeaderRow);
-    IR.CreateStore(IR.getInt64(-1), ColIterIndex);
+    IR.CreateStore(IR.getInt64(0), ColIterIndex);
     auto OldRowIdx = IR.CreateLoad(RowIterIndex);
     auto RowIdx = IR.CreateAdd(OldRowIdx, IR.getInt64(1));
     IR.CreateStore(RowIdx, RowIterIndex);
@@ -1153,7 +1153,7 @@ llvm::Value *CodeGenPass::visitDomainLoop(DomainLoop *Loop) {
     auto VecTy = dyn_cast<VectorTy>(DomainTy);
 
     auto IterIndex = createAlloca(PM->TypeReg.getIntegerTy());
-    IR.CreateStore(IR.getInt64(-1), IterIndex);
+    IR.CreateStore(IR.getInt64(0), IterIndex);
 
     auto IterItem = createAlloca(PM->TypeReg.getConstTypeOf(VecTy->getInnerTy()));
     SymbolMap[Loop->getID()->getReferred()] = IterItem;
