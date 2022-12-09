@@ -70,6 +70,7 @@ public:
         N_AST_ByOp,
         N_AST_ExplicitCast,
         N_AST_VectorLiteral,
+        N_AST_StringLiteral,
         N_AST_Interval,
         N_AST_FreeNode,
         N_AST_TupleDestruct,

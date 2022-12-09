@@ -274,6 +274,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         for (auto *child : *TupleDestruct)
             visit(child);
         return RetT();
+
+    RetT visitStringLiteral(StringLiteral *String) {
+        for (auto *child : *String)
+            visit(child);
     }
 
     RetT visitInterval(Interval *Interval) {
@@ -495,6 +499,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitVectorLiteral(V);
     }
 
+    RetT callVisitStringLiteralImpl(StringLiteral *S) {
+        return static_cast<DerivedT*>(this)->visitStringLiteral(S);
+    }
+
     RetT callVisitIndexImpl(Index *I) {
         return static_cast<DerivedT*>(this)->visitIndex(I);
     }
@@ -703,6 +711,9 @@ public:
 
         if (auto *Vec = dyn_cast<VectorLiteral>(Node))
             return callVisitVectorLiteralImpl(Vec);
+
+        if (auto *Str = dyn_cast<StringLiteral>(Node))
+            return callVisitStringLiteralImpl(Str);
 
         if (auto *Gen = dyn_cast<Generator>(Node))
             return callVisitGeneratorImpl(Gen);

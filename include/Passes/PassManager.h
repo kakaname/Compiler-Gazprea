@@ -221,6 +221,7 @@ public:
     void runAllPasses() {
         for (auto &Pass : Passes)
             Pass.runOnAST(*this, Root);
+
     }
 
     ASTNodeT *getRoot() {

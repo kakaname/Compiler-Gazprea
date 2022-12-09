@@ -168,7 +168,7 @@ expr: LPAREN expr RPAREN                    # bracketExpr
     | INTLITERAL                            # intLiteral
     | realLit                               # realLiteral
     | CHARLITERAL                           # charLiteral
-    | StringLiteral                         # stringLiteral
+    | StringLit                             # stringLiteral
     ;
 
 
@@ -182,7 +182,7 @@ realLit : ExponentialLiteral1             #realLit1
         ;
 
 // --- LEXER RULES ---
-StringLiteral: '"' (('\\' '"') | .)*?  '"';
+StringLit: '"' (('\\' '"') | .)*?  '"';
 
 ExponentialLiteral1: [0-9]+ 'e' ('+' | '-')? [0-9]+;
 ExponentialLiteral2: [0-9]+ '.' 'e' ('+' | '-')? [0-9]+;
@@ -209,6 +209,7 @@ PUT : '->' ;
 GET : '<-' ;
 QUOTE : '\'' ;
 COMMA : ',' ;
+DOUBLEQUOTE : '"';
 
 // Ops
 ADD : '+' ;
@@ -273,6 +274,7 @@ ID : [_a-zA-Z][_a-zA-Z0-9]* ;
 CHARLITERAL : '\'' . '\''
             | '\'' '\\' [0abtnr"'\\] '\''
             ;
+
 // Skip comments and whitespace
 BlockComment : '/*' .*? '*/' -> skip ;
 LineComment : '//' ~[\r\n]* -> skip ;

@@ -1244,6 +1244,27 @@ struct VectorLiteral: public TreeNode {
     
 };
 
+struct StringLiteral: public TreeNode {
+    // vector but changed for different -> std_output;
+    const Type *MemType;
+    int vecSize;    
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_StringLiteral;
+    }
+
+
+    void setExprAtPos(ASTNodeT *Member, size_t location) {
+        setChildAt(location, Member);
+    } 
+
+    ASTNodeT *getExprAtPos(size_t location) {
+        return getChildAt(location);
+    }
+
+    StringLiteral() : TreeNode(TreeNodeKind::N_AST_StringLiteral) {};
+    
+};
 struct DotProduct: public TreeNode {
     static constexpr size_t LHSIdx = 0;
     static constexpr size_t RHSIdx = 1;
