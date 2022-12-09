@@ -913,6 +913,8 @@ llvm::Value *CodeGenPass::visitUnaryOp(UnaryOp *Op) {
                 llvm::Value *Left, *Right;
                 Left = IR.CreateExtractValue(Operand, {0});
                 Right = IR.CreateExtractValue(Operand, {1});
+                Left = IR.CreateNeg(Left);
+                Right = IR.CreateNeg(Right);
                 Result = llvm::ConstantStruct::get(LLVMIntervalTy, {IR.getInt64(0), IR.getInt64(0)});
                 Result = IR.CreateInsertValue(Result, Right, {0});
                 Result = IR.CreateInsertValue(Result, Left, {1});

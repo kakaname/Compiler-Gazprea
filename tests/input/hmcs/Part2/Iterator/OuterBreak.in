@@ -1,0 +1,10 @@
+procedure main() returns integer {
+    var v = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    loop a in v, b in v, c in v, d in v, e in v, f in v, g in v, h in v, i in v, j in v, k in v, l in v {
+        'L' -> std_output;
+        break;
+    }
+
+    return 0;
+}
