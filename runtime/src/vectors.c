@@ -316,17 +316,17 @@ struct vector *rt_rev_built_in(struct vector *v){
             case VECTOR_TYPE_BOOL:
             case VECTOR_TYPE_CHAR:
                 for (int64_t i = 0; i < v->size; i++) {
-                    ((char *) newV->data)[i] = rt_vector_access_char(v, v->size-i-1, 0);
+                    ((char *) newV->data)[i] = rt_vector_access_char(v, v->size-i, 0);
                 }
                 break;
             case VECTOR_TYPE_INT:
                 for (int64_t i = 0; i < v->size; i++) {
-                    ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, v->size-i-1, 0);
+                    ((int64_t *) newV->data)[i] = rt_vector_access_int64_t(v, v->size-i, 0);
                 }
                 break;
             case VECTOR_TYPE_FLOAT:
                 for (int64_t i = 0; i < v->size; i++) {
-                    ((float *) newV->data)[i] = rt_vector_access_float(v, v->size-i-1, 0);
+                    ((float *) newV->data)[i] = rt_vector_access_float(v, v->size-i, 0);
                 }
                 break;
         }
