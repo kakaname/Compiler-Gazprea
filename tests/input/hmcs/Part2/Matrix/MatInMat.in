@@ -1,0 +1,6 @@
+procedure main() returns integer {
+    integer[*] v = [1, 2, 3];
+    integer[2, 3] A = [v, [1, 2]];
+    A -> std_output;
+    return 0;
+}
