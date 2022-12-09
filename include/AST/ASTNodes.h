@@ -1110,6 +1110,15 @@ struct Continue: public TreeNode {
     Continue(): TreeNode(TreeNodeKind::N_AST_Continue) {}
 };
 
+
+struct StreamState: public TreeNode {
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_StreamState;
+    }
+
+    StreamState(): TreeNode(TreeNodeKind::N_AST_StreamState) {}
+};
+
 struct OutStream: public TreeNode {
     static constexpr size_t OutStreamExprIdx = 0;
 

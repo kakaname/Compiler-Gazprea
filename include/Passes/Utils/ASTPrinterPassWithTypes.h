@@ -66,6 +66,10 @@ public:
 
     void visitArithmeticOp(ArithmeticOp *Op);
 
+    void visitStreamState(StreamState *) {
+        std::cout << "StreamState" << "\n";
+    }
+
     void visitIndex(Index *Idx) {
         std::cout << "Index(ResultType: " << PM->getAnnotation<ExprTypeAnnotatorPass>(Idx)->getTypeName() << ")" << "\n";
     }
