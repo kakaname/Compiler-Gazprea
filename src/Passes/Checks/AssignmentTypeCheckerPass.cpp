@@ -67,7 +67,7 @@ void AssignmentTypeCheckerPass::visitAssignment(Assignment *Assign) {
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Assign, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());
-            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentTy));
+            Assign->setExpr(wrapWithCastTo(Assign->getExpr(), IdentInner));
             return;
         }
     }
