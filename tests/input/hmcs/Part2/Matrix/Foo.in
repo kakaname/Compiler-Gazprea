@@ -1,0 +1,12 @@
+procedure foo(var real[*] r, var integer[*] i) {
+    var mat = [i, r, [1,2]];
+    mat[2, 100] -> std_output;
+}
+
+
+procedure main() returns integer {
+    integer[*] i = 1..100;
+    var r = [1.2];
+    call foo(r, i);
+    return 0;
+}
