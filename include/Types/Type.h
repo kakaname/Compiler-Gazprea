@@ -15,6 +15,8 @@ using std::string;
 
 class Type;
 
+bool canPromoteIntervalTo(Type*);
+
 bool isValidTupleCast(Type*, Type*);
 bool isSameTupleTypeAs(Type*, Type*);
 bool canPromoteTupleTo(Type*, Type*);
@@ -226,6 +228,8 @@ public:
                 return canPromoteTupleTo(this, T);
             case T_Vector:
                 return canPromoteVectorTo(this, T);
+            case T_Interval:
+                return canPromoteIntervalTo(T);
             default:
                 return false;
         }

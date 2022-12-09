@@ -132,6 +132,16 @@ void AssignmentTypeCheckerPass::visitDeclaration(Declaration *Decl) {
             if (AssignedTy->isSameTypeAs(IdentInner))
                 return;
 
+            if (isa<IntervalTy>(AssignedTy) && isa<VectorTy>(IdentTy)) {
+                auto InnerTy = TypeRegistry::getInnerTyFromComposite(IdentTy);
+                if (!isa<RealTy>(InnerTy) && !isa<IntegerTy>(InnerTy))
+                    throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
+                                           IdentTy->getTypeName());
+                auto VecTy = PM->TypeReg.getCompositeTyWithInner(IdentTy, InnerTy);
+                Decl->setInitExpr(wrapWithCastTo(Decl->getInitExpr(), VecTy));
+                return;
+            }
+
             if (!AssignedTy->canPromoteTo(IdentInner))
                 throw ScalarPromotionError(Decl, AssignedTy->getTypeName(),
                                            IdentTy->getTypeName());

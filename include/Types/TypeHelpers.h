@@ -359,4 +359,12 @@ bool canCastIntervalTo(Type* T) {
     return isa<IntegerTy>(InnerT) || isa<RealTy>(InnerT);
 }
 
+
+bool canPromoteIntervalTo(Type* T) {
+    if (!isa<VectorTy>(T))
+        return false;
+    auto InnerT = TypeRegistry::getInnerTyFromComposite(T);
+    return isa<IntegerTy>(InnerT) || isa<RealTy>(InnerT);
+}
+
 #endif //GAZPREABASE_TYPEHELPERS_H
