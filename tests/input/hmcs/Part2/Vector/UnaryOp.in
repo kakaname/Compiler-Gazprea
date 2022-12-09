@@ -1,7 +1,7 @@
 procedure main() returns integer {
   // elemntary operations
-   integer[4] a = [1,2,3,4];
-    boolean c = [false, true, false];
+    integer[4] a = [1,2,3,4];
+    boolean[*] c = [false, true, false];
 
     // boolean
     not c -> std_output;
@@ -14,6 +14,6 @@ procedure main() returns integer {
     // pos
     +a -> std_output;
 
-  /* must have a return */
-  return 0;
+    /* must have a return */
+    return 0;
 }
