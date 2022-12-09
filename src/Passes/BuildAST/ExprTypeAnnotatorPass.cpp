@@ -1249,7 +1249,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
 
 }
 
-Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
+    Type *ExprTypeAnnotatorPass::visitConcat(Concat *Concat) {
     auto LExpr = Concat->getLHS();
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
