@@ -1180,6 +1180,7 @@ struct IdentReference : public TreeNode {
     IdentReference() : TreeNode(TreeNodeKind::N_AST_IdentReference) {}
 };
 
+
 struct MemberReference : public TreeNode {
     static constexpr size_t IdentIdx = 0;
     static constexpr size_t MemberIdx = 1;
@@ -1211,10 +1212,6 @@ struct MemberReference : public TreeNode {
 
 struct FreeNode : public TreeNode {
     vector<ASTNodeT *> FreedIdentifiers;
-
-    void addFreedIdentifier(ASTNodeT *Node) {
-        FreedIdentifiers.push_back(Node);
-    }
 
     static bool classof(const TreeNode *N) {
         return N->getKind() == TreeNodeKind::N_AST_FreeNode;
