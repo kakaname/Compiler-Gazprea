@@ -202,6 +202,9 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     MatrixVectorAssign = Mod.getOrInsertFunction(
             "rt_matrix_vector_assign", llvm::FunctionType::get(
                     LLVMVoidTy, {LLVMVectorPtrTy}, false));
+    MatrixEmptyRows = Mod.getOrInsertFunction(
+            "rt_matrix_empty_rows", llvm::FunctionType::get(
+                    LLVMVoidTy, {LLVMMatrixPtrTy}, false));
 
 
     // Casting functions.
@@ -522,6 +525,17 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
     SymbolMap[Decl->getIdentifier()->getReferred()] = Loc;
 
     if (isa<VectorTy>(DeclType) && InitValueTy->isScalarTy()) {
+
+        auto SizeExpr = dyn_cast<VectorTy>(DeclType)->getSizeExpr();
+        if (!SizeExpr) throw runtime_error("Cannot infer size of vector");
+
+        auto Size = visit(SizeExpr);
+
+        // Create a new vector
+        auto VecStruct = IR.CreateCall(VectorNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(dyn_cast<VectorTy>(DeclType)->getInnerTy()->getKind())), Size});
+        IR.CreateStore(VecStruct, Loc);
+
+
         auto ExprLoc = IR.CreateAlloca(getLLVMType(InitValueTy));
         IR.CreateStore(InitValue, ExprLoc);
         auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
@@ -529,6 +543,24 @@ llvm::Value *CodeGenPass::visitDeclaration(Declaration *Decl) {
         auto NewVec = IR.CreateCall(GetSameVectorAs, {Loc, ExprPtr});
         return IR.CreateCall(VectorCopy, {NewVec, Loc});
     } else if (isa<MatrixTy>(DeclType) && InitValueTy->isScalarTy()) {
+
+        auto RowSizeExpr = dyn_cast<MatrixTy>(DeclType)->getRowSizeExpr();
+        if (!RowSizeExpr) throw runtime_error("Cannot infer size of matrix");
+
+        auto RowSize = visit(RowSizeExpr);
+
+        auto ColSizeExpr = dyn_cast<MatrixTy>(DeclType)->getColSizeExpr();
+        if (!ColSizeExpr) throw runtime_error("Cannot infer size of matrix");
+
+        auto ColSize = visit(ColSizeExpr);
+
+        // Create a new matrix
+        auto VecStruct = IR.CreateCall(MatrixNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(dyn_cast<MatrixTy>(DeclType)->getInnerTy()->getKind())), RowSize, ColSize});
+        IR.CreateCall(MatrixEmptyRows, {VecStruct});
+        IR.CreateStore(VecStruct, Loc);
+
+
+
         auto ExprLoc = IR.CreateAlloca(getLLVMType(InitValueTy));
         IR.CreateStore(InitValue, ExprLoc);
         auto ExprPtr = IR.CreateBitCast(ExprLoc, LLVMCharTy->getPointerTo());
@@ -1928,18 +1960,11 @@ llvm::Value *CodeGenPass::visitIdentReference(IdentReference *Ref) {
 llvm::Value *CodeGenPass::visitIndexReference(IndexReference *Ref) {
 
     // TODO Check that the index is within the bounds of the array
-    Value *Vec = [&]() {
-        if (auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr()))
-            return SymbolMap[Ident->getReferred()];
 
-        if (auto MemRef = dyn_cast<MemberReference>(Ref->getBaseExpr()))
-            return visit(MemRef);
+    auto Ident = dyn_cast<Identifier>(Ref->getBaseExpr());
+    assert(Ident && "Trying to take reference of a non-lvalue");
 
-        if (auto MemAcc = dyn_cast<MemberAccess>(Ref->getBaseExpr()))
-            return visit(MemAcc);
-        throw runtime_error("Trying to take reference of a non-lvalue");
-    }();
-
+    Value *Vec = SymbolMap[Ident->getReferred()];
     auto ElementPtr = cast<llvm::PointerType>(Vec->getType())->getElementType();
     if (ElementPtr == LLVMVectorPtrTy || ElementPtr == LLVMMatrixPtrTy)
         Vec = IR.CreateLoad(Vec);
@@ -1996,14 +2021,8 @@ llvm::Value *CodeGenPass::visitMemberReference(MemberReference *Ref) {
     if (!MemIdx)
         throw std::runtime_error("Only int literals should reach here");
     auto StructLoc = SymbolMap[Ref->getIdentifier()->getReferred()];
-    auto RetVal = IR.CreateGEP(StructLoc, {
+    return IR.CreateGEP(StructLoc, {
         IR.getInt32(0), IR.getInt32(MemIdx->getVal() - 1)});
-
-    auto ElmPtr = cast<llvm::PointerType>(RetVal->getType())->getElementType();
-
-    if (ElmPtr == LLVMVectorPtrTy || ElmPtr == LLVMMatrixPtrTy)
-        return IR.CreateLoad(RetVal);
-    return RetVal;
 }
 
 llvm::Function *CodeGenPass::getOrInsertFunction(Type *Ty,

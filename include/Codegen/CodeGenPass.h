@@ -114,6 +114,7 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::FunctionCallee RowBuiltIn;
     llvm::FunctionCallee ColBuiltIn;
     llvm::FunctionCallee ReverseBuiltIn;
+    llvm::FunctionCallee MatrixEmptyRows;
 
 
     // Casting functions

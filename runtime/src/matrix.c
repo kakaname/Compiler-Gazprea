@@ -22,6 +22,12 @@ struct matrix *rt_matrix_new(int64_t type, u_int64_t rows, u_int64_t cols) {
     return m;
 }
 
+void rt_matrix_empty_rows(struct matrix *m) {
+    for (int64_t i = 0; i < m->rows; i++) {
+        m->data[i] = rt_vector_new(m->type, m->cols);
+    }
+}
+
 struct matrix *rt_matrix_create_unpopulated(struct matrix *v) {
     return rt_matrix_new(v->type, v->rows, v->cols);
 }
