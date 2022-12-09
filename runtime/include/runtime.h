@@ -202,5 +202,6 @@ struct vector *rt_vector_view_scalar(struct vector *v, u_int64_t idx);
 struct vector *rt_vector_view_vector(struct vector *v, struct vector *idx);
 
 int64_t *rt_get_seq_idx(int64_t size);
+struct vector *rt_get_casted_vector(struct vector *base, int64_t size, int64_t target_type);
 void* rt_get_data_alloc_for_vec(int64_t size, int64_t type, void *default_val);
 struct vector *rt_vector_empty_copy(int64_t type, struct vector *v);

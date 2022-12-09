@@ -266,6 +266,19 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
             "rt_get_matrix_copy__", llvm::FunctionType::get(
                     LLVMMatrixPtrTy, {LLVMMatrixPtrTy}, false));
 
+    // Matrix literals
+    InitMatrixLiteral = Mod.getOrInsertFunction(
+            "rt_init_matrix_literal__", llvm::FunctionType::get(
+                    IR.getVoidTy(), {LLVMIntTy, LLVMIntTy}, false));
+
+    AddVecToMatrixLiteral = Mod.getOrInsertFunction(
+            "rt_add_vector_to_matrix_literal__", llvm::FunctionType::get(
+                    IR.getVoidTy(), {LLVMVectorPtrTy, LLVMIntTy}, false));
+
+    GetMatrixLiteralFromRT = Mod.getOrInsertFunction(
+            "rt_get_built_matrix_literal__", llvm::FunctionType::get(
+                    LLVMMatrixPtrTy, {}, false));
+
     visit(Root);
 
     // Dump the module to the output file.
@@ -1986,15 +1999,15 @@ llvm::Value *CodeGenPass::visitVectorLiteral(VectorLiteral *VecLit) {
     auto VecLitTy = PM->getAnnotation<ExprTypeAnnotatorPass>(VecLit);
     auto *MatTy = dyn_cast<MatrixTy>(VecLitTy);
     if (MatTy) {
-        auto MatStruct = IR.CreateCall(MatrixNew, {IR.getInt64(TypeKindMapToVectorTypeInRuntime(MatTy->getInnerTy()->getKind())),
-                                                  IR.getInt64(MatTy->getNumOfRows()),
-                                                  IR.getInt64(MatTy->getNumOfColumns())});
-
+        IR.CreateCall(InitMatrixLiteral, {
+            IR.getInt64(VecLit->numOfChildren()),
+            IR.getInt64(TypeKindMapToVectorTypeInRuntime(MatTy->getInnerTy()->getKind()))});
         for (int i = 0; i < MatTy->getNumOfRows(); i++) {
-            auto Row = visit(VecLit->getChildAt(i));
-            IR.CreateCall(MatrixPopulateRow, {MatStruct, Row, IR.getInt64(i)});
+            IR.CreateCall(AddVecToMatrixLiteral, {
+                visit(VecLit->getChildAt(i)),
+                IR.getInt64(i)});
         }
-        return MatStruct;
+        return IR.CreateCall(GetMatrixLiteralFromRT, {});
     }
 
 

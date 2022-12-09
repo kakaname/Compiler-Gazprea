@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
 
     ASTPassManager Manager;
     Manager.registerPass(ASTBuilderPass(tree));
-    //Manager.registerAnonymousPass(ASTPrinterPass());
+//    Manager.registerAnonymousPass(ASTPrinterPass());
 
     // Set the resource for the cache set.
     Manager.setResource<SubExpressionCacheSet>(
