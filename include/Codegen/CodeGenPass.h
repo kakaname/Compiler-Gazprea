@@ -222,7 +222,6 @@ struct CodeGenPass: public VisitorPass<CodeGenPass, llvm::Value*> {
     llvm::Value *CreateVectorStruct(enum Type::TypeKind TyKind, uint64_t size, bool malloc = false);
     llvm::Value *CreateStringStruct(uint64_t size, bool malloc = false);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, const VectorTy *VecTy);
-    llvm::Value *CreateStringMallocPtrAccess(llvm::Value *StrPtr, const StringTy *StrTy);
     llvm::Value *CreateVectorMallocPtrAccess(llvm::Value *VecPtr, VectorTy *VecTy);
     llvm::Value *CreateVectorPointerBitCast(llvm::Value *VecPtr, enum Type::TypeKind TyKind);
     llvm::Value *getCastValue(llvm::Value *Val, Type *SrcTy, Type *DestTy);
