@@ -256,8 +256,10 @@ void CodeGenPass::runOnAST(ASTPassManager &Manager, ASTNodeT *Root) {
     ShutdownFilterExprBuilder = Mod.getOrInsertFunction(
             "rt_shutdown_filter_expr_builder", llvm::FunctionType::get(
                     IR.getVoidTy(), {}, false));
-
-
+ 
+    LengthBuiltIn = Mod.getOrInsertFunction(
+            "rt_length_built_in", llvm::FunctionType::get(
+                    LLVMIntTy, {LLVMVectorPtrTy}, false));
 
     visit(Root);
 
@@ -2182,4 +2184,16 @@ llvm::Value *CodeGenPass::visitFilter(Filter *Flt) {
     }
     IR.CreateCall(ShutdownFilterExprBuilder, {});
     return IR.CreateLoad(ResultTuple);
+}
+
+llvm::Value *CodeGenPass::visitBuiltInLen(LengthFunc *Len){
+    llvm::Value *Vec = visit(Len->getVector());
+
+    auto VecTy = PM->getAnnotation<ExprTypeAnnotatorPass>(Len->getVector());
+
+    if(isa<VectorTy>(VecTy)){
+        return IR.CreateCall(LengthBuiltIn, {Vec});
+    }
+
+    assert(false && "Invalid variable type for length() function");
 }

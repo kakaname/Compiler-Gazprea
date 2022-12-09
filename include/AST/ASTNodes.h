@@ -1512,4 +1512,22 @@ struct AppendNode : public TreeNode {
     AppendNode() : TreeNode(TreeNodeKind::N_AST_AppendNode) {};
 };
 
+struct LengthFunc : public TreeNode {
+    static constexpr int ExprIdx = 0;
+
+    static bool classof(const TreeNode *N) {
+        return N->getKind() == TreeNodeKind::N_AST_Length;
+    }
+    
+    void setVector(ASTNodeT * Expr){
+        setChildAt(ExprIdx, Expr);
+    }
+
+    ASTNodeT *getVector(){
+        return getChildAt(ExprIdx);
+    }
+
+    LengthFunc() : TreeNode(TreeNodeKind::N_AST_Length) {};
+
+};
 #endif //GAZPREABASE_ASTNODES_H

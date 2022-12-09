@@ -1354,6 +1354,14 @@ std::any ASTBuilderPass::visitFilterExpr(GazpreaParser::FilterExprContext *ctx) 
 }
 
 
+std::any ASTBuilderPass::visitBuiltInLen(GazpreaParser::BuiltInLenContext *ctx) {
+    auto Length = PM->Builder.build<LengthFunc>();
+    Length->setCtx(ctx);
+    Length->setVector(castToNodeVisit(ctx->expr()));
+
+    return cast<ASTNodeT>(Length);
+    
+}
 
 
 Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
@@ -1364,4 +1372,3 @@ Block *ASTBuilderPass::wrapStmtInBlock(ASTNodeT *Stmt) {
     Blk->addChild(Stmt);
     return Blk;
 }
-

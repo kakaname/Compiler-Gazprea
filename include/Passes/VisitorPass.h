@@ -328,6 +328,11 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return RetT();
     }
 
+    RetT visitBuiltInLen(LengthFunc *Len) {
+        visit(Len->getVector());
+        return RetT();
+    }
+
     RetT callVisitProgramImpl(Program *Prog) {
         return static_cast<DerivedT*>(this)->visitProgram(Prog);
     }
@@ -555,6 +560,10 @@ class VisitorPass: public ASTPassIDMixin<DerivedT> {
         return static_cast<DerivedT*>(this)->visitTupleDestruct(Tuple);
     }
 
+    RetT callVisitBuiltInLenImpl(LengthFunc *Len) {
+        return static_cast<DerivedT*>(this)->visitBuiltInLen(Len);
+    }
+
 public:
     RetT visit(ASTNodeT *Node) {
         assert(Node && "Tried to visit empty node");
@@ -735,6 +744,9 @@ public:
         
         if (auto *Dest = dyn_cast<TupleDestruct>(Node))
             return callVisitTupleDestructImpl(Dest);
+
+        if (auto *Len = dyn_cast<LengthFunc>(Node))
+            return callVisitBuiltInLenImpl(Len);
 
         assert(false && "Should be unreachable");
         return RetT();

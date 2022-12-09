@@ -755,6 +755,15 @@ Type *ExprTypeAnnotatorPass::visitFunctionCall(FunctionCall *Call) {
     return RetTy;
 }
 
+Type *ExprTypeAnnotatorPass::visitBuiltInLen(LengthFunc *Len){
+    visit(Len->getVector());
+
+    PM->setAnnotation<ExprTypeAnnotatorPass>(Len, PM->TypeReg.getIntegerTy());
+
+    return PM->TypeReg.getIntegerTy();
+
+}
+
 Type *ExprTypeAnnotatorPass::visitIntLiteral(IntLiteral *Int) const {
     PM->setAnnotation<ExprTypeAnnotatorPass>(Int, PM->TypeReg.getIntegerTy());
     return PM->TypeReg.getIntegerTy();

@@ -220,6 +220,18 @@ public:
 
     std::any visitFilterExpr(GazpreaParser::FilterExprContext *ctx) override;
 
+    std::any visitBuiltInLen(GazpreaParser::BuiltInLenContext *ctx) override;
+
+/*
+    std::any visitBuiltInRows(GazpreaParser::BuiltInRowsContext *ctx) override;
+
+    std::any visitBuiltInCol(GazpreaParser::BuiltInColContext *ctx) override;
+
+    std::any visitBuiltInReverse(GazpreaParser::BuiltInReverseContext *ctx) override;
+
+    std::any visitBuiltInStreamState(GazpreaParser::BuiltInStreamStateContext *ctx) override;
+    */
+
     Block *wrapStmtInBlock(ASTNodeT *Stmt);
 
     explicit ASTBuilderPass(antlr4::tree::ParseTree *F): File(F), Folder() {};

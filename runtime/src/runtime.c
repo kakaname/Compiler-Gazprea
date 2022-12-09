@@ -276,3 +276,6 @@ float rt_scan_real() {
     return read_in_float;
 }
 
+int64_t rt_length_built_in(struct vector *v) {
+    return v->size;
+}

@@ -53,6 +53,7 @@ struct ExprTypeAnnotatorPass : VisitorPass<ExprTypeAnnotatorPass, Type*> {
     Type *visitFilter(Filter *Filter);
     Type *visitDomainLoop(DomainLoop *Loop);
     Type *visitTupleDestruct(TupleDestruct *Destruct);
+    Type *visitBuiltInLen(LengthFunc *Len);
 
     void setOpaqueTyCastTargetTy(Type *Ty) {
         OpaqueTyCastTarget = Ty;

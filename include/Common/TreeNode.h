@@ -80,7 +80,12 @@ public:
         N_AST_MatrixGenerator,
         N_AST_PredicatedList,
         N_AST_Filter,
-        N_AST_AppendNode
+        N_AST_AppendNode,
+        N_AST_Length,
+        N_AST_Row,
+        N_AST_Col,
+        N_AST_Reverse,
+        N_AST_StreamState
     };
 
     TreeNodeKind getKind() const {
