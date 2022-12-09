@@ -118,6 +118,20 @@ public:
         Children.push_back(Child);
     }
 
+    // Insert child node
+    void insertChildBefore(const TreeNode *Target, TreeNode *New) {
+        auto Loc = std::find(Children.begin(), Children.end(), Target);
+
+        if(Loc == Children.end())
+            throw std::runtime_error("Tried to replace a non existent child");
+
+        if (New)
+            New->setParent(this);
+
+        Children.insert(Loc, New);
+    }
+
+
     ChildrenContainerT::iterator begin() {
         return Children.begin();
     }

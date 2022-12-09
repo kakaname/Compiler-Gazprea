@@ -980,8 +980,14 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
     Type *WidestType = nullptr;
     bool IsFirst = true;
 
-    if (!VecLit->numOfChildren())
-        throw runtime_error("Unimplemented");
+    if (!VecLit->numOfChildren()) {
+        auto ResTy = TypeReg->getVectorType(TypeReg->getIntegerTy(), 0, true);
+        auto LiteralSize = PM->Builder.build<IntLiteral>();
+        LiteralSize->setIntVal(0);
+        cast<VectorTy>(ResTy)->setSizeExpr(LiteralSize);
+        annotate(VecLit, ResTy);
+        return ResTy;
+    }
 
     for (auto ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
@@ -1052,7 +1058,7 @@ Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
     Type *CharTy = PM->TypeReg.getCharTy();
 
     // Get the vector type
-    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    auto StrTy = dyn_cast<VectorTy>(PM->TypeReg.getVectorType(CharTy, (int) StrLit->numOfChildren(), true, true));
     annotate(StrLit, StrTy);
     return StrTy;
 
@@ -1064,6 +1070,12 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
     if (isa<VectorTy>(BaseTy)) {
         auto VecTy = dyn_cast<VectorTy>(BaseTy);
         auto IdxTy = visit(Idx->getIndexExpr());
+
+        if (isa<IntervalTy>(IdxTy)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            IdxTy = CastedTy;
+        }
 
         if (isa<IntegerTy>(IdxTy)) {
             auto ResultTy = VecTy->getInnerTy();
@@ -1085,6 +1097,19 @@ Type *ExprTypeAnnotatorPass::visitIndex(Index *Idx) {
         auto MatTy = dyn_cast<MatrixTy>(BaseTy);
         auto Idx1Ty = visit(Idx->getIndexExpr());
         auto Idx2Ty = visit(Idx->getIndex2Expr());
+
+        if (isa<IntervalTy>(Idx1Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndexExpr(wrapWithCastTo(Idx->getIndexExpr(), CastedTy));
+            Idx1Ty = CastedTy;
+        }
+
+        if (isa<IntervalTy>(Idx2Ty)) {
+            auto CastedTy = TypeReg->getVectorType(TypeReg->getIntegerTy());
+            Idx->setIndex2Expr(wrapWithCastTo(Idx->getIndex2Expr(), CastedTy));
+            Idx2Ty = CastedTy;
+        }
+
         if (isa<IntegerTy>(Idx1Ty) && isa<IntegerTy>(Idx2Ty)) {
             auto ResultTy = MatTy->getInnerTy();
             PM->setAnnotation<ExprTypeAnnotatorPass>(Idx, ResultTy);
@@ -1278,6 +1303,8 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto LVecTy = cast<VectorTy>(LType);
     auto RVecTy = cast<VectorTy>(RType);
 
+    auto IsString = (LVecTy->isString() || RVecTy->isString());
+
     auto LInner = LVecTy->getInnerTy();
     auto RInner = RVecTy->getInnerTy();
 
@@ -1294,7 +1321,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     if (LInner->isSameTypeAs(RInner)) {
         Concat->setLHS(LExpr);
         Concat->setRHS(RExpr);
-        auto ResTy = TypeReg->getVectorType(LInner);
+        auto ResTy = TypeReg->getVectorType(LInner, -1, true, IsString);
         annotateWithConst(Concat, ResTy);
         return ResTy;
     }
@@ -1309,7 +1336,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
 
     Concat->setLHS(LExpr);
     Concat->setRHS(RExpr);
-    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen);
+    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen, true, IsString);
     annotateWithConst(Concat, ResTy);
     return ResTy;
 }

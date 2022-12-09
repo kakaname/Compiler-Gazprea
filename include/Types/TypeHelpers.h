@@ -10,6 +10,7 @@
 #include "CompositeTypes.h"
 #include "ScalarTypes.h"
 #include "TypeRegistry.h"
+#include "Common/MatchBoolPair.h"
 
 using llvm::dyn_cast;
 using llvm::isa;
@@ -69,27 +70,6 @@ bool isSameVectorAs(Type* BaseType, Type *TargetTy) {
     return BaseTy->getSize() == TargetVecTy->getSize();
 }
 
-bool isSameStringAs(Type* BaseType, Type *TargetTy) {
-    auto BaseTy = cast<StringTy>(BaseType);
-    auto TargetStrTy = dyn_cast<StringTy>(TargetTy);
-
-    if (!TargetStrTy)
-        return false;
-
-    // The inner type must be the same.
-    if (!BaseTy->getInnerTy()->isSameTypeAs(TargetStrTy->getInnerTy()))
-        return false;
-
-    // If any of the sizes are not known, we assume they are the same type.
-    // In this case the program will fail at runtime is this is not the case.
-    if (!BaseTy->isSizeKnown() || !TargetStrTy->isSizeKnown())
-        return true;
-
-    // Sizes of both vectors are known. If they are different, the types are
-    // different.
-    return BaseTy->getSize() == TargetStrTy->getSize();
-}
-
 bool canPromoteTupleTo(Type *BaseTy, Type *TargetTy) {
     auto BaseTuple = cast<TupleTy>(BaseTy);
     auto TargetTuple = dyn_cast<TupleTy>(TargetTy);
@@ -100,10 +80,34 @@ bool canPromoteTupleTo(Type *BaseTy, Type *TargetTy) {
     if (BaseTuple->getNumOfMembers() != TargetTuple->getNumOfMembers())
         return false;
 
-    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++)
-        if (!BaseTuple->getMemberTypeAt(I)->canPromoteTo(
-                TargetTuple->getMemberTypeAt(I)))
-            return false;
+    for (int I = 0; I < BaseTuple->getNumOfMembers(); I++) {
+        auto BaseMem = BaseTuple->getMemberTypeAt(I);
+        auto TargetMem = TargetTuple->getMemberTypeAt(I);
+        matchBoolPair(BaseMem->isCompositeTy(),
+                      TargetMem->isCompositeTy()) {
+            matchPattern(false, false): {
+                if (!BaseMem->canPromoteTo(TargetMem))
+                    return false;
+                break;
+            }
+            matchPattern(true, false): {
+                return false;
+            }
+            matchPattern(false, true): {
+                auto InnerTy = TypeRegistry::getInnerTyFromComposite(TargetMem);
+                if (!BaseMem->canPromoteTo(InnerTy))
+                    return false;
+                break;
+            }
+            matchPattern(true, true): {
+                auto BaseInner = TypeRegistry::getInnerTyFromComposite(BaseMem);
+                auto TargetInner = TypeRegistry::getInnerTyFromComposite(TargetMem);
+                if (!BaseInner->canPromoteTo(TargetInner))
+                    return false;
+                break;
+            }
+        }
+    }
     return true;
 }
 
@@ -175,20 +179,6 @@ std::string getVectorTypeName(Type *Ty) {
     }
     if (VectorType->getSizeExpr())
         TypeName += " expr";
-    TypeName += "])";
-    return TypeName;
-}
-
-std::string getStringTypeName(Type *Ty) {
-    auto StringType = cast<StringTy>(Ty);
-    std::string TypeName = "string(";
-    TypeName += StringType->getInnerTy()->getTypeName();
-    TypeName += "[";
-    int NumOfElements = StringType->getSize();
-    if (NumOfElements < 0)
-        TypeName += "*";
-    else
-        TypeName += std::to_string(NumOfElements);
     TypeName += "])";
     return TypeName;
 }
