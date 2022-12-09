@@ -1,0 +1,26 @@
+procedure p(const integer[1,1] x) {
+   /* Some code here */
+   x -> std_output;
+}
+
+procedure main() returns integer {
+  // vector decl
+   // base
+   const integer[1,1] a = [[1]];
+   const boolean[1,1] b = [[true]];
+   const character[1,1] c = [['a']];
+   const real[1,1] d = [[4.2069]];
+
+    a-> std_output;
+    '\n' -> std_output;
+    b-> std_output;
+    '\n' -> std_output;
+    c-> std_output;
+    '\n' -> std_output;
+    d-> std_output;
+    '\n' -> std_output;
+    call p(a);
+
+  /* must have a return */
+  return 0;
+}

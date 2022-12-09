@@ -1,6 +1,13 @@
 procedure main() returns integer {
-  // to be done
-    
-  /* must have a return */
+  integer x;
+  integer y;
+  integer z;
+  x <- std_input;  
+  stream_state(std_input) -> std_output;
+  y <- std_input;  
+  stream_state(std_input) -> std_output;
+  z <- std_input;  
+  stream_state(std_input) -> std_output;
+
   return 0;
 }

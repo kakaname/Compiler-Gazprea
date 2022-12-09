@@ -1,0 +1,38 @@
+procedure p(var integer[1,1] x) {
+   /* Some code here */
+   x -> std_output;
+}
+
+procedure main() returns integer {
+  // vector decl
+   // base
+   var integer[1,1] a = [[1]];
+   var boolean[1,1] b = [[true]];
+   var character[1,1] c = [['a']];
+   var real[1,1] d = [[4.2069]];
+
+    a-> std_output;
+    '\n' -> std_output;
+    b-> std_output;
+    '\n' -> std_output;
+    c-> std_output;
+    '\n' -> std_output;
+    d-> std_output;
+    '\n' -> std_output;
+
+    a = [[2]];
+    b = [[false]];
+    c = [['b']];
+    d = [[3.60]];
+
+    a-> std_output;
+    '\n' -> std_output;
+    b-> std_output;
+    '\n' -> std_output;
+    c-> std_output;
+    '\n' -> std_output;
+    d-> std_output;
+
+  /* must have a return */
+  return 0;
+}

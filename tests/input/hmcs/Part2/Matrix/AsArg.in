@@ -1,0 +1,19 @@
+procedure plus_one(var integer[1,5] x) {
+   /* Some code here */
+   x = x + 1;
+}
+
+function another_one (integer[1,5] x) returns integer[1,5] {
+    return x + 1;
+}
+
+procedure main() returns integer {
+  // vector decl
+   // base
+   var integer[1,5] a = [[1,2,3,4,5]];
+    call plus_one(a);
+    another_one(a) -> std_output;
+
+  /* must have a return */
+  return 0;
+}

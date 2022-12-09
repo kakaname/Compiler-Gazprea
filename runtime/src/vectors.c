@@ -311,7 +311,7 @@ struct vector *rt_rev_built_in(struct vector *v){
     newV->type = v->type;
     newV->data = rt_get_data_alloc_for_vec(newV->size, newV->type, NULL);
 
-    if(v->size > 1){
+    if(v->size >= 1){
         switch (v->type) {
             case VECTOR_TYPE_BOOL:
             case VECTOR_TYPE_CHAR:
