@@ -1,0 +1,18 @@
+procedure print_that_shi(integer[4] vec){
+    vec -> std_output;
+}
+function add_some(integer[4] vec) returns integer[4]{
+    return vec + 1;
+}
+procedure main() returns integer {
+  // vector dot product
+   integer[4] a = [1,2,3,4];
+
+    call print_that_shi(a);
+    a = add_some(a);
+    '\n' -> std_output;
+    call print_that_shi(a);
+
+  /* must have a return */
+  return 0;
+}

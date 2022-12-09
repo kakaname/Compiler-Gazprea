@@ -1,0 +1,8 @@
+procedure main() returns integer {
+  // vector dot product
+   integer[4] a = [1,2,3,4];
+
+
+  /* must have a return */
+  return 0;
+}
