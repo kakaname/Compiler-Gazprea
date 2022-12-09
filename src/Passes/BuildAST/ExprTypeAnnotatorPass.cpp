@@ -1052,7 +1052,7 @@ Type *ExprTypeAnnotatorPass::visitStringLiteral(StringLiteral *StrLit) {
     Type *CharTy = PM->TypeReg.getCharTy();
 
     // Get the vector type
-    auto StrTy = PM->TypeReg.getStringType(CharTy, (int) StrLit->numOfChildren());
+    auto StrTy = dyn_cast<VectorTy>(PM->TypeReg.getVectorType(CharTy, (int) StrLit->numOfChildren(), true, true));
     annotate(StrLit, StrTy);
     return StrTy;
 
@@ -1255,24 +1255,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto RExpr = Concat->getRHS();
     auto LType = visit(LExpr);
     auto RType = visit(RExpr);
-
-    if (isa<StringTy>(LType) && isa<StringTy>(RType)) {
-
-        auto LVecTy = cast<StringTy>(LType);
-        auto RVecTy = cast<StringTy>(RType);
-        auto ResLen = [&]() {
-            // If either of the sizes is unknown, the result size is unknown.
-            if (!LVecTy->isSizeKnown() || !RVecTy->isSizeKnown())
-                return -1;
-            // Otherwise both sizes are known and the result has size as the sum
-            // of the two.
-            return LVecTy->getSize() + RVecTy->getSize();
-        }();
-        auto ResTy = TypeReg->getStringType(TypeReg->getCharTy(), ResLen);
-        annotateWithConst(Concat, ResTy);
-        return ResTy;
-
-    }
+    
 
     if (!isa<VectorTy>(LType) && !isa<VectorTy>(RType))
         throw runtime_error("At least one of the operands of a concat must be"
@@ -1296,6 +1279,8 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     auto LVecTy = cast<VectorTy>(LType);
     auto RVecTy = cast<VectorTy>(RType);
 
+    auto IsString = (LVecTy->isString() || RVecTy->isString());
+
     auto LInner = LVecTy->getInnerTy();
     auto RInner = RVecTy->getInnerTy();
 
@@ -1312,7 +1297,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
     if (LInner->isSameTypeAs(RInner)) {
         Concat->setLHS(LExpr);
         Concat->setRHS(RExpr);
-        auto ResTy = TypeReg->getVectorType(LInner);
+        auto ResTy = TypeReg->getVectorType(LInner, -1, true, IsString);
         annotateWithConst(Concat, ResTy);
         return ResTy;
     }
@@ -1327,7 +1312,7 @@ Type *ExprTypeAnnotatorPass::visitDotProduct(DotProduct *Dot) {
 
     Concat->setLHS(LExpr);
     Concat->setRHS(RExpr);
-    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen);
+    auto ResTy = TypeReg->getVectorType(WiderTy, ResLen, true, IsString);
     annotateWithConst(Concat, ResTy);
     return ResTy;
 }
