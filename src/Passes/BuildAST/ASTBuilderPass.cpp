@@ -218,6 +218,9 @@ std::any ASTBuilderPass::visitDomainLoop(GazpreaParser::DomainLoopContext *ctx) 
         Loop = PM->Builder.build<DomainLoop>();
         Loop->setCtx(ctx);
         Loop->setBody(Blk);
+        if (i == 0) {
+            Loop->setBreakable(true);
+        }
         auto thisExpr = ctx->expr(i);
         Loop->setDomain(castToNodeVisit(thisExpr));
         Blk->setParent(Loop);

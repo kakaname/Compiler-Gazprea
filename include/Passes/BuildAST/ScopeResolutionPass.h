@@ -411,8 +411,10 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             DomainVarTy = PM->TypeReg.getIntegerTy();
         }
 
+
         auto Sym = PM->SymTable.defineObject(Gen->getDomainVar()->getName(), DomainVarTy);
         Gen->getDomainVar()->setReferred(Sym);
+        Gen->getDomainVar()->setIdentType(DomainVarTy);
         CurrentScope->declareInScope(Gen->getDomainVar()->getName(), Sym);
 
         visit(Gen->getExpr());
@@ -440,6 +442,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             RowDomainVarTy = PM->TypeReg.getIntegerTy();
         }
         auto RowSym = PM->SymTable.defineObject(Gen->getRowDomainVar()->getName(), RowDomainVarTy);
+        Gen->getRowDomainVar()->setIdentType(RowDomainVarTy);
         Gen->getRowDomainVar()->setReferred(RowSym);
         CurrentScope->declareInScope(Gen->getRowDomainVar()->getName(), RowSym);
 
@@ -452,6 +455,7 @@ struct ScopeResolutionPass : VisitorPass<ScopeResolutionPass, void> {
             ColumnDomainVarTy = PM->TypeReg.getIntegerTy();
         }
         auto ColumnSym = PM->SymTable.defineObject(Gen->getColumnDomainVar()->getName(), ColumnDomainVarTy);
+        Gen->getColumnDomainVar()->setIdentType(ColumnDomainVarTy);
         Gen->getColumnDomainVar()->setReferred(ColumnSym);
         CurrentScope->declareInScope(Gen->getColumnDomainVar()->getName(), ColumnSym);
 

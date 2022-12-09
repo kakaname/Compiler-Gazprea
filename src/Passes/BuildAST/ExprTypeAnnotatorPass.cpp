@@ -985,6 +985,7 @@ Type *ExprTypeAnnotatorPass::visitVectorLiteral(VectorLiteral *VecLit) {
 
     for (auto ChildExpr : *VecLit) {
         auto ChildTy = visit(ChildExpr);
+        ChildTy = PM->TypeReg.getConstTypeOf(ChildTy);
 
 //        // If a vector has an inner type of vector of scalars, then it is a matrix
 //        if (isa<VectorTy>(ChildTy)) {
