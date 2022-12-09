@@ -320,12 +320,12 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
 
     // Try to constant fold it.
     long VecSize = -1;
-    try {
-        VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
-        if(isString)
-            return PM->TypeReg.getStringType(Type, (int) VecSize);
-        return PM->TypeReg.getVectorType(Type, (int) VecSize);
-    } catch (exception&) {}
+//    try {
+//        VecSize = std::any_cast<long>(Folder.visit(Size->expr()));
+//        if(isString)
+//            return PM->TypeReg.getStringType(Type, (int) VecSize);
+//        return PM->TypeReg.getVectorType(Type, (int) VecSize);
+//    } catch (exception&) {}
 
     // If the size cannot be folded, then there must an expression
     // specifying the size.
@@ -333,9 +333,9 @@ std::any ASTBuilderPass::visitVectorType(GazpreaParser::VectorTypeContext *ctx) 
     auto VecTy = PM->TypeReg.getVectorType(Type, (int) VecSize, false);
     cast<VectorTy>(VecTy)->setSizeExpr(SizeTree);
 
-    if(isString){
-        return PM->TypeReg.getStringType(Type, -1, false);
-    }
+//    if(isString){
+//        return PM->TypeReg.getStringType(Type, -1, false);
+//    }
     return VecTy;
 }
 

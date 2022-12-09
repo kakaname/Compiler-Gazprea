@@ -167,10 +167,14 @@ std::string getVectorTypeName(Type *Ty) {
     TypeName += VectorType->getInnerTy()->getTypeName();
     TypeName += "[";
     int NumOfElements = VectorType->getSize();
-    if (NumOfElements < 0)
+    if (NumOfElements < 0) {
         TypeName += "*";
-    else
+    }
+    else {
         TypeName += std::to_string(NumOfElements);
+    }
+    if (VectorType->getSizeExpr())
+        TypeName += " expr";
     TypeName += "])";
     return TypeName;
 }

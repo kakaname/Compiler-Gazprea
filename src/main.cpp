@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
 
     Manager.registerPass(ChangeMemAccessToMemRef());
     Manager.registerPass(ExprTypeAnnotatorPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerPass(SimplifyTupleCasting());
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
     Manager.registerPass(NullIdentityTypeCastPass());
     Manager.registerPass(ExprTypeAnnotatorPass());
     Manager.registerAnonymousPass(BubbleGlobalDeclarationPass());
-    Manager.registerPass(ASTPrinterPassWithTypes());
+//    Manager.registerPass(ASTPrinterPassWithTypes());
 
     Manager.runAllPasses();
     auto CG = CodeGenPass(argv[2]);
